@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Thermal scale colours */
+.thermal-cold-3 { background-color: #1565C0; }
+.thermal-cold-2 { background-color: #42A5F5; }
+.thermal-cold-1 { background-color: #90CAF9; }
+.thermal-neutral { background-color: #66BB6A; }
+.thermal-warm-1 { background-color: #FFB74D; }
+.thermal-warm-2 { background-color: #FF7043; }
+.thermal-warm-3 { background-color: #D32F2F; }
+
+/* Comfort score ring animation */
+@keyframes score-fill {
+  from { stroke-dashoffset: 314; }
+}
+.score-ring { animation: score-fill 1s ease-out forwards; }
