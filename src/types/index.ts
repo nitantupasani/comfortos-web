@@ -114,12 +114,21 @@ export interface SduiNode {
 /* ── Vote Form Schema ─────────────────────────────────── */
 export interface VoteFormField {
   id: string;
+  key?: string;
   type: string;
   question: string;
+  label?: string;
   required?: boolean;
   options?: VoteFormOption[];
   maxStars?: number;
+  max?: number;
+  min?: number;
+  defaultValue?: number;
+  labels?: Record<string, string>;
   maxLength?: number;
+  hint?: string;
+  yesLabel?: string;
+  noLabel?: string;
 }
 
 export interface VoteFormOption {
@@ -133,8 +142,11 @@ export interface VoteFormOption {
 
 export interface VoteFormSchema {
   version: number;
+  schemaVersion?: number;
   title: string;
+  formTitle?: string;
   description?: string;
+  formDescription?: string;
   thanksMessage?: string;
   allowAnonymous?: boolean;
   cooldownMinutes?: number;

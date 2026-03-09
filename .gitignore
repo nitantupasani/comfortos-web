@@ -5,8 +5,7 @@ dist/
 
 # Environment variants
 .env.*
-!.env.example
-
+.env.example
 # Logs
 npm-debug.log*
 yarn-debug.log*
