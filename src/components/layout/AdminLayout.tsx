@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Building2,
   Users,
-  Settings,
   BarChart3,
   LogOut,
   Menu,
@@ -12,6 +11,8 @@ import {
   Eye,
   Activity,
   Plug,
+  PanelsTopLeft,
+  FileQuestion,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
@@ -38,7 +39,8 @@ const links = [
   { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
   { to: '/admin/building-analytics', icon: Activity, label: 'Building Analytics' },
   { to: '/admin/connectors', icon: Plug, label: 'Connectors' },
-  { to: '/admin/config', icon: Settings, label: 'Config Editor' },
+  { to: '/admin/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
+  { to: '/admin/vote-config', icon: FileQuestion, label: 'Vote Form Config' },
 ];
 
 export default function AdminLayout() {

@@ -28,7 +28,8 @@ import BuildingManagement from '../pages/admin/BuildingManagement';
 import TenantManagement from '../pages/admin/TenantManagement';
 import VoteAnalytics from '../pages/admin/VoteAnalytics';
 import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
-import ConfigEditor from '../pages/admin/ConfigEditor';
+import AdminDashboardConfig from '../pages/admin/DashboardConfig';
+import AdminVoteFormConfig from '../pages/admin/VoteFormConfig';
 import FMApprovals from '../pages/admin/FMApprovals';
 import ConnectorManagement from '../pages/admin/ConnectorManagement';
 
@@ -38,7 +39,8 @@ import BuildingOverview from '../pages/fm/BuildingOverview';
 import ComfortAnalytics from '../pages/fm/ComfortAnalytics';
 import FMBuildingAnalytics from '../pages/fm/BuildingAnalytics';
 import FMNotifications from '../pages/fm/Notifications';
-import FMConfigEditor from '../pages/fm/ConfigEditor';
+import FMDashboardConfig from '../pages/fm/DashboardConfig';
+import FMVoteFormConfig from '../pages/fm/VoteFormConfig';
 
 export default function AppRouter() {
   const user = useAuthStore((s) => s.user);
@@ -134,7 +136,8 @@ export default function AppRouter() {
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
         <Route path="/admin/building-analytics" element={<BuildingAnalytics />} />
         <Route path="/admin/connectors" element={<ConnectorManagement />} />
-        <Route path="/admin/config" element={<ConfigEditor />} />
+        <Route path="/admin/dashboard-config" element={<AdminDashboardConfig />} />
+        <Route path="/admin/vote-config" element={<AdminVoteFormConfig />} />
         <Route path="/admin/fm-approvals" element={<FMApprovals />} />
       </Route>
 
@@ -150,7 +153,8 @@ export default function AppRouter() {
         <Route path="/fm/buildings" element={<BuildingOverview />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
-        <Route path="/fm/config" element={<FMConfigEditor />} />
+        <Route path="/fm/dashboard-config" element={<FMDashboardConfig />} />
+        <Route path="/fm/vote-config" element={<FMVoteFormConfig />} />
         <Route path="/fm/connectors" element={<ConnectorManagement />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
       </Route>

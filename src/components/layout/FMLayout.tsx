@@ -4,12 +4,13 @@ import {
   Building2,
   BarChart3,
   Bell,
-  Settings,
   LogOut,
   Menu,
   X,
   Activity,
   Plug,
+  PanelsTopLeft,
+  FileQuestion,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
@@ -19,7 +20,8 @@ const links = [
   { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
   { to: '/fm/building-analytics', icon: Activity, label: 'Building Analytics' },
-  { to: '/fm/config', icon: Settings, label: 'Building Config' },
+  { to: '/fm/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
+  { to: '/fm/vote-config', icon: FileQuestion, label: 'Vote Form Config' },
   { to: '/fm/connectors', icon: Plug, label: 'Connectors' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];
