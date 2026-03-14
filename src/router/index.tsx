@@ -151,6 +151,7 @@ export default function AppRouter() {
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
         <Route path="/fm/config" element={<FMConfigEditor />} />
+        <Route path="/fm/connectors" element={<ConnectorManagement />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
       </Route>
 

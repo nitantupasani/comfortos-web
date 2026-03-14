@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   Activity,
+  Plug,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
@@ -19,6 +20,7 @@ const links = [
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
   { to: '/fm/building-analytics', icon: Activity, label: 'Building Analytics' },
   { to: '/fm/config', icon: Settings, label: 'Building Config' },
+  { to: '/fm/connectors', icon: Plug, label: 'Connectors' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];
 
