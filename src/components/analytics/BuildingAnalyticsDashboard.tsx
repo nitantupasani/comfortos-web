@@ -951,7 +951,7 @@ app.listen(8080);`} />
   "auth_type": "oauth2_client_credentials",
   "auth_config": {
     "token_url": "https://your-idp.example.com/oauth2/token",
-    "client_id": "comfortos-poller",
+    "client_id": "your-client-id",
     "client_secret": "your-client-secret",
     "scope": "read:telemetry"
   }
@@ -1041,7 +1041,7 @@ app.listen(8080);`} />
                     <CopyBlock language="json" code={`{
   "auth_type": "basic_auth",
   "auth_config": {
-    "username": "comfortos-service",
+    "username": "your-service-username",
     "password": "your-password"
   }
 }`} />
