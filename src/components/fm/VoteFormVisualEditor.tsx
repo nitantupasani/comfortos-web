@@ -24,17 +24,42 @@ const FIELD_TYPES = [
 const fieldMeta = (type: string) => FIELD_TYPES.find((t) => t.value === type) ?? FIELD_TYPES[0];
 
 /* ── Common emoji palette ────────────────────────────── */
+// Emojis grouped by category — displayed in a scrollable grid
 const EMOJI_PALETTE = [
-  // temperature
-  '🥶','❄️','🧊','🌡️','🔥','☀️','🥵',
-  // comfort
-  '😊','😐','😟','😤','😓','😌','🤗',
-  // air
-  '💨','🌬️','😶‍🌫️','💧','🏜️','🤢','🌿',
-  // rating
-  '👍','👎','✅','⚠️','❌','⭐','💯',
-  // misc
-  '🪴','☕','🍕','📶','🎵','💡','🔔','🪟','🚿','🏢',
+  // Faces — positive
+  '😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇',
+  '🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚',
+  '😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔',
+  // Faces — neutral / negative
+  '😐','😑','😶','🙄','😏','😒','🤨','😞','😔','😟',
+  '😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭',
+  '😤','😠','😡','🤬','😳','🥵','🥶','😱','😨','😰',
+  '😥','😓','🤯','😷','🤒','🤕','🤢','🤮','🤧','😵',
+  // Gestures & hands
+  '👍','👎','👌','🤌','✌️','🤞','🤟','🤘','🤙','👋',
+  '🤚','🖐️','✋','🖖','👏','🙌','🤲','🤝','🙏','💪',
+  '🦾','☝️','👆','👇','👈','👉','🫵','💅','✍️','🫱',
+  // Symbols / status
+  '✅','❌','⚠️','🚫','💯','❓','❗','‼️','🔴','🟠',
+  '🟡','🟢','🔵','🟣','⭐','🌟','💫','✨','🔥','💥',
+  '💢','💨','💦','💧','🌊','❄️','🧊','🌡️','☀️','🌤️',
+  '⛅','🌥️','🌦️','🌧️','⛈️','🌩️','🌪️','🌫️','🌬️','🌈',
+  // Nature & weather
+  '🥶','🥵','🌿','🍃','🌱','🌲','🌳','🌴','🌵','🎋',
+  '🍀','🌾','🌺','🌸','🌼','🌻','🌹','🍁','🍂','🪴',
+  // Food & drink
+  '☕','🍵','🧃','🥤','🍺','🍷','🥂','💊','🧴','🧹',
+  '🍕','🍔','🥗','🍜','🍣','🍎','🍇','🍓','🥑','🍫',
+  // Objects & places
+  '🏢','🏠','🏡','🛏️','🛋️','🪑','🚿','🛁','🪟','🚪',
+  '💡','🔦','🕯️','🔔','🔕','📢','📣','🎵','🎶','🎧',
+  '📱','💻','🖥️','⌨️','🖱️','📡','📶','🔋','🔌','🧲',
+  '🌡️','🧪','🔬','📊','📈','📉','🗓️','📋','📌','📍',
+  '🔑','🗝️','🔒','🔓','🗃️','📂','🗑️','🛠️','⚙️','🔧',
+  '🚗','🚕','🚌','🚲','🛴','✈️','🚂','⛽','🅿️','🚦',
+  // Activities
+  '🏃','🚶','🧍','🧘','🏋️','🤸','🧗','🏊','🚴','⚽',
+  '🏀','🎾','🏓','🎯','🎮','🎲','♟️','🎭','🎨','🖌️',
 ];
 
 /* ── Props ───────────────────────────────────────────── */
@@ -476,7 +501,7 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, openAbove: false });
   const btnRef = useRef<HTMLButtonElement>(null);
-  const PICKER_HEIGHT = 280; // approximate height of the palette
+  const PICKER_HEIGHT = 320; // approximate height of the palette
 
   const reposition = useCallback(() => {
     if (!btnRef.current) return;
@@ -526,11 +551,11 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
           <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
           {/* Palette */}
           <div
-            className="fixed z-[9999] rounded-xl border border-gray-200 bg-white p-2 shadow-xl w-[260px]"
+            className="fixed z-[9999] rounded-xl border border-gray-200 bg-white p-2 shadow-xl w-[320px]"
             style={{ top: coords.top, left: coords.left }}
           >
             <p className="text-[10px] font-medium text-gray-400 mb-1.5 px-1">Pick an emoji</p>
-            <div className="grid grid-cols-8 gap-0.5">
+            <div className="grid grid-cols-10 gap-0.5 max-h-56 overflow-y-auto">
               {EMOJI_PALETTE.map((emoji) => (
                 <button
                   key={emoji}
