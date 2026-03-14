@@ -27,6 +27,13 @@ import {
   type AuthType,
 } from '../../api/connectors';
 
+const STANDARD_METRICS = [
+  { key: 'temperature', label: 'Temperature', icon: '🌡️' },
+  { key: 'co2', label: 'CO₂', icon: '💨' },
+  { key: 'humidity', label: 'Humidity', icon: '💧' },
+  { key: 'noise', label: 'Noise', icon: '🔊' },
+] as const;
+
 const AUTH_TYPE_LABELS: Record<AuthType, { label: string; description: string }> = {
   bearer_token: { label: 'Bearer Token', description: 'Static token in Authorization header' },
   oauth2_client_credentials: { label: 'OAuth 2.0 Client Credentials', description: 'M2M token exchange via client ID & secret' },
@@ -267,6 +274,18 @@ export default function ConnectorManagement() {
                     <span className="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-mono text-gray-500 uppercase">
                       {conn.authType.replace(/_/g, ' ')}
                     </span>
+                    {conn.availableMetrics && conn.availableMetrics.length > 0 && (
+                      <span className="flex items-center gap-1">
+                        {conn.availableMetrics.map((m) => {
+                          const std = STANDARD_METRICS.find((s) => s.key === m);
+                          return (
+                            <span key={m} className="px-1.5 py-0.5 bg-primary-50 border border-primary-200 rounded text-[10px] text-primary-700 font-medium">
+                              {std ? std.icon : '📊'} {std ? std.label : m}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                     <span className="font-mono truncate max-w-xs">{conn.baseUrl}</span>
@@ -382,6 +401,21 @@ export default function ConnectorManagement() {
                       <span className="text-gray-500">Total Polls</span>
                       <p className="text-gray-700">{conn.totalPolls}</p>
                     </div>
+                    {conn.availableMetrics && conn.availableMetrics.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Declared Metrics</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {conn.availableMetrics.map((m) => {
+                            const std = STANDARD_METRICS.find((s) => s.key === m);
+                            return (
+                              <span key={m} className="px-2 py-0.5 bg-primary-50 border border-primary-200 rounded-full text-xs text-primary-700">
+                                {std ? `${std.icon} ${std.label}` : `📊 ${m}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     {conn.description && (
                       <div className="col-span-2">
                         <span className="text-gray-500">Description</span>
@@ -445,12 +479,18 @@ function CreateConnectorModal({
   const [interval, setInterval] = useState(15);
   const [useMappingToggle, setUseMappingToggle] = useState(false);
   const [mappingJson, setMappingJson] = useState('');
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [customMetric, setCustomMetric] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!name || !baseUrl) {
       setError('Name and URL are required');
+      return;
+    }
+    if (selectedMetrics.length === 0) {
+      setError('Select at least one metric type that your service provides');
       return;
     }
     setSaving(true);
@@ -470,6 +510,7 @@ function CreateConnectorModal({
         authConfig,
         pollingIntervalMinutes: interval,
         responseMapping,
+        availableMetrics: selectedMetrics,
       };
       const res = await connectorsApi.create(data);
       onCreated(res);
@@ -514,6 +555,95 @@ function CreateConnectorModal({
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Available Metrics */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              What data does your service provide?
+            </label>
+            <p className="text-xs text-gray-400 mb-3">
+              Select the sensor types available from your building service. ComfortOS will only query and store these metrics.
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {STANDARD_METRICS.map((m) => {
+                const isSelected = selectedMetrics.includes(m.key);
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() =>
+                      setSelectedMetrics((prev) =>
+                        isSelected ? prev.filter((x) => x !== m.key) : [...prev, m.key]
+                      )
+                    }
+                    className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-colors ${
+                      isSelected
+                        ? 'border-primary-300 bg-primary-50 ring-1 ring-primary-200'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg">{m.icon}</span>
+                    <span className="text-sm font-medium text-gray-800">{m.label}</span>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary-600 ml-auto" />}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Custom metric */}
+            <div className="flex items-center gap-2">
+              <input
+                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                placeholder="Add custom metric type (e.g. light, occupancy)"
+                value={customMetric}
+                onChange={(e) => setCustomMetric(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = customMetric.trim().toLowerCase();
+                    if (val && !selectedMetrics.includes(val)) {
+                      setSelectedMetrics((prev) => [...prev, val]);
+                    }
+                    setCustomMetric('');
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const val = customMetric.trim().toLowerCase();
+                  if (val && !selectedMetrics.includes(val)) {
+                    setSelectedMetrics((prev) => [...prev, val]);
+                  }
+                  setCustomMetric('');
+                }}
+                className="px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {/* Show custom metrics as removable pills */}
+            {selectedMetrics.filter((m) => !STANDARD_METRICS.some((s) => s.key === m)).length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {selectedMetrics
+                  .filter((m) => !STANDARD_METRICS.some((s) => s.key === m))
+                  .map((m) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 border border-primary-200 rounded-full text-xs text-primary-700"
+                    >
+                      📊 {m}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMetrics((prev) => prev.filter((x) => x !== m))}
+                        className="hover:text-red-600 font-bold"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Endpoint */}

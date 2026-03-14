@@ -22,6 +22,7 @@ export interface BuildingConnector {
   authType: AuthType;
   authConfig: Record<string, string>;
   responseMapping: ResponseMapping | null;
+  availableMetrics: string[] | null;
   pollingIntervalMinutes: number;
   isEnabled: boolean;
   lastPolledAt: string | null;
@@ -58,6 +59,7 @@ export interface ConnectorCreate {
   authType: AuthType;
   authConfig: Record<string, string>;
   responseMapping?: ResponseMapping;
+  availableMetrics?: string[];
   pollingIntervalMinutes?: number;
   isEnabled?: boolean;
 }
@@ -72,6 +74,7 @@ export interface ConnectorUpdate {
   authType?: AuthType;
   authConfig?: Record<string, string>;
   responseMapping?: ResponseMapping;
+  availableMetrics?: string[];
   pollingIntervalMinutes?: number;
   isEnabled?: boolean;
 }
