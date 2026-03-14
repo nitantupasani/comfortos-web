@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical,
   Type, Smile, Star, ToggleLeft, Sliders, Hash, MessageSquare,
@@ -448,29 +449,56 @@ function OptionsEditor({ field, onUpdate, showEmoji }: { field: VoteFormField; o
 }
 
 /* ──────────────────────────────────────────────────────── */
-/* ── Emoji picker (inline popover)                       */
+/* ── Emoji picker (portal popover — escapes overflow)    */
 /* ──────────────────────────────────────────────────────── */
 function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const reposition = useCallback(() => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setCoords({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX });
+  }, []);
+
+  const handleOpen = () => {
+    reposition();
+    setOpen((o) => !o);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={handleOpen}
         className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-lg hover:border-teal-300 transition"
         title="Pick emoji"
       >
         {value || <Smile className="h-4 w-4 text-gray-300" />}
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
           {/* Palette */}
-          <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-gray-200 bg-white p-2 shadow-lg w-[260px]">
+          <div
+            className="fixed z-[9999] rounded-xl border border-gray-200 bg-white p-2 shadow-xl w-[260px]"
+            style={{ top: coords.top, left: coords.left }}
+          >
             <p className="text-[10px] font-medium text-gray-400 mb-1.5 px-1">Pick an emoji</p>
             <div className="grid grid-cols-8 gap-0.5">
               {EMOJI_PALETTE.map((emoji) => (
@@ -494,7 +522,8 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
               />
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
