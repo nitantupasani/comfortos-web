@@ -16,6 +16,13 @@ body {
 .thermal-warm-2 { background-color: #FF7043; }
 .thermal-warm-3 { background-color: #D32F2F; }
 
+/* Shared input style for visual editors */
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition-colors focus:border-teal-400 focus:ring-2 focus:ring-teal-100;
+  }
+}
+
 /* Comfort score ring animation */
 @keyframes score-fill {
   from { stroke-dashoffset: 314; }
