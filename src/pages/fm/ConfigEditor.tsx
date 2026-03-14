@@ -3,6 +3,7 @@ import { Settings, Loader2, Building2, Eye, Save, CheckCircle, AlertCircle } fro
 import { buildingsApi } from '../../api/buildings';
 import SduiRenderer from '../../components/sdui/SduiRenderer';
 import VoteFormRenderer from '../../components/sdui/VoteFormRenderer';
+import VoteFormVisualEditor from '../../components/fm/VoteFormVisualEditor';
 import { useAuthStore } from '../../store/authStore';
 import type { Building, SduiNode, VoteFormSchema } from '../../types';
 
@@ -59,23 +60,28 @@ export default function FMConfigEditor() {
     }
   };
 
+  /* Visual vote-form editor: keep voteForm + voteFormText in sync */
+  const handleVoteFormVisualChange = (updated: VoteFormSchema) => {
+    setVoteForm(updated);
+    setVoteFormText(JSON.stringify(updated, null, 2));
+    setSaveStatus('idle');
+    setJsonError(null);
+  };
+
   const handleSave = async () => {
     setJsonError(null);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(activeText);
-    } catch {
-      setJsonError('Invalid JSON — fix before saving');
-      return;
-    }
     setSaving(true);
     setSaveStatus('idle');
     try {
-      await buildingsApi.updateConfig(selected, {
-        ...(activeTab === 'dashboard' ? { dashboardLayout: parsed } : { voteFormSchema: parsed }),
-      });
-      if (activeTab === 'dashboard') setDashboard(parsed as SduiNode);
-      else setVoteForm(parsed as VoteFormSchema);
+      if (activeTab === 'dashboard') {
+        let parsed: unknown;
+        try { parsed = JSON.parse(activeText); } catch { setJsonError('Invalid JSON — fix before saving'); setSaving(false); return; }
+        await buildingsApi.updateConfig(selected, { dashboardLayout: parsed });
+        setDashboard(parsed as SduiNode);
+      } else {
+        // Vote form: use the live voteForm object (already kept in sync by visual editor)
+        await buildingsApi.updateConfig(selected, { voteFormSchema: voteForm });
+      }
       setSaveStatus('success');
     } catch (err: unknown) {
       setJsonError(err instanceof Error ? err.message : 'Failed to save config');
@@ -126,7 +132,7 @@ export default function FMConfigEditor() {
           <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={handleSave}
-              disabled={saving || !!jsonError}
+              disabled={saving || (activeTab === 'dashboard' && !!jsonError)}
               className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -140,41 +146,72 @@ export default function FMConfigEditor() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* JSON editor */}
-            <div className="bg-white rounded-xl border overflow-hidden flex flex-col">
-              <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600">JSON Configuration</span>
-                {jsonError && <span className="ml-auto text-xs text-red-500">{jsonError}</span>}
-              </div>
-              <textarea
-                value={activeText}
-                onChange={(e) => handleTextChange(e.target.value)}
-                spellCheck={false}
-                className={`flex-1 p-4 text-xs font-mono text-gray-700 bg-gray-50 resize-none outline-none min-h-[600px] ${jsonError ? 'border-l-4 border-red-400' : ''}`}
-              />
-            </div>
-
-            {/* Preview */}
-            <div className="bg-white rounded-xl border overflow-hidden">
-              <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
-                <Eye className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-600">Live Preview</span>
-              </div>
-              <div className="p-4 max-h-[600px] overflow-y-auto">
-                {activeTab === 'dashboard' ? (
-                  dashboard ? <SduiRenderer config={dashboard} /> : <p className="text-gray-400 text-sm">No dashboard config — default will be used</p>
+          {activeTab === 'vote' ? (
+            /* ── Visual vote-form editor + live preview ─── */
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+              {/* Editor: 3 cols */}
+              <div className="xl:col-span-3">
+                {voteForm ? (
+                  <VoteFormVisualEditor schema={voteForm} onChange={handleVoteFormVisualChange} />
                 ) : (
-                  voteForm ? (
-                    <VoteFormRenderer schema={voteForm} onSubmit={() => {}} isSubmitting={false} />
-                  ) : (
-                    <p className="text-gray-400 text-sm">No vote form config — default will be used</p>
-                  )
+                  <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center text-gray-400">
+                    <p className="text-sm font-medium">No vote form configured yet</p>
+                    <button
+                      onClick={() => handleVoteFormVisualChange({ version: 2, title: 'Comfort Vote', fields: [] })}
+                      className="mt-3 text-sm font-medium text-teal-600 hover:text-teal-700 underline"
+                    >
+                      Create a new vote form
+                    </button>
+                  </div>
                 )}
               </div>
+              {/* Live preview: 2 cols */}
+              <div className="xl:col-span-2">
+                <div className="bg-white rounded-xl border overflow-hidden sticky top-6">
+                  <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-600">Live Preview</span>
+                  </div>
+                  <div className="p-4 max-h-[80vh] overflow-y-auto">
+                    {voteForm ? (
+                      <VoteFormRenderer schema={voteForm} onSubmit={() => {}} isSubmitting={false} />
+                    ) : (
+                      <p className="text-gray-400 text-sm">No vote form config — default will be used</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* ── Dashboard JSON editor + preview ───────── */
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* JSON editor */}
+              <div className="bg-white rounded-xl border overflow-hidden flex flex-col">
+                <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">JSON Configuration</span>
+                  {jsonError && <span className="ml-auto text-xs text-red-500">{jsonError}</span>}
+                </div>
+                <textarea
+                  value={activeText}
+                  onChange={(e) => handleTextChange(e.target.value)}
+                  spellCheck={false}
+                  className={`flex-1 p-4 text-xs font-mono text-gray-700 bg-gray-50 resize-none outline-none min-h-[600px] ${jsonError ? 'border-l-4 border-red-400' : ''}`}
+                />
+              </div>
+
+              {/* Preview */}
+              <div className="bg-white rounded-xl border overflow-hidden">
+                <div className="px-4 py-3 border-b bg-gray-50 flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">Live Preview</span>
+                </div>
+                <div className="p-4 max-h-[600px] overflow-y-auto">
+                  {dashboard ? <SduiRenderer config={dashboard} /> : <p className="text-gray-400 text-sm">No dashboard config — default will be used</p>}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
