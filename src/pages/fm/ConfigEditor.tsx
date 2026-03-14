@@ -6,6 +6,7 @@ import VoteFormRenderer from '../../components/sdui/VoteFormRenderer';
 import VoteFormVisualEditor from '../../components/fm/VoteFormVisualEditor';
 import { useAuthStore } from '../../store/authStore';
 import type { Building, SduiNode, VoteFormSchema } from '../../types';
+import { DEFAULT_VOTE_FORM } from '../../utils/defaultVoteForm';
 
 export default function FMConfigEditor() {
   const user = useAuthStore((s) => s.user);
@@ -39,9 +40,10 @@ export default function FMConfigEditor() {
       buildingsApi.voteForm(selected),
     ]).then(([d, v]) => {
       setDashboard(d);
-      setVoteForm(v);
+      const form = v ?? DEFAULT_VOTE_FORM;
+      setVoteForm(form);
       setDashboardText(JSON.stringify(d, null, 2) ?? 'null');
-      setVoteFormText(JSON.stringify(v, null, 2) ?? 'null');
+      setVoteFormText(JSON.stringify(form, null, 2));
       setJsonError(null);
     }).finally(() => setConfigLoading(false));
   }, [selected]);
@@ -151,19 +153,7 @@ export default function FMConfigEditor() {
             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
               {/* Editor: 3 cols */}
               <div className="xl:col-span-3">
-                {voteForm ? (
-                  <VoteFormVisualEditor schema={voteForm} onChange={handleVoteFormVisualChange} />
-                ) : (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center text-gray-400">
-                    <p className="text-sm font-medium">No vote form configured yet</p>
-                    <button
-                      onClick={() => handleVoteFormVisualChange({ version: 2, title: 'Comfort Vote', fields: [] })}
-                      className="mt-3 text-sm font-medium text-teal-600 hover:text-teal-700 underline"
-                    >
-                      Create a new vote form
-                    </button>
-                  </div>
-                )}
+                {voteForm && <VoteFormVisualEditor schema={voteForm} onChange={handleVoteFormVisualChange} />}
               </div>
               {/* Live preview: 2 cols */}
               <div className="xl:col-span-2">

@@ -7,31 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import VoteFormRenderer from '../../components/sdui/VoteFormRenderer';
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import type { VoteFormSchema } from '../../types';
-
-const DEFAULT_FORM: VoteFormSchema = {
-  version: 2,
-  title: 'How do you feel right now?',
-  description: 'A quick check-in helps the building respond faster to comfort issues.',
-  fields: [
-    {
-      id: 'thermal_comfort',
-      type: 'thermal_scale',
-      question: 'How hot or cold do you feel?',
-      required: true,
-      min: 1,
-      max: 7,
-      defaultValue: 4,
-      labels: { '1': 'Cold', '4': 'Neutral', '7': 'Hot' },
-    },
-    { id: 'air_quality', type: 'emoji_scale', question: 'How is the air quality?', required: true, options: [
-      { value: 1, emoji: '🤢', label: 'Stuffy' },
-      { value: 2, emoji: '😐', label: 'Okay' },
-      { value: 3, emoji: '😊', label: 'Fresh' },
-    ] },
-    { id: 'noise_level', type: 'rating_stars', question: 'Rate the noise level', maxStars: 5, required: false },
-    { id: 'feedback', type: 'text_input', question: 'Any additional comments?', required: false },
-  ],
-};
+import { DEFAULT_VOTE_FORM } from '../../utils/defaultVoteForm';
 
 export default function VotePage() {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
@@ -52,7 +28,7 @@ export default function VotePage() {
     return null;
   }
 
-  const schema = voteFormSchema ?? DEFAULT_FORM;
+  const schema = voteFormSchema ?? DEFAULT_VOTE_FORM;
 
   const handleSubmit = async (payload: Record<string, unknown>) => {
     const voteUuid = crypto.randomUUID();

@@ -3,13 +3,13 @@ import { Star } from 'lucide-react';
 import type { VoteFormSchema, VoteFormField } from '../../types';
 
 const THERMAL_LABELS = [
-  { value: 1, label: 'Cold', color: '#2196F3' },
-  { value: 2, label: 'Cool', color: '#00ACC1' },
-  { value: 3, label: 'Slightly Cool', color: '#26A69A' },
-  { value: 4, label: 'Neutral', color: '#4CAF50' },
-  { value: 5, label: 'Slightly Warm', color: '#FFC107' },
-  { value: 6, label: 'Warm', color: '#FF9800' },
-  { value: 7, label: 'Hot', color: '#F44336' },
+  { value: -3, label: 'Cold', color: '#2196F3' },
+  { value: -2, label: 'Cool', color: '#00ACC1' },
+  { value: -1, label: 'Slightly Cool', color: '#26A69A' },
+  { value: 0, label: 'Neutral', color: '#4CAF50' },
+  { value: 1, label: 'Slightly Warm', color: '#FFC107' },
+  { value: 2, label: 'Warm', color: '#FF9800' },
+  { value: 3, label: 'Hot', color: '#F44336' },
 ];
 
 interface Props {
@@ -78,11 +78,11 @@ export default function VoteFormRenderer({ schema, onSubmit, isSubmitting }: Pro
 function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown) => void) {
   switch (field.type) {
     case 'thermal_scale': {
-      const min = Math.max(1, field.min ?? 1);
-      const max = Math.min(7, field.max ?? 7);
+      const min = Math.max(-3, field.min ?? -3);
+      const max = Math.min(3, field.max ?? 3);
       const visibleOptions = THERMAL_LABELS.filter((option) => option.value >= min && option.value <= max);
       const labels = field.labels ?? {};
-      const midpoint = visibleOptions[Math.floor(visibleOptions.length / 2)]?.value ?? 4;
+      const midpoint = visibleOptions[Math.floor(visibleOptions.length / 2)]?.value ?? 0;
 
       return (
         <div className="space-y-3">

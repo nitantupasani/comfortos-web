@@ -8,7 +8,7 @@ import type { VoteFormSchema, VoteFormField, VoteFormOption } from '../../types'
 
 /* ── Field type metadata ─────────────────────────────── */
 const FIELD_TYPES = [
-  { value: 'thermal_scale',       label: 'Thermal Scale (1–7)',    icon: ThermometerSun, category: 'scale',  hasOptions: false },
+  { value: 'thermal_scale',       label: 'Thermal Scale (−3 to +3)', icon: ThermometerSun, category: 'scale',  hasOptions: false },
   { value: 'emoji_scale',         label: 'Emoji Scale',            icon: Smile,          category: 'emoji',  hasOptions: true  },
   { value: 'emoji_single_select', label: 'Emoji Single Select',    icon: Smile,          category: 'emoji',  hasOptions: true  },
   { value: 'emoji_multi_select',  label: 'Emoji Multi Select',     icon: Smile,          category: 'emoji',  hasOptions: true  },
@@ -49,7 +49,7 @@ const uid = () => `field_${++_nextId}`;
 function defaultFieldForType(type: string): VoteFormField {
   const base: VoteFormField = { id: uid(), type, question: '', required: true };
   switch (type) {
-    case 'thermal_scale':       return { ...base, min: 1, max: 7, labels: { '1': 'Cold', '4': 'Neutral', '7': 'Hot' } };
+    case 'thermal_scale':       return { ...base, min: -3, max: 3, labels: { '-3': 'Cold', '0': 'Neutral', '3': 'Hot' } };
     case 'rating_stars':        return { ...base, maxStars: 5 };
     case 'text_input':          return { ...base, required: false, maxLength: 300, hint: '' };
     case 'yes_no':              return { ...base, yesLabel: 'Yes', noLabel: 'No' };
@@ -325,10 +325,10 @@ function TypeSpecificSettings({ field, onUpdate }: { field: VoteFormField; onUpd
       return (
         <div className="grid grid-cols-2 gap-3">
           <Field label="Min value">
-            <input type="number" min={1} max={7} value={field.min ?? 1} onChange={(e) => onUpdate({ min: Number(e.target.value) })} className="input w-20" />
+            <input type="number" min={-3} max={3} value={field.min ?? -3} onChange={(e) => onUpdate({ min: Number(e.target.value) })} className="input w-20" />
           </Field>
           <Field label="Max value">
-            <input type="number" min={1} max={7} value={field.max ?? 7} onChange={(e) => onUpdate({ max: Number(e.target.value) })} className="input w-20" />
+            <input type="number" min={-3} max={3} value={field.max ?? 3} onChange={(e) => onUpdate({ max: Number(e.target.value) })} className="input w-20" />
           </Field>
         </div>
       );
