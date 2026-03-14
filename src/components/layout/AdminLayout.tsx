@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Eye,
   Activity,
+  Plug,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
@@ -36,6 +37,7 @@ const links = [
   { to: '/admin/fm-approvals', icon: ShieldCheck, label: 'FM Approvals' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
   { to: '/admin/building-analytics', icon: Activity, label: 'Building Analytics' },
+  { to: '/admin/connectors', icon: Plug, label: 'Connectors' },
   { to: '/admin/config', icon: Settings, label: 'Config Editor' },
 ];
 

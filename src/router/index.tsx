@@ -30,6 +30,7 @@ import VoteAnalytics from '../pages/admin/VoteAnalytics';
 import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
 import ConfigEditor from '../pages/admin/ConfigEditor';
 import FMApprovals from '../pages/admin/FMApprovals';
+import ConnectorManagement from '../pages/admin/ConnectorManagement';
 
 // FM
 import FMDashboard from '../pages/fm/FMDashboard';
@@ -132,6 +133,7 @@ export default function AppRouter() {
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
         <Route path="/admin/building-analytics" element={<BuildingAnalytics />} />
+        <Route path="/admin/connectors" element={<ConnectorManagement />} />
         <Route path="/admin/config" element={<ConfigEditor />} />
         <Route path="/admin/fm-approvals" element={<FMApprovals />} />
       </Route>
