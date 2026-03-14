@@ -453,13 +453,22 @@ function OptionsEditor({ field, onUpdate, showEmoji }: { field: VoteFormField; o
 /* ──────────────────────────────────────────────────────── */
 function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [coords, setCoords] = useState({ top: 0, left: 0, openAbove: false });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const PICKER_HEIGHT = 280; // approximate height of the palette
 
   const reposition = useCallback(() => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setCoords({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX });
+    const spaceBelow = window.innerHeight - r.bottom;
+    const openAbove = spaceBelow < PICKER_HEIGHT;
+    setCoords({
+      top: openAbove
+        ? r.top + window.scrollY - PICKER_HEIGHT - 4
+        : r.bottom + window.scrollY + 4,
+      left: r.left + window.scrollX,
+      openAbove,
+    });
   }, []);
 
   const handleOpen = () => {
