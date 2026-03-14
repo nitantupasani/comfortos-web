@@ -1,3 +1,7 @@
+# Vite bakes VITE_* vars into bundle at build time — dist/ scanning is a false positive
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "dist,README.md,package.json,package-lock.json"
+
 [[headers]]
   for = "/*"
   [headers.values]
