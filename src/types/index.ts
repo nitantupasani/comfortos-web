@@ -32,7 +32,6 @@ export interface Building {
   latitude: number;
   longitude: number;
   requiresAccessPermission: boolean;
-  dailyVoteLimit: number;
   metadata: Record<string, unknown>;
 }
 

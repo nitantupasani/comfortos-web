@@ -15,7 +15,6 @@ export interface BuildingCreatePayload {
   latitude?: number;
   longitude?: number;
   requiresAccessPermission?: boolean;
-  dailyVoteLimit?: number;
 }
 
 export interface BuildingConfigUpdatePayload {

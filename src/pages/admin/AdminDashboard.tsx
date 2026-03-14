@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   const stats = [
     { icon: Building2, label: 'Buildings', value: buildings.length, color: 'bg-blue-50 text-blue-600' },
     { icon: Users, label: 'Tenants', value: tenants.length, color: 'bg-purple-50 text-purple-600' },
-    { icon: Vote, label: 'Total Capacity', value: buildings.reduce((s, b) => s + b.dailyVoteLimit, 0), color: 'bg-green-50 text-green-600' },
+    { icon: Vote, label: 'Open Buildings', value: buildings.filter((b) => !b.requiresAccessPermission).length, color: 'bg-green-50 text-green-600' },
     { icon: BarChart3, label: 'Restricted', value: buildings.filter((b) => b.requiresAccessPermission).length, color: 'bg-amber-50 text-amber-600' },
   ];
 
@@ -56,7 +56,6 @@ export default function AdminDashboard() {
                 <th className="px-5 py-3 text-left">City</th>
                 <th className="px-5 py-3 text-left">Address</th>
                 <th className="px-5 py-3 text-center">Restricted</th>
-                <th className="px-5 py-3 text-center">Vote Limit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -70,7 +69,6 @@ export default function AdminDashboard() {
                       {b.requiresAccessPermission ? 'Yes' : 'Open'}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-center font-medium">{b.dailyVoteLimit}</td>
                 </tr>
               ))}
             </tbody>

@@ -10,7 +10,6 @@ interface AddBuildingForm {
   latitude: string;
   longitude: string;
   requiresAccessPermission: boolean;
-  dailyVoteLimit: string;
 }
 
 const emptyForm: AddBuildingForm = {
@@ -20,7 +19,6 @@ const emptyForm: AddBuildingForm = {
   latitude: '',
   longitude: '',
   requiresAccessPermission: false,
-  dailyVoteLimit: '10',
 };
 
 export default function BuildingManagement() {
@@ -62,7 +60,6 @@ export default function BuildingManagement() {
         latitude: form.latitude ? parseFloat(form.latitude) : undefined,
         longitude: form.longitude ? parseFloat(form.longitude) : undefined,
         requiresAccessPermission: form.requiresAccessPermission,
-        dailyVoteLimit: parseInt(form.dailyVoteLimit) || 10,
       });
       setBuildings((prev) => [...prev, created]);
       setShowAdd(false);
@@ -108,7 +105,6 @@ export default function BuildingManagement() {
                 <Field label="Latitude" value={form.latitude} onChange={(v) => setForm((f) => ({ ...f, latitude: v }))} type="number" />
                 <Field label="Longitude" value={form.longitude} onChange={(v) => setForm((f) => ({ ...f, longitude: v }))} type="number" />
               </div>
-              <Field label="Daily Vote Limit" value={form.dailyVoteLimit} onChange={(v) => setForm((f) => ({ ...f, dailyVoteLimit: v }))} type="number" />
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -181,7 +177,6 @@ export default function BuildingManagement() {
                 <DetailCard label="City" value={selected.city} />
                 <DetailCard label="Latitude" value={selected.latitude.toFixed(4)} />
                 <DetailCard label="Longitude" value={selected.longitude.toFixed(4)} />
-                <DetailCard label="Daily Vote Limit" value={String(selected.dailyVoteLimit)} />
               </div>
 
               <div>
