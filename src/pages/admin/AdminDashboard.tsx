@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([buildingsApi.list(), tenantsApi.list().catch(() => [])])
+    Promise.all([buildingsApi.list().catch(() => []), tenantsApi.list().catch(() => [])])
       .then(([b, t]) => { setBuildings(b); setTenants(t); })
       .finally(() => setLoading(false));
   }, []);
