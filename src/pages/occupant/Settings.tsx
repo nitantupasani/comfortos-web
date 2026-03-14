@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { usePresenceStore } from '../../store/presenceStore';
-import { User, Building2, LogOut, RefreshCw, MapPin } from 'lucide-react';
+import { User, Building2, LogOut, RefreshCw, MapPin, ShieldCheck } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, logout } = useAuthStore();
@@ -63,6 +63,17 @@ export default function SettingsPage() {
             </button>
           </div>
         </section>
+      )}
+
+      {/* Request FM Role */}
+      {user.role === 'occupant' && (
+        <button
+          onClick={() => navigate('/request-fm')}
+          className="w-full flex items-center justify-center gap-2 bg-primary-50 text-primary-600 py-3 rounded-xl font-medium hover:bg-primary-100 transition-colors"
+        >
+          <ShieldCheck className="h-5 w-5" />
+          Request Facility Manager Role
+        </button>
       )}
 
       {/* Logout */}

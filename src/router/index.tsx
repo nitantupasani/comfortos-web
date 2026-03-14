@@ -4,11 +4,13 @@ import ProtectedRoute from '../components/common/ProtectedRoute';
 
 // Layouts
 import OccupantLayout from '../components/layout/OccupantLayout';
+import OccupantShell from '../components/layout/OccupantShell';
 import AdminLayout from '../components/layout/AdminLayout';
 import FMLayout from '../components/layout/FMLayout';
 
 // Pages
 import Login from '../pages/Login';
+import SignUp from '../pages/SignUp';
 
 // Occupant
 import Presence from '../pages/occupant/Presence';
@@ -18,6 +20,7 @@ import VotePage from '../pages/occupant/Vote';
 import Comfort from '../pages/occupant/Comfort';
 import HistoryPage from '../pages/occupant/History';
 import SettingsPage from '../pages/occupant/Settings';
+import RequestFMRole from '../pages/occupant/RequestFMRole';
 
 // Admin
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -25,6 +28,7 @@ import BuildingManagement from '../pages/admin/BuildingManagement';
 import TenantManagement from '../pages/admin/TenantManagement';
 import VoteAnalytics from '../pages/admin/VoteAnalytics';
 import ConfigEditor from '../pages/admin/ConfigEditor';
+import FMApprovals from '../pages/admin/FMApprovals';
 
 // FM
 import FMDashboard from '../pages/fm/FMDashboard';
@@ -48,6 +52,7 @@ export default function AppRouter() {
     <Routes>
       {/* Public */}
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
 
       {/* Root redirect */}
       <Route path="/" element={<Navigate to={roleRedirect()} replace />} />
@@ -57,7 +62,9 @@ export default function AppRouter() {
         path="/presence"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <Presence />
+            <OccupantShell>
+              <Presence />
+            </OccupantShell>
           </ProtectedRoute>
         }
       />
@@ -65,7 +72,9 @@ export default function AppRouter() {
         path="/location"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <Location />
+            <OccupantShell>
+              <Location />
+            </OccupantShell>
           </ProtectedRoute>
         }
       />
@@ -80,17 +89,16 @@ export default function AppRouter() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/request-fm" element={<RequestFMRole />} />
       </Route>
 
       <Route
         path="/vote"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <div className="min-h-screen bg-gray-50">
-              <div className="max-w-lg mx-auto px-4 py-6">
-                <VotePage />
-              </div>
-            </div>
+            <OccupantShell>
+              <VotePage />
+            </OccupantShell>
           </ProtectedRoute>
         }
       />
@@ -98,11 +106,9 @@ export default function AppRouter() {
         path="/comfort"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <div className="min-h-screen bg-gray-50">
-              <div className="max-w-lg mx-auto px-4 py-6">
-                <Comfort />
-              </div>
-            </div>
+            <OccupantShell>
+              <Comfort />
+            </OccupantShell>
           </ProtectedRoute>
         }
       />
@@ -120,6 +126,7 @@ export default function AppRouter() {
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
         <Route path="/admin/config" element={<ConfigEditor />} />
+        <Route path="/admin/fm-approvals" element={<FMApprovals />} />
       </Route>
 
       {/* ─── FM routes (sidebar layout) ─── */}

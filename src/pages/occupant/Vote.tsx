@@ -11,8 +11,18 @@ import type { VoteFormSchema } from '../../types';
 const DEFAULT_FORM: VoteFormSchema = {
   version: 2,
   title: 'How do you feel right now?',
+  description: 'A quick check-in helps the building respond faster to comfort issues.',
   fields: [
-    { id: 'thermal_comfort', type: 'thermal_scale', question: 'How do you feel thermally?', required: true },
+    {
+      id: 'thermal_comfort',
+      type: 'thermal_scale',
+      question: 'How hot or cold do you feel?',
+      required: true,
+      min: 1,
+      max: 7,
+      defaultValue: 4,
+      labels: { '1': 'Cold', '4': 'Neutral', '7': 'Hot' },
+    },
     { id: 'air_quality', type: 'emoji_scale', question: 'How is the air quality?', required: true, options: [
       { value: 1, emoji: '🤢', label: 'Stuffy' },
       { value: 2, emoji: '😐', label: 'Okay' },
@@ -77,11 +87,17 @@ export default function VotePage() {
     <div className="space-y-4">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600"
+        className="flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-600"
       >
         <ArrowLeft className="h-4 w-4" />
         Back
       </button>
+
+      <div className="rounded-[26px] border border-white/80 bg-white/80 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur">
+        <div className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600/75">Current Location</div>
+        <div className="mt-2 text-sm font-semibold text-slate-800">{activeBuilding.name}</div>
+        <div className="mt-1 text-sm text-slate-500">{floor ?? 'Floor not set'} · {room ?? 'Room not set'}</div>
+      </div>
 
       <VoteFormRenderer
         schema={schema}

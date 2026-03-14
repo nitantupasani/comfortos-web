@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Building2, Loader2, Mail } from 'lucide-react';
+import { Building2, Loader2, UserPlus } from 'lucide-react';
 
-export default function Login() {
-  const { loginWithEmail, loginWithGoogle, isLoading, error, clearError, user } = useAuthStore();
+export default function SignUp() {
+  const { signUp, loginWithGoogle, isLoading, error, clearError, user } = useAuthStore();
   const navigate = useNavigate();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [localError, setLocalError] = useState('');
 
   // Redirect if already logged in
   if (user) {
@@ -17,40 +20,54 @@ export default function Login() {
     else navigate('/presence', { replace: true });
   }
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    await loginWithEmail(email, password);
+    setLocalError('');
+
+    if (password.length < 6) {
+      setLocalError('Password must be at least 6 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setLocalError('Passwords do not match');
+      return;
+    }
+
+    await signUp(email, password, name);
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleSignUp = async () => {
     clearError();
+    setLocalError('');
     await loginWithGoogle();
   };
+
+  const displayError = localError || error;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-600 to-primary-800 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <div className="w-14 h-14 rounded-2xl bg-primary-600 text-white flex items-center justify-center mb-3">
             <Building2 className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">ComfortOS</h1>
-          <p className="text-sm text-gray-500 mt-1">Smart Building Platform</p>
+          <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
+          <p className="text-sm text-gray-500 mt-1">Join ComfortOS as an occupant</p>
         </div>
 
         {/* Error */}
-        {error && (
+        {displayError && (
           <div className="bg-red-50 text-red-600 text-sm rounded-lg px-4 py-3 mb-4">
-            {error}
+            {displayError}
           </div>
         )}
 
-        {/* Google Sign In */}
+        {/* Google Sign Up */}
         <button
           type="button"
-          onClick={handleGoogleLogin}
+          onClick={handleGoogleSignUp}
           disabled={isLoading}
           className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors mb-4"
         >
@@ -60,7 +77,7 @@ export default function Login() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          Continue with Google
+          Sign up with Google
         </button>
 
         {/* Divider */}
@@ -71,7 +88,18 @@ export default function Login() {
         </div>
 
         {/* Email/Password Form */}
-        <form onSubmit={handleEmailLogin} className="space-y-4">
+        <form onSubmit={handleSignUp} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none"
+              placeholder="John Doe"
+              required
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
@@ -91,9 +119,23 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none"
+              placeholder="Min 6 characters"
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none"
               placeholder="••••••••"
               required
-              autoComplete="current-password"
+              minLength={6}
+              autoComplete="new-password"
             />
           </div>
           <button
@@ -101,16 +143,21 @@ export default function Login() {
             disabled={isLoading}
             className="w-full bg-primary-600 text-white py-3 rounded-xl font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            Sign In with Email
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+            Create Account
           </button>
         </form>
 
-        {/* Sign up link */}
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
-            Sign Up
+        {/* Info text */}
+        <p className="mt-4 text-xs text-gray-400 text-center">
+          All new accounts are created as <strong>Occupant</strong>. To request Facility Manager access, go to Settings after signing in.
+        </p>
+
+        {/* Login link */}
+        <p className="mt-4 text-center text-sm text-gray-500">
+          Already have an account?{' '}
+          <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+            Sign In
           </Link>
         </p>
       </div>

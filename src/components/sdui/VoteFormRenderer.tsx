@@ -3,13 +3,13 @@ import { Star } from 'lucide-react';
 import type { VoteFormSchema, VoteFormField } from '../../types';
 
 const THERMAL_LABELS = [
-  { value: -3, label: 'Cold', color: '#1565C0' },
-  { value: -2, label: 'Cool', color: '#42A5F5' },
-  { value: -1, label: 'Slightly Cool', color: '#90CAF9' },
-  { value: 0, label: 'Neutral', color: '#66BB6A' },
-  { value: 1, label: 'Slightly Warm', color: '#FFB74D' },
-  { value: 2, label: 'Warm', color: '#FF7043' },
-  { value: 3, label: 'Hot', color: '#D32F2F' },
+  { value: 1, label: 'Cold', color: '#2196F3' },
+  { value: 2, label: 'Cool', color: '#00ACC1' },
+  { value: 3, label: 'Slightly Cool', color: '#26A69A' },
+  { value: 4, label: 'Neutral', color: '#4CAF50' },
+  { value: 5, label: 'Slightly Warm', color: '#FFC107' },
+  { value: 6, label: 'Warm', color: '#FF9800' },
+  { value: 7, label: 'Hot', color: '#F44336' },
 ];
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
 
 export default function VoteFormRenderer({ schema, onSubmit, isSubmitting }: Props) {
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const requiredFields = schema.fields.filter((field) => field.required);
 
   const setValue = (key: string, val: unknown) => setValues((prev) => ({ ...prev, [key]: val }));
 
@@ -28,27 +29,45 @@ export default function VoteFormRenderer({ schema, onSubmit, isSubmitting }: Pro
     onSubmit(values);
   };
 
+  const canSubmit = requiredFields.every((field) => {
+    const fieldValue = values[field.id];
+    if (Array.isArray(fieldValue)) {
+      return fieldValue.length > 0;
+    }
+    if (typeof fieldValue === 'string') {
+      return fieldValue.trim().length > 0;
+    }
+    return fieldValue !== undefined && fieldValue !== null && fieldValue !== '';
+  });
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-gray-800">{schema.title}</h2>
-        {schema.description && <p className="text-sm text-gray-500 mt-1">{schema.description}</p>}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="rounded-[28px] border border-emerald-100 bg-[linear-gradient(180deg,_rgba(236,253,245,0.9)_0%,_rgba(255,255,255,0.96)_100%)] px-5 py-6 text-center shadow-[0_12px_40px_rgba(22,101,52,0.08)]">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.26em] text-emerald-600/75">Comfort Vote</div>
+        <h2 className="mt-2 text-[1.35rem] font-bold text-slate-800">{schema.title}</h2>
+        {schema.description && <p className="mt-2 text-sm leading-6 text-slate-500">{schema.description}</p>}
       </div>
 
-      {schema.fields.map((field) => (
-        <div key={field.id} className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            {field.question}
-            {field.required && <span className="text-red-400 ml-1">*</span>}
-          </label>
+      {schema.fields.map((field, index) => (
+        <section key={field.id} className="rounded-[26px] border border-slate-200/80 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <label className="block text-sm font-semibold leading-6 text-slate-800">
+              <span className="mr-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-[11px] font-bold text-emerald-600">
+                {index + 1}
+              </span>
+              {field.question}
+              {field.required && <span className="ml-1 text-rose-400">*</span>}
+            </label>
+          </div>
+          {field.hint && <p className="mb-3 text-xs leading-5 text-slate-400">{field.hint}</p>}
           {renderField(field, values[field.id], (v) => setValue(field.id, v))}
-        </div>
+        </section>
       ))}
 
       <button
         type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-primary-600 text-white py-3 rounded-xl font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors"
+        disabled={isSubmitting || !canSubmit}
+        className="w-full rounded-[24px] bg-emerald-600 py-3.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(5,150,105,0.28)] transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting…' : 'Submit Vote'}
       </button>
@@ -58,41 +77,60 @@ export default function VoteFormRenderer({ schema, onSubmit, isSubmitting }: Pro
 
 function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown) => void) {
   switch (field.type) {
-    case 'thermal_scale':
+    case 'thermal_scale': {
+      const min = Math.max(1, field.min ?? 1);
+      const max = Math.min(7, field.max ?? 7);
+      const visibleOptions = THERMAL_LABELS.filter((option) => option.value >= min && option.value <= max);
+      const labels = field.labels ?? {};
+      const midpoint = visibleOptions[Math.floor(visibleOptions.length / 2)]?.value ?? 4;
+
       return (
-        <div className="flex gap-2 justify-center flex-wrap">
-          {THERMAL_LABELS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => onChange(t.value)}
-              className={`w-11 h-11 rounded-full text-white text-xs font-bold transition-all ${
-                value === t.value ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'opacity-70 hover:opacity-100'
-              }`}
-              style={{ backgroundColor: t.color }}
-              title={t.label}
-            >
-              {t.value > 0 ? `+${t.value}` : t.value}
-            </button>
-          ))}
+        <div className="space-y-3">
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${visibleOptions.length || 7}, minmax(0, 1fr))` }}>
+            {visibleOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className={`flex h-12 items-center justify-center rounded-2xl border text-sm font-bold transition-all ${
+                  value === option.value
+                    ? 'scale-[1.03] border-transparent text-white shadow-sm'
+                    : 'border-transparent bg-slate-50 text-slate-500 hover:border-slate-200'
+                }`}
+                style={{
+                  backgroundColor: value === option.value ? option.color : `${option.color}1A`,
+                  color: value === option.value ? '#ffffff' : option.color,
+                }}
+                title={option.label}
+              >
+                {option.value}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-slate-400">
+            <span>{labels[min.toString()] ?? visibleOptions[0]?.label ?? 'Cold'}</span>
+            <span className="text-center">{labels[midpoint.toString()] ?? visibleOptions.find((option) => option.value === midpoint)?.label ?? 'Neutral'}</span>
+            <span className="text-right">{labels[max.toString()] ?? visibleOptions[visibleOptions.length - 1]?.label ?? 'Hot'}</span>
+          </div>
         </div>
       );
+    }
 
     case 'emoji_scale':
     case 'emoji_single_select':
       return (
-        <div className="flex gap-3 justify-center flex-wrap">
+        <div className="flex flex-wrap justify-center gap-3">
           {(field.options ?? []).map((opt) => (
             <button
               key={String(opt.value)}
               type="button"
               onClick={() => onChange(opt.value)}
-              className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
-                value === opt.value ? 'border-primary-500 bg-primary-50 scale-105' : 'border-gray-200 hover:border-gray-300'
+              className={`flex min-w-[84px] flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-all ${
+                value === opt.value ? 'border-emerald-500 bg-emerald-50 scale-105' : 'border-slate-200 hover:border-slate-300'
               }`}
             >
               <span className="text-2xl">{opt.emoji}</span>
-              <span className="text-xs text-gray-600">{opt.label}</span>
+              <span className="text-xs text-slate-600">{opt.label}</span>
             </button>
           ))}
         </div>
@@ -106,10 +144,10 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
               key={String(opt.value)}
               type="button"
               onClick={() => onChange(opt.value)}
-              className={`px-4 py-2 rounded-lg text-sm border transition-colors ${
+              className={`rounded-2xl border px-4 py-2.5 text-sm transition-colors ${
                 value === opt.value
-                  ? 'bg-primary-600 text-white border-primary-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-primary-300'
+                  ? 'border-emerald-600 bg-emerald-600 text-white'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300'
               }`}
             >
               {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
@@ -134,18 +172,18 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
                   if (opt.exclusive) {
                     onChange(isSelected ? [] : [opt.value]);
                   } else {
-                    const cleaned = selected.filter((v) =>
-                      !(field.options ?? []).find((o) => o.value === v && o.exclusive),
+                    const cleaned = selected.filter((entry) =>
+                      !(field.options ?? []).find((option) => option.value === entry && option.exclusive),
                     );
                     onChange(
-                      isSelected ? cleaned.filter((v) => v !== opt.value) : [...cleaned, opt.value],
+                      isSelected ? cleaned.filter((entry) => entry !== opt.value) : [...cleaned, opt.value],
                     );
                   }
                 }}
-                className={`px-4 py-2 rounded-lg text-sm border transition-colors ${
+                className={`rounded-2xl border px-4 py-2.5 text-sm transition-colors ${
                   isSelected
-                    ? 'bg-primary-600 text-white border-primary-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-primary-300'
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-300'
                 }`}
               >
                 {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
@@ -162,16 +200,14 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
       const current = (value as number) ?? 0;
       return (
         <div className="flex gap-1">
-          {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+          {Array.from({ length: max }, (_, index) => index + 1).map((rating) => (
             <button
-              key={n}
+              key={rating}
               type="button"
-              onClick={() => onChange(n)}
-              className="p-1 transition-colors"
+              onClick={() => onChange(rating)}
+              className="rounded-xl p-1 transition-colors"
             >
-              <Star
-                className={`h-8 w-8 ${n <= current ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-              />
+              <Star className={`h-8 w-8 ${rating <= current ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
             </button>
           ))}
         </div>
@@ -185,26 +221,26 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
           onChange={(e) => onChange(e.target.value)}
           maxLength={field.maxLength ?? 500}
           rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none resize-none"
-          placeholder="Type your feedback…"
+          className="w-full resize-none rounded-2xl border border-slate-300 px-3 py-3 text-sm outline-none transition-colors focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+          placeholder={field.hint ?? 'Type your feedback…'}
         />
       );
 
     case 'yes_no':
       return (
         <div className="flex gap-3">
-          {[true, false].map((v) => (
+          {[true, false].map((option) => (
             <button
-              key={String(v)}
+              key={String(option)}
               type="button"
-              onClick={() => onChange(v)}
-              className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-colors ${
-                value === v
-                  ? v ? 'bg-green-50 border-green-500 text-green-700' : 'bg-red-50 border-red-500 text-red-700'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              onClick={() => onChange(option)}
+              className={`flex-1 rounded-2xl border-2 py-3 text-sm font-medium transition-colors ${
+                value === option
+                  ? option ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-500 bg-red-50 text-red-700'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
               }`}
             >
-              {v ? '👍 Yes' : '👎 No'}
+              {option ? field.yesLabel ?? '👍 Yes' : field.noLabel ?? '👎 No'}
             </button>
           ))}
         </div>
@@ -212,7 +248,7 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
 
     case 'slider': {
       const min = 0;
-      const max = (field.maxStars ?? 10);
+      const max = field.maxStars ?? 10;
       return (
         <div>
           <input
@@ -221,7 +257,7 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
             max={max}
             value={(value as number) ?? Math.round(max / 2)}
             onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full accent-primary-600"
+            className="w-full accent-emerald-600"
           />
           <div className="text-center text-sm font-medium">{(value as number) ?? Math.round(max / 2)}</div>
         </div>

@@ -34,18 +34,28 @@ export default function VoteAnalytics() {
 
   // Aggregate thermal comfort distribution
   const thermalDist = [
-    { name: 'Cold (-3)', value: 0 },
-    { name: 'Cool (-2)', value: 0 },
-    { name: 'Sl. Cool (-1)', value: 0 },
-    { name: 'Neutral (0)', value: 0 },
-    { name: 'Sl. Warm (+1)', value: 0 },
-    { name: 'Warm (+2)', value: 0 },
-    { name: 'Hot (+3)', value: 0 },
+    { name: '1 Cold', value: 0 },
+    { name: '2 Cool', value: 0 },
+    { name: '3 Slightly Cool', value: 0 },
+    { name: '4 Neutral', value: 0 },
+    { name: '5 Slightly Warm', value: 0 },
+    { name: '6 Warm', value: 0 },
+    { name: '7 Hot', value: 0 },
   ];
   bldgVotes.forEach((v) => {
-    const tc = v.payload.thermal_comfort as number | undefined;
-    if (tc !== undefined && tc >= -3 && tc <= 3) {
-      thermalDist[tc + 3].value++;
+    const raw = v.payload.thermal_comfort;
+    if (typeof raw !== 'number') {
+      return;
+    }
+
+    const normalized = raw >= 1 && raw <= 7
+      ? Math.round(raw)
+      : raw >= -3 && raw <= 3
+        ? Math.round(raw) + 4
+        : null;
+
+    if (normalized !== null) {
+      thermalDist[normalized - 1].value++;
     }
   });
 
