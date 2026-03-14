@@ -70,7 +70,8 @@ function cloneOption(opt: VoteFormOption, newValue: number | string): VoteFormOp
 
 /* ════════════════════════════════════════════════════════ */
 export default function VoteFormVisualEditor({ schema, onChange }: Props) {
-  const emit = (patch: Partial<VoteFormSchema>) => onChange({ ...schema, ...patch });
+  const emit = (patch: Partial<VoteFormSchema>) =>
+    onChange({ ...schema, ...patch, version: (schema.version ?? 1) + 1 });
   const setFields = (fields: VoteFormField[]) => emit({ fields });
 
   const updateField = (index: number, patch: Partial<VoteFormField>) => {
@@ -299,6 +300,26 @@ function QuestionCard({ field, index, total, onUpdate, onRemove, onMove }: Quest
             placeholder="E.g., 'Select what best describes your feeling'"
             className="input text-xs"
           />
+        </Field>
+
+        {/* Field ID */}
+        <Field label="Field name / ID">
+          <div className="relative">
+            <input
+              value={field.id}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^a-z0-9_]/gi, '_').slice(0, 30);
+                onUpdate({ id: val });
+              }}
+              placeholder="e.g. thermal_comfort"
+              maxLength={30}
+              className="input text-xs font-mono pr-12"
+            />
+            <span className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] tabular-nums ${field.id.length >= 28 ? 'text-amber-500' : 'text-gray-300'}`}>
+              {field.id.length}/30
+            </span>
+          </div>
+          <p className="mt-0.5 text-[10px] text-gray-400">Used internally to identify this question in the data. Only letters, numbers and underscores.</p>
         </Field>
 
         {/* Type-specific settings */}
