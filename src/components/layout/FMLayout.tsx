@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   X,
+  Activity,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
@@ -16,6 +17,7 @@ const links = [
   { to: '/fm', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
+  { to: '/fm/building-analytics', icon: Activity, label: 'Building Analytics' },
   { to: '/fm/config', icon: Settings, label: 'Building Config' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];

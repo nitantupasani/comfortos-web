@@ -27,6 +27,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import BuildingManagement from '../pages/admin/BuildingManagement';
 import TenantManagement from '../pages/admin/TenantManagement';
 import VoteAnalytics from '../pages/admin/VoteAnalytics';
+import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
 import ConfigEditor from '../pages/admin/ConfigEditor';
 import FMApprovals from '../pages/admin/FMApprovals';
 
@@ -34,6 +35,7 @@ import FMApprovals from '../pages/admin/FMApprovals';
 import FMDashboard from '../pages/fm/FMDashboard';
 import BuildingOverview from '../pages/fm/BuildingOverview';
 import ComfortAnalytics from '../pages/fm/ComfortAnalytics';
+import FMBuildingAnalytics from '../pages/fm/BuildingAnalytics';
 import FMNotifications from '../pages/fm/Notifications';
 import FMConfigEditor from '../pages/fm/ConfigEditor';
 
@@ -129,6 +131,7 @@ export default function AppRouter() {
         <Route path="/admin/buildings" element={<BuildingManagement />} />
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
+        <Route path="/admin/building-analytics" element={<BuildingAnalytics />} />
         <Route path="/admin/config" element={<ConfigEditor />} />
         <Route path="/admin/fm-approvals" element={<FMApprovals />} />
       </Route>
@@ -144,6 +147,7 @@ export default function AppRouter() {
         <Route path="/fm" element={<FMDashboard />} />
         <Route path="/fm/buildings" element={<BuildingOverview />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
+        <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
         <Route path="/fm/config" element={<FMConfigEditor />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
       </Route>

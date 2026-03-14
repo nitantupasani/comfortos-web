@@ -1,0 +1,77 @@
+import { api } from './client';
+
+/* ── Types ─────────────────────────────────────────────── */
+
+export interface TelemetryMetric {
+  metricType: string;
+  unit: string;
+}
+
+export interface TelemetryPoint {
+  recordedAt: string;
+  value: number;
+  floor: string | null;
+  zone: string | null;
+}
+
+export interface TelemetrySeriesGroup {
+  label: string;
+  floor: string | null;
+  zone: string | null;
+  points: TelemetryPoint[];
+}
+
+export interface TelemetryQueryResponse {
+  buildingId: string;
+  metricType: string;
+  unit: string;
+  granularity: string;
+  series: TelemetrySeriesGroup[];
+}
+
+export interface TelemetryLatestReading {
+  id: string;
+  buildingId: string;
+  metricType: string;
+  value: number;
+  unit: string;
+  floor: string | null;
+  zone: string | null;
+  recordedAt: string;
+  ingestedAt: string;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface TelemetrySeriesParams {
+  metricType: string;
+  dateFrom?: string;
+  dateTo?: string;
+  granularity?: 'raw' | 'hourly' | 'daily';
+  floor?: string;
+  zone?: string;
+}
+
+/* ── API ───────────────────────────────────────────────── */
+
+export const telemetryApi = {
+  /** List available metric types for a building. */
+  metrics: (buildingId: string) =>
+    api.get<TelemetryMetric[]>(`/telemetry/${buildingId}/metrics`),
+
+  /** Query time-series sensor data. */
+  series: (buildingId: string, params: TelemetrySeriesParams) => {
+    const qs = new URLSearchParams({ metricType: params.metricType });
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    if (params.granularity) qs.set('granularity', params.granularity);
+    if (params.floor) qs.set('floor', params.floor);
+    if (params.zone) qs.set('zone', params.zone);
+    return api.get<TelemetryQueryResponse>(
+      `/telemetry/${buildingId}/series?${qs.toString()}`,
+    );
+  },
+
+  /** Get latest reading per metric per floor/zone. */
+  latest: (buildingId: string) =>
+    api.get<TelemetryLatestReading[]>(`/telemetry/${buildingId}/latest`),
+};
