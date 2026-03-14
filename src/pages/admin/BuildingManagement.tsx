@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Building2, MapPin, Lock, Globe, Loader2 } from 'lucide-react';
+import { Building2, MapPin, Lock, Globe, Loader2, Plus, X } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import type { Building, BuildingComfortData } from '../../types';
+
+interface AddBuildingForm {
+  name: string;
+  address: string;
+  city: string;
+  latitude: string;
+  longitude: string;
+  requiresAccessPermission: boolean;
+  dailyVoteLimit: string;
+}
+
+const emptyForm: AddBuildingForm = {
+  name: '',
+  address: '',
+  city: '',
+  latitude: '',
+  longitude: '',
+  requiresAccessPermission: false,
+  dailyVoteLimit: '10',
+};
 
 export default function BuildingManagement() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -9,6 +29,10 @@ export default function BuildingManagement() {
   const [comfort, setComfort] = useState<BuildingComfortData | null>(null);
   const [loading, setLoading] = useState(true);
   const [comfortLoading, setComfortLoading] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState<AddBuildingForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     buildingsApi.list().then(setBuildings).finally(() => setLoading(false));
@@ -26,11 +50,91 @@ export default function BuildingManagement() {
     setComfortLoading(false);
   };
 
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setSaving(true);
+    try {
+      const created = await buildingsApi.create({
+        name: form.name.trim(),
+        address: form.address.trim(),
+        city: form.city.trim() || undefined,
+        latitude: form.latitude ? parseFloat(form.latitude) : undefined,
+        longitude: form.longitude ? parseFloat(form.longitude) : undefined,
+        requiresAccessPermission: form.requiresAccessPermission,
+        dailyVoteLimit: parseInt(form.dailyVoteLimit) || 10,
+      });
+      setBuildings((prev) => [...prev, created]);
+      setShowAdd(false);
+      setForm(emptyForm);
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to create building');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Building Management</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800">Building Management</h2>
+        <button
+          onClick={() => { setShowAdd(true); setFormError(null); }}
+          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Building
+        </button>
+      </div>
+
+      {/* Add Building Modal */}
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">Add New Building</h3>
+              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {formError && <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{formError}</p>}
+            <form onSubmit={handleAdd} className="space-y-3">
+              <Field label="Name *" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
+              <Field label="Address *" value={form.address} onChange={(v) => setForm((f) => ({ ...f, address: v }))} required />
+              <Field label="City" value={form.city} onChange={(v) => setForm((f) => ({ ...f, city: v }))} />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Latitude" value={form.latitude} onChange={(v) => setForm((f) => ({ ...f, latitude: v }))} type="number" />
+                <Field label="Longitude" value={form.longitude} onChange={(v) => setForm((f) => ({ ...f, longitude: v }))} type="number" />
+              </div>
+              <Field label="Daily Vote Limit" value={form.dailyVoteLimit} onChange={(v) => setForm((f) => ({ ...f, dailyVoteLimit: v }))} type="number" />
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.requiresAccessPermission}
+                  onChange={(e) => setForm((f) => ({ ...f, requiresAccessPermission: e.target.checked }))}
+                  className="rounded"
+                />
+                Requires access permission (restricted building)
+              </label>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Create Building
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Building List */}
@@ -154,6 +258,30 @@ function DetailCard({ label, value }: { label: string; value: string }) {
     <div className="bg-gray-50 rounded-lg p-3">
       <div className="text-xs text-gray-500">{label}</div>
       <div className="font-semibold text-sm mt-0.5">{value}</div>
+    </div>
+  );
+}
+
+function Field({
+  label, value, onChange, required, type = 'text',
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        step={type === 'number' ? 'any' : undefined}
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+      />
     </div>
   );
 }

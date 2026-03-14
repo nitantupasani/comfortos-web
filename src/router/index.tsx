@@ -35,6 +35,7 @@ import FMDashboard from '../pages/fm/FMDashboard';
 import BuildingOverview from '../pages/fm/BuildingOverview';
 import ComfortAnalytics from '../pages/fm/ComfortAnalytics';
 import FMNotifications from '../pages/fm/Notifications';
+import FMConfigEditor from '../pages/fm/ConfigEditor';
 
 export default function AppRouter() {
   const user = useAuthStore((s) => s.user);
@@ -140,6 +141,7 @@ export default function AppRouter() {
         <Route path="/fm" element={<FMDashboard />} />
         <Route path="/fm/buildings" element={<BuildingOverview />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
+        <Route path="/fm/config" element={<FMConfigEditor />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
       </Route>
 

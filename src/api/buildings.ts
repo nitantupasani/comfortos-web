@@ -8,6 +8,22 @@ import type {
   LocationFormConfig,
 } from '../types';
 
+export interface BuildingCreatePayload {
+  name: string;
+  address: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  requiresAccessPermission?: boolean;
+  dailyVoteLimit?: number;
+}
+
+export interface BuildingConfigUpdatePayload {
+  dashboardLayout?: unknown;
+  voteFormSchema?: unknown;
+  locationFormConfig?: unknown;
+}
+
 function normalizeVoteForm(schema: VoteFormSchema | null): VoteFormSchema | null {
   if (!schema) {
     return null;
@@ -31,6 +47,12 @@ export const buildingsApi = {
   list: (tenantId?: string) =>
     api.get<Building[]>(tenantId ? `/buildings?tenantId=${tenantId}` : '/buildings'),
 
+  create: (payload: BuildingCreatePayload) =>
+    api.post<Building>('/buildings', payload),
+
+  update: (buildingId: string, payload: Partial<BuildingCreatePayload>) =>
+    api.put<Building>(`/buildings/${buildingId}`, payload),
+
   dashboard: (buildingId: string) =>
     api.get<SduiNode | null>(`/buildings/${buildingId}/dashboard`),
 
@@ -42,6 +64,9 @@ export const buildingsApi = {
 
   config: (buildingId: string) =>
     api.get<BuildingConfig>(`/buildings/${buildingId}/config`),
+
+  updateConfig: (buildingId: string, payload: BuildingConfigUpdatePayload) =>
+    api.put<BuildingConfig>(`/buildings/${buildingId}/config`, payload),
 
   comfort: (buildingId: string) =>
     api.get<BuildingComfortData>(`/buildings/${buildingId}/comfort`),

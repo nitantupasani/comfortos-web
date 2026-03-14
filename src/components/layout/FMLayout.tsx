@@ -4,6 +4,7 @@ import {
   Building2,
   BarChart3,
   Bell,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -15,6 +16,7 @@ const links = [
   { to: '/fm', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
+  { to: '/fm/config', icon: Settings, label: 'Building Config' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];
 

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Settings, Loader2, Building2, Eye, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import SduiRenderer from '../../components/sdui/SduiRenderer';
-import type { Building, SduiNode, VoteFormSchema } from '../../types';
 import VoteFormRenderer from '../../components/sdui/VoteFormRenderer';
+import { useAuthStore } from '../../store/authStore';
+import type { Building, SduiNode, VoteFormSchema } from '../../types';
 
-export default function ConfigEditor() {
+export default function FMConfigEditor() {
+  const user = useAuthStore((s) => s.user);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selected, setSelected] = useState<string>('');
   const [dashboard, setDashboard] = useState<SduiNode | null>(null);
@@ -14,7 +16,6 @@ export default function ConfigEditor() {
   const [configLoading, setConfigLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'vote'>('dashboard');
 
-  // Editable JSON text state
   const [dashboardText, setDashboardText] = useState('');
   const [voteFormText, setVoteFormText] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -22,11 +23,11 @@ export default function ConfigEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    buildingsApi.list().then((b) => {
+    buildingsApi.list(user?.tenantId ?? undefined).then((b) => {
       setBuildings(b);
       if (b.length > 0) setSelected(b[0].id);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!selected) return;
@@ -84,19 +85,19 @@ export default function ConfigEditor() {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>;
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-teal-500" /></div>;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <Settings className="h-6 w-6 text-primary-500" />
-          Config Editor
+          <Settings className="h-6 w-6 text-teal-500" />
+          Building Config
         </h2>
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+          className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none"
         >
           {buildings.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
@@ -109,16 +110,16 @@ export default function ConfigEditor() {
             key={tab}
             onClick={() => { setActiveTab(tab); setSaveStatus('idle'); setJsonError(null); }}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === tab ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {tab === 'dashboard' ? 'Dashboard Layout' : 'Vote Form'}
+            {tab === 'dashboard' ? 'Dashboard Layout' : 'Vote Form (Questions)'}
           </button>
         ))}
       </div>
 
       {configLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-teal-500" /></div>
       ) : (
         <div className="space-y-3">
           {/* Save bar */}
@@ -126,7 +127,7 @@ export default function ConfigEditor() {
             <button
               onClick={handleSave}
               disabled={saving || !!jsonError}
-              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Config
@@ -179,4 +180,3 @@ export default function ConfigEditor() {
     </div>
   );
 }
-
