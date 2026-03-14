@@ -9,9 +9,24 @@ import {
   Menu,
   X,
   ShieldCheck,
+  Eye,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import type { UserRole } from '../../types';
+
+const PREVIEW_ROLES: { role: UserRole; label: string }[] = [
+  { role: 'occupant', label: 'Occupant' },
+  { role: 'building_facility_manager', label: 'FM (Building)' },
+  { role: 'tenant_facility_manager', label: 'FM (Tenant)' },
+];
+
+const ROLE_ENTRY_PATHS: Record<UserRole, string> = {
+  admin: '/admin',
+  building_facility_manager: '/fm',
+  tenant_facility_manager: '/fm',
+  occupant: '/presence',
+};
 
 const links = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -26,11 +41,18 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
+  const setViewAsRole = useAuthStore((s) => s.setViewAsRole);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handlePreview = (role: UserRole) => {
+    setViewAsRole(role);
+    navigate(ROLE_ENTRY_PATHS[role]);
+    setSidebarOpen(false);
   };
 
   return (
@@ -61,6 +83,23 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="px-4 py-3 border-t border-gray-700">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+            <Eye className="h-3.5 w-3.5" />
+            <span className="uppercase tracking-wider">Preview as</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            {PREVIEW_ROLES.map(({ role, label }) => (
+              <button
+                key={role}
+                onClick={() => handlePreview(role)}
+                className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="px-4 py-4 border-t border-gray-700">
           <div className="text-xs text-gray-400 mb-2 truncate">{user?.email}</div>
           <button
@@ -102,6 +141,23 @@ export default function AdminLayout() {
                 </NavLink>
               ))}
             </nav>
+            <div className="px-4 py-3 border-t border-gray-700">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+                <Eye className="h-3.5 w-3.5" />
+                <span className="uppercase tracking-wider">Preview as</span>
+              </div>
+              <div className="flex flex-col gap-1 mb-3">
+                {PREVIEW_ROLES.map(({ role, label }) => (
+                  <button
+                    key={role}
+                    onClick={() => handlePreview(role)}
+                    className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="px-4 py-4 border-t border-gray-700">
               <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-300 hover:text-red-400">
                 <LogOut className="h-4 w-4" />

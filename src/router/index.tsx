@@ -39,12 +39,15 @@ import FMConfigEditor from '../pages/fm/ConfigEditor';
 
 export default function AppRouter() {
   const user = useAuthStore((s) => s.user);
+  const viewAsRole = useAuthStore((s) => s.viewAsRole);
+
+  const effectiveRole = user?.role === 'admin' && viewAsRole ? viewAsRole : user?.role;
 
   /** Role-based root redirect */
   const roleRedirect = () => {
     if (!user) return '/login';
-    if (user.role === 'admin') return '/admin';
-    if (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager')
+    if (effectiveRole === 'admin') return '/admin';
+    if (effectiveRole === 'tenant_facility_manager' || effectiveRole === 'building_facility_manager')
       return '/fm';
     return '/presence';
   };

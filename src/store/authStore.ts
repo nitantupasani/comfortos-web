@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User } from '../types';
+import type { User, UserRole } from '../types';
 import { authApi } from '../api/auth';
 import {
   firebaseEmailSignIn,
@@ -14,6 +14,8 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  /** When admin is previewing another role, this overrides the effective role for routing/UI. */
+  viewAsRole: UserRole | null;
 
   /** Sign in with email + password (Firebase → backend) */
   loginWithEmail: (email: string, password: string) => Promise<void>;
@@ -25,6 +27,8 @@ interface AuthState {
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
   clearError: () => void;
+  /** Admin-only: temporarily preview the app as a different role. Pass null to exit. */
+  setViewAsRole: (role: UserRole | null) => void;
 }
 
 async function syncWithBackend(idToken: string): Promise<{ user: User; token: string }> {
@@ -38,6 +42,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem('auth_token'),
   isLoading: false,
   error: null,
+  viewAsRole: null,
 
   loginWithEmail: async (email, password) => {
     set({ isLoading: true, error: null });
@@ -78,7 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try { await firebaseSignOut(); } catch { /* ignore */ }
     localStorage.removeItem('auth_token');
-    set({ user: null, token: null });
+    set({ user: null, token: null, viewAsRole: null });
   },
 
   restoreSession: async () => {
@@ -112,4 +117,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  setViewAsRole: (role) => set({ viewAsRole: role }),
 }));

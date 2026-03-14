@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
 import AppRouter from './router';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import ViewAsRoleBanner from './components/common/ViewAsRoleBanner';
 
 export default function App() {
-  const { restoreSession, token } = useAuthStore();
+  const { restoreSession, token, user, viewAsRole } = useAuthStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -23,5 +24,12 @@ export default function App() {
     );
   }
 
-  return <AppRouter />;
+  const showBanner = user?.role === 'admin' && !!viewAsRole;
+
+  return (
+    <div className={showBanner ? 'pt-9' : ''}>
+      <ViewAsRoleBanner />
+      <AppRouter />
+    </div>
+  );
 }

@@ -8,15 +8,18 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: Props) {
-  const { user, token } = useAuthStore();
+  const { user, token, viewAsRole } = useAuthStore();
 
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return null; // still loading
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // redirect based on role
-    if (user.role === 'admin') return <Navigate to="/admin" replace />;
-    if (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager')
+  // When admin is previewing another role, treat them as that role for access checks.
+  const effectiveRole: UserRole = user.role === 'admin' && viewAsRole ? viewAsRole : user.role;
+
+  if (allowedRoles && !allowedRoles.includes(effectiveRole)) {
+    // Redirect to the entry point appropriate for the effective role
+    if (effectiveRole === 'admin') return <Navigate to="/admin" replace />;
+    if (effectiveRole === 'tenant_facility_manager' || effectiveRole === 'building_facility_manager')
       return <Navigate to="/fm" replace />;
     return <Navigate to="/presence" replace />;
   }
