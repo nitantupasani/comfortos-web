@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
-import { LayoutDashboard, Loader2, Eye, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { LayoutDashboard, Loader2, Eye, Save, CheckCircle, AlertCircle, Key, Copy, RefreshCw } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import SduiRenderer from '../../components/sdui/SduiRenderer';
 import DashboardVisualEditor from '../../components/fm/DashboardVisualEditor';
 import type { Building, SduiNode } from '../../types';
+
+function generateApiKey(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 export default function AdminDashboardConfig() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -14,6 +20,10 @@ export default function AdminDashboardConfig() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Telemetry API Key — stored inside dashboardLayout.telemetryApiKey
+  const [telemetryApiKey, setTelemetryApiKey] = useState('');
+  const [keyCopied, setKeyCopied] = useState(false);
 
   useEffect(() => {
     buildingsApi.list().then((b) => {
@@ -29,6 +39,9 @@ export default function AdminDashboardConfig() {
     setSaveError(null);
     buildingsApi.dashboard(selected).then((d) => {
       setDashboard(d);
+      // Extract telemetryApiKey from dashboard layout
+      const layout = d as Record<string, unknown> | null;
+      setTelemetryApiKey((layout?.telemetryApiKey as string) ?? '');
     }).finally(() => setConfigLoading(false));
   }, [selected]);
 
@@ -38,12 +51,26 @@ export default function AdminDashboardConfig() {
     setSaveError(null);
   };
 
+  const copyApiKey = useCallback(() => {
+    navigator.clipboard.writeText(telemetryApiKey);
+    setKeyCopied(true);
+    setTimeout(() => setKeyCopied(false), 2000);
+  }, [telemetryApiKey]);
+
   const handleSave = async () => {
     setSaving(true);
     setSaveStatus('idle');
     setSaveError(null);
     try {
-      await buildingsApi.updateConfig(selected, { dashboardLayout: dashboard });
+      // Merge telemetryApiKey into the dashboard layout before saving
+      const layout = (dashboard ?? {}) as Record<string, unknown>;
+      if (telemetryApiKey) {
+        layout.telemetryApiKey = telemetryApiKey;
+      } else {
+        delete layout.telemetryApiKey;
+      }
+      await buildingsApi.updateConfig(selected, { dashboardLayout: layout });
+      setDashboard(layout as unknown as SduiNode);
       setSaveStatus('success');
     } catch (err: unknown) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save config');
@@ -90,6 +117,43 @@ export default function AdminDashboardConfig() {
             )}
             {(saveStatus === 'error' || saveError) && (
               <span className="flex items-center gap-1 text-red-500 text-sm"><AlertCircle className="h-4 w-4" /> {saveError ?? 'Error'}</span>
+            )}
+          </div>
+
+          {/* Telemetry API Key */}
+          <div className="bg-white rounded-xl border p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Key className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-semibold text-gray-700">Telemetry API Key</span>
+              <span className="text-xs text-gray-400">— used by building services to push sensor data</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={telemetryApiKey}
+                onChange={(e) => { setTelemetryApiKey(e.target.value); setSaveStatus('idle'); }}
+                placeholder="No key set — generate or enter one"
+                className="flex-1 border rounded-lg px-3 py-2 text-sm font-mono text-gray-700 focus:ring-2 focus:ring-primary-300 outline-none"
+              />
+              <button
+                onClick={() => { setTelemetryApiKey(generateApiKey()); setSaveStatus('idle'); }}
+                title="Generate a new random key"
+                className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" /> Generate
+              </button>
+              {telemetryApiKey && (
+                <button
+                  onClick={copyApiKey}
+                  title="Copy key to clipboard"
+                  className="flex items-center gap-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Copy className="h-4 w-4" /> {keyCopied ? 'Copied!' : 'Copy'}
+                </button>
+              )}
+            </div>
+            {telemetryApiKey && (
+              <p className="text-xs text-gray-400">Building ID: <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">{selected}</code> — provide both to the building service operator.</p>
             )}
           </div>
 
