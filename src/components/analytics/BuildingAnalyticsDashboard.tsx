@@ -83,11 +83,11 @@ function cleanLabel(label: string): string {
 /* ── Thermal comfort background bands ──────────────────── */
 
 const COMFORT_BANDS = [
-  { from: -3, to: -2, color: 'rgba(59,130,246,0.18)' },   // cold – blue
-  { from: -2, to: -1, color: 'rgba(96,165,250,0.12)' },   // cool – lighter blue
-  { from: -1, to:  1, color: 'rgba(74,222,128,0.10)' },    // neutral – green
-  { from:  1, to:  2, color: 'rgba(251,146,60,0.12)' },    // warm – orange
-  { from:  2, to:  3, color: 'rgba(239,68,68,0.18)' },     // hot – red
+  { from: -3, to: -2, color: 'rgba(59,130,246,0.15)' },   // cold – blue
+  { from: -2, to: -1, color: 'rgba(96,165,250,0.10)' },   // cool – lighter blue
+  { from: -1, to:  1, color: 'rgba(74,222,128,0.08)' },    // neutral – green
+  { from:  1, to:  2, color: 'rgba(251,146,60,0.10)' },    // warm – orange
+  { from:  2, to:  3, color: 'rgba(239,68,68,0.15)' },     // hot – red
 ];
 
 /* ── Component ──────────────────────────────────────────── */
@@ -370,11 +370,11 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
           </div>
 
           {/* ── Chart Card ── */}
-          <div className="bg-[#0f1729] rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
-            <div className="px-5 py-4 border-b border-gray-700/50 flex items-center justify-between">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MetricIcon className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-semibold text-gray-200 uppercase tracking-wider">
+                <MetricIcon className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
                   {metricInfo.label} by Zone
                 </span>
               </div>
@@ -383,7 +383,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   <button
                     onClick={() => setHiddenSeries(hiddenSeries.size === 0 ? new Set(seriesKeys) : new Set())}
-                    className="text-[10px] text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded transition-colors"
+                    className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors"
                   >
                     {hiddenSeries.size === 0 ? 'Hide all' : 'Show all'}
                   </button>
@@ -396,14 +396,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         onClick={() => toggleSeries(key)}
                         className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all border ${
                           isHidden
-                            ? 'border-gray-700 text-gray-600 bg-transparent'
-                            : 'border-transparent text-gray-200'
+                            ? 'border-gray-200 text-gray-400 bg-transparent'
+                            : 'border-transparent text-gray-700'
                         }`}
                         style={isHidden ? {} : { backgroundColor: `${color}22`, borderColor: `${color}44` }}
                       >
                         <span
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: isHidden ? '#4b5563' : color }}
+                          style={{ backgroundColor: isHidden ? '#d1d5db' : color }}
                         />
                         {key}
                       </button>
@@ -444,20 +444,20 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         ifOverflow="extendDomain"
                       />
                     ))}
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="_display"
-                      tick={{ fill: '#64748b', fontSize: 10 }}
-                      tickLine={{ stroke: '#334155' }}
-                      axisLine={{ stroke: '#334155' }}
+                      tick={{ fill: '#6b7280', fontSize: 10 }}
+                      tickLine={{ stroke: '#d1d5db' }}
+                      axisLine={{ stroke: '#d1d5db' }}
                       interval="preserveStartEnd"
                     />
                     <YAxis
                       yAxisId="metric"
                       domain={['auto', 'auto']}
-                      tick={{ fill: '#94a3b8', fontSize: 11 }}
-                      tickLine={{ stroke: '#334155' }}
-                      axisLine={{ stroke: '#334155' }}
+                      tick={{ fill: '#6b7280', fontSize: 11 }}
+                      tickLine={{ stroke: '#d1d5db' }}
+                      axisLine={{ stroke: '#d1d5db' }}
                       unit={` ${metricInfo.unit}`}
                       width={65}
                     />
@@ -468,9 +468,9 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         orientation="right"
                         domain={[-3, 3]}
                         ticks={[-3, -2, -1, 0, 1, 2, 3]}
-                        tick={{ fill: '#64748b', fontSize: 10 }}
-                        tickLine={{ stroke: '#33415544' }}
-                        axisLine={{ stroke: '#33415544' }}
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
+                        tickLine={{ stroke: '#d1d5db44' }}
+                        axisLine={{ stroke: '#d1d5db44' }}
                         tickFormatter={(v: number) => {
                           const labels: Record<number, string> = { '-3': 'Cold', '-2': 'Cool', '-1': 'Sl. cool', 0: 'Neutral', 1: 'Sl. warm', 2: 'Warm', 3: 'Hot' };
                           return labels[v] ?? String(v);
@@ -480,14 +480,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                     )}
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#1e293b',
-                        border: '1px solid #334155',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e5e7eb',
                         borderRadius: 10,
-                        color: '#e2e8f0',
+                        color: '#374151',
                         fontSize: 12,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
                       }}
-                      labelStyle={{ color: '#64748b', marginBottom: 6, fontSize: 11 }}
+                      labelStyle={{ color: '#9ca3af', marginBottom: 6, fontSize: 11 }}
                       formatter={(value: number, name: string) => {
                         if (name === 'Comfort Vote') return [`${value}`, name];
                         return [`${value} ${metricInfo.unit}`, name];
@@ -516,19 +516,19 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         stroke="#f43f5e"
                         strokeWidth={2.5}
                         strokeDasharray="6 3"
-                        dot={{ r: 3, fill: '#f43f5e', stroke: '#0f1729', strokeWidth: 1 }}
+                        dot={{ r: 3, fill: '#f43f5e', stroke: '#ffffff', strokeWidth: 1 }}
                         connectNulls
                       />
                     )}
                     {/* Neutral comfort reference line */}
                     {activeTab === 'thermal' && (
-                      <ReferenceLine yAxisId="vote" y={0} stroke="#64748b33" strokeDasharray="4 4" label={{ value: 'Neutral', fill: '#64748b', fontSize: 9, position: 'right' }} />
+                      <ReferenceLine yAxisId="vote" y={0} stroke="#9ca3af44" strokeDasharray="4 4" label={{ value: 'Neutral', fill: '#9ca3af', fontSize: 9, position: 'right' }} />
                     )}
                     <Brush
                       dataKey="_display"
                       height={28}
-                      stroke="#334155"
-                      fill="#0f1729"
+                      stroke="#d1d5db"
+                      fill="#f9fafb"
                       travellerWidth={10}
                     />
                   </LineChart>
