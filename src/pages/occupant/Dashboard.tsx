@@ -58,7 +58,9 @@ export default function Dashboard() {
   }
 
   // Inject weather data into dashboard config
-  const config = dashboardConfig ?? DEFAULT_DASHBOARD;
+  // Fall back to default if config is null or has no renderable children
+  const hasContent = dashboardConfig && dashboardConfig.children && dashboardConfig.children.length > 0;
+  const config = hasContent ? dashboardConfig : DEFAULT_DASHBOARD;
   const injected = weather ? injectWeather(config, weather) : config;
 
   return (

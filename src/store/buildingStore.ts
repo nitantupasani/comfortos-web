@@ -36,10 +36,13 @@ export const useBuildingStore = create<BuildingState>((set) => ({
   },
 
   fetchDashboard: async (buildingId) => {
+    set({ dashboardConfig: null });
     try {
       const config = await buildingsApi.dashboard(buildingId);
       set({ dashboardConfig: config });
-    } catch { /* use default */ }
+    } catch {
+      set({ dashboardConfig: null });
+    }
   },
 
   fetchVoteForm: async (buildingId) => {
