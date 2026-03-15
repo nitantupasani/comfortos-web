@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Settings, Loader2, Building2, Eye, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Settings, Loader2, Building2, Eye, Save, CheckCircle, AlertCircle, Key, Copy, RefreshCw } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import SduiRenderer from '../../components/sdui/SduiRenderer';
 import VoteFormRenderer from '../../components/sdui/VoteFormRenderer';
 import VoteFormVisualEditor from '../../components/fm/VoteFormVisualEditor';
 import type { Building, SduiNode, VoteFormSchema } from '../../types';
 import { DEFAULT_VOTE_FORM } from '../../utils/defaultVoteForm';
+
+function generateApiKey(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 export default function ConfigEditor() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -21,6 +27,10 @@ export default function ConfigEditor() {
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Telemetry API Key — stored inside dashboardLayout.telemetryApiKey
+  const [telemetryApiKey, setTelemetryApiKey] = useState('');
+  const [keyCopied, setKeyCopied] = useState(false);
 
   useEffect(() => {
     buildingsApi.list().then((b) => {
@@ -40,6 +50,9 @@ export default function ConfigEditor() {
       setDashboard(d);
       const form = v ?? DEFAULT_VOTE_FORM;
       setVoteForm(form);
+      // Extract telemetryApiKey from dashboard layout
+      const layout = d as Record<string, unknown> | null;
+      setTelemetryApiKey((layout?.telemetryApiKey as string) ?? '');
       setDashboardText(JSON.stringify(d, null, 2) ?? 'null');
       setVoteFormText(JSON.stringify(form, null, 2));
       setJsonError(null);
@@ -63,16 +76,30 @@ export default function ConfigEditor() {
     setJsonError(null);
   };
 
+  const copyApiKey = useCallback(() => {
+    navigator.clipboard.writeText(telemetryApiKey);
+    setKeyCopied(true);
+    setTimeout(() => setKeyCopied(false), 2000);
+  }, [telemetryApiKey]);
+
   const handleSave = async () => {
     setJsonError(null);
     setSaving(true);
     setSaveStatus('idle');
     try {
       if (activeTab === 'dashboard') {
-        let parsed: unknown;
-        try { parsed = JSON.parse(activeText); } catch { setJsonError('Invalid JSON — fix before saving'); setSaving(false); return; }
+        let parsed: Record<string, unknown>;
+        try { parsed = JSON.parse(activeText) as Record<string, unknown>; } catch { setJsonError('Invalid JSON — fix before saving'); setSaving(false); return; }
+        // Merge telemetryApiKey into dashboard layout
+        if (telemetryApiKey) {
+          parsed.telemetryApiKey = telemetryApiKey;
+        } else {
+          delete parsed.telemetryApiKey;
+        }
         await buildingsApi.updateConfig(selected, { dashboardLayout: parsed });
-        setDashboard(parsed as SduiNode);
+        setDashboard(parsed as unknown as SduiNode);
+        // Keep text in sync (don't show the key in the JSON editor)
+        setDashboardText(JSON.stringify(parsed, null, 2));
       } else {
         await buildingsApi.updateConfig(selected, { voteFormSchema: voteForm });
       }
@@ -124,6 +151,45 @@ export default function ConfigEditor() {
             {saveStatus === 'success' && <span className="flex items-center gap-1 text-green-600 text-sm"><CheckCircle className="h-4 w-4" /> Saved</span>}
             {(saveStatus === 'error' || jsonError) && <span className="flex items-center gap-1 text-red-500 text-sm"><AlertCircle className="h-4 w-4" />{jsonError ?? 'Error'}</span>}
           </div>
+
+          {/* Telemetry API Key — only visible on Dashboard tab */}
+          {activeTab === 'dashboard' && (
+            <div className="bg-white rounded-xl border p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-semibold text-gray-700">Telemetry API Key</span>
+                <span className="text-xs text-gray-400">— used by building services to push sensor data</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={telemetryApiKey}
+                  onChange={(e) => { setTelemetryApiKey(e.target.value); setSaveStatus('idle'); }}
+                  placeholder="No key set — generate or enter one"
+                  className="flex-1 border rounded-lg px-3 py-2 text-sm font-mono text-gray-700 focus:ring-2 focus:ring-primary-300 outline-none"
+                />
+                <button
+                  onClick={() => { setTelemetryApiKey(generateApiKey()); setSaveStatus('idle'); }}
+                  title="Generate a new random key"
+                  className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4" /> Generate
+                </button>
+                {telemetryApiKey && (
+                  <button
+                    onClick={copyApiKey}
+                    title="Copy key to clipboard"
+                    className="flex items-center gap-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Copy className="h-4 w-4" /> {keyCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                )}
+              </div>
+              {telemetryApiKey && (
+                <p className="text-xs text-gray-400">Building ID: <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600">{selected}</code> — provide both to the building service operator.</p>
+              )}
+            </div>
+          )}
 
           {activeTab === 'vote' ? (
             /* ── Visual vote-form editor + live preview ─── */
