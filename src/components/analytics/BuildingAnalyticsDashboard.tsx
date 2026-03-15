@@ -30,7 +30,8 @@ import {
 import { buildingsApi } from '../../api/buildings';
 import { telemetryApi, TelemetryQueryResponse, TelemetryMetric } from '../../api/telemetry';
 import { votesApi, VoteAnalyticsResponse } from '../../api/votes';
-import type { Building } from '../../types';
+import { fetchWeather } from '../../utils/weather';
+import type { Building, WeatherData } from '../../types';
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -147,14 +148,17 @@ const COMFORT_BANDS = [
 interface Props {
   /** When true, shows the integration docs tab */
   showDocs?: boolean;
+  /** When true, only shows buildings the caller manages (for FM pages) */
+  managedOnly?: boolean;
 }
 
-export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) {
+export default function BuildingAnalyticsDashboard({ showDocs = false, managedOnly = false }: Props) {
   /* ── State ── */
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState('');
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const [availableMetrics, setAvailableMetrics] = useState<TelemetryMetric[]>([]);
   const [activeMetric, setActiveMetric] = useState('temperature');
@@ -189,11 +193,20 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
 
   /* ── Load buildings ── */
   useEffect(() => {
-    buildingsApi.list().then((b) => {
+    const loader = managedOnly ? buildingsApi.listManaged() : buildingsApi.list();
+    loader.then((b) => {
       setBuildings(b);
       if (b.length > 0) setSelectedBuilding(b[0].id);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [managedOnly]);
+
+  /* ── Fetch weather when building changes ── */
+  useEffect(() => {
+    if (!selectedBuilding) return;
+    const bld = buildings.find((b) => b.id === selectedBuilding);
+    if (!bld) return;
+    fetchWeather(bld.latitude, bld.longitude).then((w) => setWeather(w));
+  }, [selectedBuilding, buildings]);
 
   /* ── Load telemetry + votes when building/metric/range changes ── */
   useEffect(() => {
@@ -363,6 +376,35 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
 
   return (
     <div className="space-y-6">
+      {/* ── Weather Card ── */}
+      {weather && (
+        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-xl px-5 py-3">
+          <span className="text-3xl">{weather.icon}</span>
+          <div>
+            <div className="text-sm font-semibold text-gray-700">{weather.description}</div>
+            <div className="text-xs text-gray-500">Outside weather · {buildings.find((b) => b.id === selectedBuilding)?.city}</div>
+          </div>
+          <div className="flex items-center gap-4 ml-4">
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-800">{Math.round(weather.temperature)}°C</div>
+              <div className="text-[10px] text-gray-400">Temp</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-800">{Math.round(weather.feelsLike)}°C</div>
+              <div className="text-[10px] text-gray-400">Feels like</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-800">{weather.humidity}%</div>
+              <div className="text-[10px] text-gray-400">Humidity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-800">{weather.windSpeed}<span className="text-xs font-normal"> km/h</span></div>
+              <div className="text-[10px] text-gray-400">Wind</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">

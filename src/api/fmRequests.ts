@@ -27,4 +27,8 @@ export const fmRequestsApi = {
   /** Admin approves or rejects a request */
   review: (requestId: string, data: { action: 'approve' | 'reject'; reviewNote?: string }) =>
     api.put<FMRequestResponse>(`/fm-requests/${requestId}/review`, data),
+
+  /** Admin revokes a previously approved FM request */
+  revoke: (requestId: string) =>
+    api.put<FMRequestResponse>(`/fm-requests/${requestId}/revoke`, {}),
 };

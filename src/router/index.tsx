@@ -46,7 +46,9 @@ export default function AppRouter() {
   const user = useAuthStore((s) => s.user);
   const viewAsRole = useAuthStore((s) => s.viewAsRole);
 
-  const effectiveRole = user?.role === 'admin' && viewAsRole ? viewAsRole : user?.role;
+  const effectiveRole = viewAsRole && (user?.role === 'admin' || (viewAsRole === 'occupant' && (user?.role === 'tenant_facility_manager' || user?.role === 'building_facility_manager')))
+    ? viewAsRole
+    : user?.role;
 
   /** Role-based root redirect */
   const roleRedirect = () => {
@@ -130,7 +132,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={<BuildingAnalytics />} />
+        <Route path="/admin/overview" element={<AdminDashboard />} />
         <Route path="/admin/buildings" element={<BuildingManagement />} />
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
@@ -149,7 +152,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        <Route path="/fm" element={<FMDashboard />} />
+        <Route path="/fm" element={<FMBuildingAnalytics />} />
+        <Route path="/fm/overview" element={<FMDashboard />} />
         <Route path="/fm/buildings" element={<BuildingOverview />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />

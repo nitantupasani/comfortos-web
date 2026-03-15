@@ -32,12 +32,12 @@ const ROLE_ENTRY_PATHS: Record<UserRole, string> = {
 };
 
 const links = [
-  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/admin', icon: Activity, label: 'Dashboard', end: true },
+  { to: '/admin/overview', icon: LayoutDashboard, label: 'Platform Overview' },
   { to: '/admin/buildings', icon: Building2, label: 'Buildings' },
   { to: '/admin/tenants', icon: Users, label: 'Tenants' },
   { to: '/admin/fm-approvals', icon: ShieldCheck, label: 'FM Approvals' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
-  { to: '/admin/building-analytics', icon: Activity, label: 'Building Analytics' },
   { to: '/admin/connectors', icon: Plug, label: 'Connectors' },
   { to: '/admin/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
   { to: '/admin/vote-config', icon: FileQuestion, label: 'Vote Form Config' },

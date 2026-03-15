@@ -18,6 +18,7 @@ import {
   Plug,
 } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
+import { useAuthStore } from '../../store/authStore';
 import type { Building } from '../../types';
 import {
   connectorsApi,
@@ -89,6 +90,8 @@ function StatusBadge({ status, failures }: { status: string | null; failures: nu
 }
 
 export default function ConnectorManagement() {
+  const user = useAuthStore((s) => s.user);
+  const isFm = user?.role === 'tenant_facility_manager' || user?.role === 'building_facility_manager';
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState('');
   const [connectors, setConnectors] = useState<BuildingConnector[]>([]);
@@ -98,13 +101,14 @@ export default function ConnectorManagement() {
   const [testResults, setTestResults] = useState<Record<string, ConnectorTestResult>>({});
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
-  // Load buildings
+  // Load buildings (FM users only see their managed buildings)
   useEffect(() => {
-    buildingsApi.list().then((b) => {
+    const loader = isFm ? buildingsApi.listManaged() : buildingsApi.list();
+    loader.then((b) => {
       setBuildings(b);
       if (b.length > 0) setSelectedBuilding(b[0].id);
     });
-  }, []);
+  }, [isFm]);
 
   // Load connectors
   useEffect(() => {

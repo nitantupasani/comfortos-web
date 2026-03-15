@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, Settings, Building2 } from 'lucide-react';
+import { LayoutDashboard, History, Settings, Building2, ArrowLeftRight } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
+import { useAuthStore } from '../../store/authStore';
 
 const tabs = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -17,10 +18,33 @@ interface OccupantShellProps {
 export default function OccupantShell({ children, showNav = false }: OccupantShellProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const viewAsRole = useAuthStore((s) => s.viewAsRole);
+  const setViewAsRole = useAuthStore((s) => s.setViewAsRole);
+
+  const isFMViewingAsOccupant = viewAsRole === 'occupant' &&
+    (user?.role === 'tenant_facility_manager' || user?.role === 'building_facility_manager');
+
+  const handleSwitchBackToFM = () => {
+    setViewAsRole(null);
+    navigate('/fm');
+  };
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.14),_transparent_38%),linear-gradient(180deg,_#eef7f0_0%,_#f7faf8_45%,_#edf4ef_100%)] px-0 md:px-6 md:py-6">
       <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#f7faf7] md:min-h-[820px] md:rounded-[32px] md:border md:border-white/70 md:shadow-[0_30px_90px_rgba(15,23,42,0.16)]">
+        {isFMViewingAsOccupant && (
+          <div className="bg-teal-600 text-white px-4 py-2 flex items-center justify-between text-xs">
+            <span>Viewing as Occupant</span>
+            <button
+              onClick={handleSwitchBackToFM}
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg transition-colors font-medium"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+              Back to FM
+            </button>
+          </div>
+        )}
         <header className="border-b border-emerald-100/80 bg-white/90 px-4 py-4 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">

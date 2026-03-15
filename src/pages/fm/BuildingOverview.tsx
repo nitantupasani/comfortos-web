@@ -14,7 +14,7 @@ export default function BuildingOverview() {
   const [dashLoading, setDashLoading] = useState(false);
 
   useEffect(() => {
-    buildingsApi.list(user?.tenantId ?? undefined).then((b) => {
+    buildingsApi.listManaged().then((b) => {
       setBuildings(b);
       if (b.length > 0) { setSelected(b[0]); }
     }).finally(() => setLoading(false));

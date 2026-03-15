@@ -11,15 +11,16 @@ import {
   Plug,
   PanelsTopLeft,
   FileQuestion,
+  UserCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 
 const links = [
-  { to: '/fm', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/fm', icon: Activity, label: 'Dashboard', end: true },
+  { to: '/fm/overview', icon: LayoutDashboard, label: 'Facility Overview' },
   { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
-  { to: '/fm/building-analytics', icon: Activity, label: 'Building Analytics' },
   { to: '/fm/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
   { to: '/fm/vote-config', icon: FileQuestion, label: 'Vote Form Config' },
   { to: '/fm/connectors', icon: Plug, label: 'Connectors' },
@@ -30,11 +31,18 @@ export default function FMLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
+  const setViewAsRole = useAuthStore((s) => s.setViewAsRole);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleSwitchToOccupant = () => {
+    setViewAsRole('occupant');
+    navigate('/presence');
+    setSidebarOpen(false);
   };
 
   return (
@@ -67,6 +75,13 @@ export default function FMLayout() {
         </nav>
         <div className="px-4 py-4 border-t border-slate-700">
           <div className="text-xs text-gray-400 mb-2 truncate">{user?.email}</div>
+          <button
+            onClick={handleSwitchToOccupant}
+            className="flex items-center gap-2 text-sm text-gray-300 hover:text-teal-400 transition-colors mb-2 w-full"
+          >
+            <UserCircle className="h-4 w-4" />
+            Switch to Occupant View
+          </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-sm text-gray-300 hover:text-red-400 transition-colors"
@@ -107,6 +122,13 @@ export default function FMLayout() {
               ))}
             </nav>
             <div className="px-4 py-4 border-t border-slate-700">
+              <button
+                onClick={handleSwitchToOccupant}
+                className="flex items-center gap-2 text-sm text-gray-300 hover:text-teal-400 transition-colors mb-2 w-full"
+              >
+                <UserCircle className="h-4 w-4" />
+                Switch to Occupant View
+              </button>
               <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-300 hover:text-red-400">
                 <LogOut className="h-4 w-4" />
                 Sign out

@@ -664,7 +664,12 @@ function GroupRadarChart({
 
 /* ── Main Dashboard Component ───────────────────────────── */
 
-export default function VoteAnalyticsDashboard() {
+interface VoteAnalyticsProps {
+  /** When true, only shows buildings the caller manages (for FM pages) */
+  managedOnly?: boolean;
+}
+
+export default function VoteAnalyticsDashboard({ managedOnly = false }: VoteAnalyticsProps) {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBldg, setSelectedBldg] = useState<string>('');
   const [dateFrom, setDateFrom] = useState(daysAgo(30));
@@ -677,11 +682,12 @@ export default function VoteAnalyticsDashboard() {
 
   // Load buildings
   useEffect(() => {
-    buildingsApi.list().then((b) => {
+    const loader = managedOnly ? buildingsApi.listManaged() : buildingsApi.list();
+    loader.then((b) => {
       setBuildings(b);
       if (b.length > 0) setSelectedBldg(b[0].id);
     }).finally(() => setLoading(false));
-  }, []);
+  }, [managedOnly]);
 
   // Load vote form schema + analytics when building changes
   useEffect(() => {

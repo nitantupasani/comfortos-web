@@ -46,6 +46,10 @@ export const buildingsApi = {
   list: (tenantId?: string) =>
     api.get<Building[]>(tenantId ? `/buildings?tenantId=${tenantId}` : '/buildings'),
 
+  /** List only buildings the caller manages (FM/admin). */
+  listManaged: () =>
+    api.get<Building[]>('/buildings?managedOnly=true'),
+
   create: (payload: BuildingCreatePayload) =>
     api.post<Building>('/buildings', payload),
 

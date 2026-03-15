@@ -18,7 +18,7 @@ export default function FMDashboardConfig() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    buildingsApi.list(user?.tenantId ?? undefined).then((b) => {
+    buildingsApi.listManaged().then((b) => {
       setBuildings(b);
       if (b.length > 0) setSelected(b[0].id);
     }).finally(() => setLoading(false));

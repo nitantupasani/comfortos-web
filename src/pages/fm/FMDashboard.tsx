@@ -15,7 +15,7 @@ export default function FMDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const bldgs = await buildingsApi.list(user?.tenantId ?? undefined);
+        const bldgs = await buildingsApi.listManaged();
         setBuildings(bldgs);
         const v = await votesApi.history(user!.id).catch(() => []);
         setVotes(v);

@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   UserCheck,
   Building2,
+  ShieldOff,
 } from 'lucide-react';
 import { fmRequestsApi, type FMRequestResponse } from '../../api/fmRequests';
 
@@ -14,6 +15,7 @@ export default function FMApprovals() {
   const [requests, setRequests] = useState<FMRequestResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -35,6 +37,18 @@ export default function FMApprovals() {
       // Silently fail — the UI will show the unchanged status
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleRevoke = async (id: string) => {
+    setRevokingId(id);
+    try {
+      const updated = await fmRequestsApi.revoke(id);
+      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch {
+      // Silently fail
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -164,6 +178,7 @@ export default function FMApprovals() {
                   <th className="px-5 py-3 text-center">Status</th>
                   <th className="px-5 py-3 text-left">Note</th>
                   <th className="px-5 py-3 text-left">Reviewed</th>
+                  <th className="px-5 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -194,6 +209,22 @@ export default function FMApprovals() {
                     <td className="px-5 py-3 text-gray-500 text-xs">{r.reviewNote || '—'}</td>
                     <td className="px-5 py-3 text-gray-400 text-xs">
                       {r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      {r.status === 'approved' && (
+                        <button
+                          onClick={() => handleRevoke(r.id)}
+                          disabled={revokingId === r.id}
+                          className="bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-orange-700 disabled:opacity-50 transition-colors inline-flex items-center gap-1"
+                        >
+                          {revokingId === r.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <ShieldOff className="h-3 w-3" />
+                          )}
+                          Revoke
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

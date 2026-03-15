@@ -23,9 +23,12 @@ export default function RequestFMRole() {
       .finally(() => setLoading(false));
   }, []);
 
+  const hasPendingRequest = myRequests.some((r) => r.status === 'pending');
+  const selectedBuildingObj = buildings.find((b) => b.id === selectedBuilding);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedBuilding) return;
+    if (!selectedBuilding || hasPendingRequest) return;
     setSubmitting(true);
     setError('');
     setSuccess('');
@@ -99,41 +102,57 @@ export default function RequestFMRole() {
           <div className="bg-red-50 text-red-600 text-sm rounded-lg px-4 py-3 mb-4">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Building</label>
-            <select
-              value={selectedBuilding}
-              onChange={(e) => setSelectedBuilding(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
-              required
+        {hasPendingRequest ? (
+          <div className="bg-amber-50 text-amber-700 text-sm rounded-lg px-4 py-3">
+            <Clock className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+            You already have a pending FM request. Only one request is allowed at a time. Please wait for the admin to review it before submitting another.
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Building</label>
+              <select
+                value={selectedBuilding}
+                onChange={(e) => setSelectedBuilding(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+                required
+              >
+                <option value="">Select a building...</option>
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-1">You can only apply for one building at a time.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message (optional)</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 outline-none resize-none"
+                rows={3}
+                placeholder="Why do you need FM access?"
+                maxLength={500}
+              />
+            </div>
+
+            {selectedBuildingObj && (
+              <div className="bg-blue-50 text-blue-700 text-sm rounded-lg px-4 py-3">
+                <Building2 className="inline h-4 w-4 mr-1.5 -mt-0.5" />
+                You are requesting FM access for <strong>{selectedBuildingObj.name}</strong> in {selectedBuildingObj.city}.
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting || !selectedBuilding}
+              className="bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center gap-2"
             >
-              <option value="">Select a building...</option>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>{b.name} — {b.city}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message (optional)</label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-300 outline-none resize-none"
-              rows={3}
-              placeholder="Why do you need FM access?"
-              maxLength={500}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting || !selectedBuilding}
-            className="bg-primary-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Submit Request
-          </button>
-        </form>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Submit Request
+            </button>
+          </form>
+        )}
       </div>
 
       {/* My requests */}
