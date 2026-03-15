@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   Loader2,
   Building2,
@@ -173,8 +173,11 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
   const [telemetryData, setTelemetryData] = useState<TelemetryQueryResponse | null>(null);
   const [voteOverlay, setVoteOverlay] = useState<VoteAnalyticsResponse | null>(null);
   const [showVotes, setShowVotes] = useState(true);
+  const [voteMode, setVoteMode] = useState<'grouped' | 'individual'>('grouped');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
+  // Use ref for brush range to avoid re-render loops (brush onChange → data change → brush reset)
+  const brushRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
+  const mergeMapRef = useRef<Map<number, { val: number; count: number }>>(new Map());
 
   const toggleSeries = useCallback((key: string) => {
     setHiddenSeries((prev) => {
@@ -218,8 +221,8 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
     }).finally(() => setDataLoading(false));
   }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity]);
 
-  // Reset brush when underlying data changes
-  useEffect(() => { setBrushRange(null); }, [telemetryData]);
+  // Reset brush ref when underlying data changes
+  useEffect(() => { brushRef.current = { start: 0, end: 0 }; }, [telemetryData]);
 
   /* ── Transform telemetry into Recharts-friendly data ── */
   const { chartData, seriesKeys } = useMemo(() => {
@@ -288,34 +291,45 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
     return { chartData: rows, seriesKeys: keys };
   }, [telemetryData, voteOverlay, showVotes, granularity]);
 
-  /* ── Merge nearby vote bubbles based on visible range ── */
-  const mergedChartData = useMemo(() => {
-    const start = brushRange?.startIndex ?? 0;
-    const end = brushRange?.endIndex ?? chartData.length - 1;
+  /* ── Build merge map for grouped bubble mode (called imperatively) ── */
+  const rebuildMergeMap = useCallback(() => {
+    const map = new Map<number, { val: number; count: number }>();
+    const start = brushRef.current.start;
+    const end = brushRef.current.end || chartData.length - 1;
     const visibleLen = Math.max(1, end - start + 1);
     const minGap = Math.max(1, Math.ceil(visibleLen / 60));
 
-    // Deep-copy rows so the source chartData stays clean
-    const rows = chartData.map((r) => ({ ...r }));
-    let lastVoteIdx = -Infinity;
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i]['Comfort Vote'] == null) continue;
-      if (i - lastVoteIdx < minGap) {
-        const prev = rows[lastVoteIdx];
-        const cPrev = (prev['_voteCount'] as number) || 1;
-        const cCur = (rows[i]['_voteCount'] as number) || 1;
-        const total = cPrev + cCur;
-        prev['Comfort Vote'] = Math.round(((prev['Comfort Vote'] as number) * cPrev + (rows[i]['Comfort Vote'] as number) * cCur) / total * 100) / 100;
-        prev['_voteCount'] = total;
-        rows[i] = { ...rows[i] };
-        delete rows[i]['Comfort Vote'];
-        delete rows[i]['_voteCount'];
+    // Collect indices that have votes
+    const voteIndices: number[] = [];
+    for (let i = 0; i < chartData.length; i++) {
+      if (chartData[i]['Comfort Vote'] != null) voteIndices.push(i);
+    }
+
+    let groupAnchor = -Infinity;
+    let groupVal = 0;
+    let groupCount = 0;
+    const flush = () => {
+      if (groupAnchor >= 0) map.set(groupAnchor, { val: Math.round(groupVal / groupCount * 100) / 100, count: groupCount });
+    };
+    for (const idx of voteIndices) {
+      const v = chartData[idx]['Comfort Vote'] as number;
+      const c = (chartData[idx]['_voteCount'] as number) || 1;
+      if (idx - groupAnchor < minGap && groupAnchor >= 0) {
+        groupVal += v * c;
+        groupCount += c;
       } else {
-        lastVoteIdx = i;
+        flush();
+        groupAnchor = idx;
+        groupVal = v * c;
+        groupCount = c;
       }
     }
-    return rows;
-  }, [chartData, brushRange]);
+    flush();
+    mergeMapRef.current = map;
+  }, [chartData]);
+
+  // Initial merge map build
+  useEffect(() => { rebuildMergeMap(); }, [rebuildMergeMap]);
 
   /* ── Weekend / off-hours shading bands ── */
   const offHourBands = useMemo(() => buildOffHourBands(chartData), [chartData]);
@@ -486,41 +500,59 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
 
           {/* ── Chart Card ── */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MetricIcon className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                  {metricInfo.label} by Zone
-                </span>
-              </div>
-              {/* Zone toggles + vote legend */}
-              {seriesKeys.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  {/* Vote bubble colour legend (thermal tab only) */}
+            {/* ── Chart header ── */}
+            <div className="px-5 py-3 border-b border-gray-100">
+              {/* Row 1: title + vote legend + shading legend */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <MetricIcon className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    {metricInfo.label} by Zone
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Vote colour legend */}
                   {activeTab === 'thermal' && hasVoteData && showVotes && (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-gray-200 text-gray-600" style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
-                      <span className="text-[10px] mr-0.5">Votes</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50">
+                      <span className="text-xs font-medium text-gray-600 mr-1">Votes</span>
                       {([-3,-2,-1,0,1,2,3] as number[]).map(v => (
                         <span key={v} className="flex flex-col items-center" style={{ lineHeight: 1 }}>
-                          <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: VOTE_COLOR[v] + '55', borderColor: VOTE_COLOR[v] }} />
-                          <span className="text-[7px] text-gray-400 mt-px">{COMFORT_LABEL[v]}</span>
+                          <span className="w-4 h-4 rounded-full border" style={{ backgroundColor: VOTE_COLOR[v] + '55', borderColor: VOTE_COLOR[v] }} />
+                          <span className="text-[8px] text-gray-500 mt-0.5 leading-none">{COMFORT_LABEL[v]}</span>
                         </span>
                       ))}
-                    </span>
+                    </div>
+                  )}
+                  {/* Vote mode toggle */}
+                  {activeTab === 'thermal' && hasVoteData && showVotes && (
+                    <div className="flex bg-gray-100 rounded-md p-0.5 text-[11px]">
+                      <button
+                        onClick={() => setVoteMode('grouped')}
+                        className={`px-2 py-1 rounded transition-colors ${voteMode === 'grouped' ? 'bg-white shadow-sm text-gray-700 font-medium' : 'text-gray-500'}`}
+                      >Grouped</button>
+                      <button
+                        onClick={() => setVoteMode('individual')}
+                        className={`px-2 py-1 rounded transition-colors ${voteMode === 'individual' ? 'bg-white shadow-sm text-gray-700 font-medium' : 'text-gray-500'}`}
+                      >Individual</button>
+                    </div>
                   )}
                   {/* Weekend / off-hours legend */}
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1 text-[11px] text-gray-500">
                     <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(99,102,241,0.15)' }} />
                     Weekend
                   </span>
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1 text-[11px] text-gray-500">
                     <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(148,163,184,0.10)' }} />
                     Off-hours
                   </span>
-                  <span className="mx-1 w-px h-4 bg-gray-200" />
+                </div>
+              </div>
+              {/* Row 2: zone toggles */}
+              {seriesKeys.length > 0 && (
+                <div className="flex items-center gap-1 mt-2 flex-wrap">
                   <button
                     onClick={() => setHiddenSeries(hiddenSeries.size === 0 ? new Set(seriesKeys) : new Set())}
-                    className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors"
+                    className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors mr-1"
                   >
                     {hiddenSeries.size === 0 ? 'Hide all' : 'Show all'}
                   </button>
@@ -531,7 +563,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                       <button
                         key={key}
                         onClick={() => toggleSeries(key)}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all border ${
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium transition-all border ${
                           isHidden
                             ? 'border-gray-200 text-gray-400 bg-transparent'
                             : 'border-transparent text-gray-700'
@@ -568,7 +600,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={420}>
-                  <LineChart data={mergedChartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
+                  <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
                     {/* Weekend / off-hours shading */}
                     {offHourBands.map((band, i) => (
                       <ReferenceArea
@@ -667,19 +699,34 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         stroke="none"
                         strokeWidth={0}
                         dot={(props: any) => {
-                          const { cx, cy, payload } = props;
+                          const { cx, cy, payload, index } = props;
                           if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
                           const val = payload['Comfort Vote'] as number;
                           const count = (payload['_voteCount'] as number) ?? 1;
                           const fill = voteColor(val);
-                          // Radius scales with sqrt of count for area-proportional sizing
-                          const r = Math.min(28, 8 + Math.sqrt(count) * 5);
+
+                          if (voteMode === 'individual') {
+                            // Small fixed-size dot per hourly bucket
+                            return (
+                              <g>
+                                <circle cx={cx} cy={cy} r={5} fill={fill + '88'} stroke={fill} strokeWidth={1} />
+                              </g>
+                            );
+                          }
+
+                          // Grouped mode: check merge map
+                          const merged = mergeMapRef.current.get(index);
+                          if (!merged) return <g />; // this index was merged into another
+                          const mCount = merged.count;
+                          const mVal = merged.val;
+                          const mFill = voteColor(mVal);
+                          const r = Math.min(28, 8 + Math.sqrt(mCount) * 5);
                           return (
                             <g>
-                              <circle cx={cx} cy={cy} r={r} fill={fill + '44'} stroke={fill} strokeWidth={1.5} />
-                              {count > 1 && (
+                              <circle cx={cx} cy={cy} r={r} fill={mFill + '44'} stroke={mFill} strokeWidth={1.5} />
+                              {mCount > 1 && (
                                 <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill="#1f2937" fontSize={r > 10 ? 9 : 7} fontWeight={700}>
-                                  {count}
+                                  {mCount}
                                 </text>
                               )}
                             </g>
@@ -700,7 +747,10 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                       stroke="#d1d5db"
                       fill="#f9fafb"
                       travellerWidth={10}
-                      onChange={(range: any) => setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex })}
+                      onChange={(range: any) => {
+                        brushRef.current = { start: range.startIndex, end: range.endIndex };
+                        if (voteMode === 'grouped') rebuildMergeMap();
+                      }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
