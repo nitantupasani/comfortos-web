@@ -108,8 +108,15 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
   const [activeMetric, setActiveMetric] = useState('temperature');
   const [activeTab, setActiveTab] = useState<'thermal' | 'performance' | 'docs'>('thermal');
 
-  const [dateRange, setDateRange] = useState(7);
+  const [startDate, setStartDate] = useState(() => toISODate(new Date(Date.now() - 7 * 86400000)));
+  const [endDate, setEndDate] = useState(() => toISODate(new Date()));
   const [granularity, setGranularity] = useState<'raw' | 'hourly' | 'daily'>('hourly');
+
+  /** Apply a preset range (days from today) */
+  const applyPreset = useCallback((days: number) => {
+    setEndDate(toISODate(new Date()));
+    setStartDate(toISODate(new Date(Date.now() - days * 86400000)));
+  }, []);
 
   const [telemetryData, setTelemetryData] = useState<TelemetryQueryResponse | null>(null);
   const [voteOverlay, setVoteOverlay] = useState<VoteAnalyticsResponse | null>(null);
@@ -137,9 +144,6 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
     if (!selectedBuilding) return;
     setDataLoading(true);
 
-    const dateTo = new Date();
-    const dateFrom = new Date(dateTo.getTime() - dateRange * 86400000);
-
     const metricType = activeTab === 'thermal' ? 'temperature'
       : activeTab === 'performance' ? activeMetric
       : 'temperature';
@@ -147,19 +151,19 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
     Promise.all([
       telemetryApi.series(selectedBuilding, {
         metricType,
-        dateFrom: toISODate(dateFrom),
-        dateTo: toISODate(dateTo),
+        dateFrom: startDate,
+        dateTo: endDate,
         granularity,
       }).catch(() => null),
       telemetryApi.metrics(selectedBuilding).catch(() => []),
-      votesApi.analytics(selectedBuilding, toISODate(dateFrom), toISODate(dateTo)).catch(() => null),
+      votesApi.analytics(selectedBuilding, startDate, endDate).catch(() => null),
     ]).then(([series, metrics, votes]) => {
       setTelemetryData(series);
       setAvailableMetrics(metrics);
       setVoteOverlay(votes);
       setHiddenSeries(new Set());
     }).finally(() => setDataLoading(false));
-  }, [selectedBuilding, activeTab, activeMetric, dateRange, granularity]);
+  }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity]);
 
   /* ── Transform telemetry into Recharts-friendly data ── */
   const { chartData, seriesKeys } = useMemo(() => {
@@ -270,19 +274,37 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
           </select>
 
           {/* Date range */}
-          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-            <Calendar className="h-4 w-4 text-gray-400 ml-2" />
-            {DATE_RANGES.map((r) => (
-              <button
-                key={r.days}
-                onClick={() => setDateRange(r.days)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  dateRange === r.days ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+              <Calendar className="h-4 w-4 text-gray-400 ml-2" />
+              {DATE_RANGES.map((r) => (
+                <button
+                  key={r.days}
+                  onClick={() => applyPreset(r.days)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    endDate === toISODate(new Date()) && startDate === toISODate(new Date(Date.now() - r.days * 86400000))
+                      ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-primary-300 outline-none"
+              />
+              <span className="text-gray-400 text-xs">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-primary-300 outline-none"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -522,7 +544,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                     )}
                     {/* Neutral comfort reference line */}
                     {activeTab === 'thermal' && (
-                      <ReferenceLine yAxisId="vote" y={0} stroke="#9ca3af44" strokeDasharray="4 4" label={{ value: 'Neutral', fill: '#9ca3af', fontSize: 9, position: 'right' }} />
+                      <ReferenceLine yAxisId="vote" y={0} stroke="#9ca3af44" strokeDasharray="4 4" />
                     )}
                     <Brush
                       dataKey="_display"
