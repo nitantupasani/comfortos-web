@@ -84,6 +84,17 @@ const COMFORT_LABEL: Record<number, string> = {
   '-3': 'Cold', '-2': 'Cool', '-1': 'Sl. cool', 0: 'Neutral', 1: 'Sl. warm', 2: 'Warm', 3: 'Hot',
 };
 
+/** Colour per comfort level: -3 cold blue → +3 hot red */
+const VOTE_COLOR: Record<number, string> = {
+  '-3': '#2563eb', '-2': '#60a5fa', '-1': '#93c5fd',
+  0: '#4ade80',
+  1: '#fbbf24', 2: '#fb923c', 3: '#ef4444',
+};
+function voteColor(val: number): string {
+  const clamped = Math.max(-3, Math.min(3, Math.round(val)));
+  return VOTE_COLOR[clamped] ?? '#a78bfa';
+}
+
 /** Build weekend / non-office-hour shading bands from chart data. */
 function buildOffHourBands(data: Record<string, unknown>[]): { x1: string; x2: string; type: 'weekend' | 'offhours' }[] {
   const bands: { x1: string; x2: string; type: 'weekend' | 'offhours' }[] = [];
@@ -452,14 +463,16 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
               {/* Zone toggles + vote legend */}
               {seriesKeys.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  {/* Vote bubble legend (thermal tab only) */}
+                  {/* Vote bubble colour legend (thermal tab only) */}
                   {activeTab === 'thermal' && hasVoteData && showVotes && (
-                    <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-purple-200 text-purple-700" style={{ backgroundColor: 'rgba(139,92,246,0.08)' }}>
-                      <svg width="14" height="14" viewBox="0 0 14 14">
-                        <circle cx="7" cy="7" r="5.5" fill="rgba(139,92,246,0.2)" stroke="#8b5cf6" strokeWidth="1" />
-                        <text x="7" y="7.5" textAnchor="middle" dominantBaseline="central" fill="#7c3aed" fontSize="7" fontWeight="700">n</text>
-                      </svg>
-                      Comfort Votes
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-gray-200 text-gray-600" style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
+                      <span className="text-[10px] mr-0.5">Votes</span>
+                      {([-3,-2,-1,0,1,2,3] as number[]).map(v => (
+                        <span key={v} className="flex flex-col items-center" style={{ lineHeight: 1 }}>
+                          <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: VOTE_COLOR[v] + '55', borderColor: VOTE_COLOR[v] }} />
+                          <span className="text-[7px] text-gray-400 mt-px">{COMFORT_LABEL[v]}</span>
+                        </span>
+                      ))}
                     </span>
                   )}
                   {/* Weekend / off-hours legend */}
@@ -625,19 +638,17 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                           if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
                           const val = payload['Comfort Vote'] as number;
                           const count = (payload['_voteCount'] as number) ?? 1;
-                          const rounded = Math.round(val);
-                          const label = COMFORT_LABEL[rounded] ?? '';
-                          // Bubble radius scales with vote count: min 10, max 22
-                          const r = Math.min(22, 10 + count * 2.5);
+                          const fill = voteColor(val);
+                          // Smaller radius to reduce overlap: min 7, max 14
+                          const r = Math.min(14, 7 + count * 1.5);
                           return (
                             <g>
-                              <circle cx={cx} cy={cy} r={r} fill="rgba(139,92,246,0.15)" stroke="#8b5cf6" strokeWidth={1.5} />
-                              <text x={cx} y={cy - 1} textAnchor="middle" dominantBaseline="central" fill="#7c3aed" fontSize={r > 14 ? 10 : 8} fontWeight={700}>
-                                {count}
-                              </text>
-                              <text x={cx} y={cy + r + 10} textAnchor="middle" fill="#6d28d9" fontSize={8} fontWeight={500}>
-                                {label}
-                              </text>
+                              <circle cx={cx} cy={cy} r={r} fill={fill + '44'} stroke={fill} strokeWidth={1.5} />
+                              {count > 1 && (
+                                <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill="#1f2937" fontSize={r > 10 ? 9 : 7} fontWeight={700}>
+                                  {count}
+                                </text>
+                              )}
                             </g>
                           );
                         }}
