@@ -124,11 +124,11 @@ function buildOffHourBands(data: Record<string, unknown>[]): { x1: string; x2: s
 /* ── Thermal comfort background bands ──────────────────── */
 
 const COMFORT_BANDS = [
-  { from: -3, to: -2, color: 'rgba(59,130,246,0.15)' },   // cold – blue
-  { from: -2, to: -1, color: 'rgba(96,165,250,0.10)' },   // cool – lighter blue
-  { from: -1, to:  1, color: 'rgba(74,222,128,0.08)' },    // neutral – green
-  { from:  1, to:  2, color: 'rgba(251,146,60,0.10)' },    // warm – orange
-  { from:  2, to:  3, color: 'rgba(239,68,68,0.15)' },     // hot – red
+  { from: -3, to: -2, color: 'rgba(59,130,246,0.04)' },   // cold – blue
+  { from: -2, to: -1, color: 'rgba(96,165,250,0.03)' },   // cool – lighter blue
+  { from: -1, to:  1, color: 'rgba(74,222,128,0.03)' },    // neutral – green
+  { from:  1, to:  2, color: 'rgba(251,146,60,0.03)' },    // warm – orange
+  { from:  2, to:  3, color: 'rgba(239,68,68,0.04)' },     // hot – red
 ];
 
 /* ── Component ──────────────────────────────────────────── */
@@ -449,9 +449,29 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                   {metricInfo.label} by Zone
                 </span>
               </div>
-              {/* Zone toggles */}
+              {/* Zone toggles + vote legend */}
               {seriesKeys.length > 0 && (
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {/* Vote bubble legend (thermal tab only) */}
+                  {activeTab === 'thermal' && hasVoteData && showVotes && (
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border border-purple-200 text-purple-700" style={{ backgroundColor: 'rgba(139,92,246,0.08)' }}>
+                      <svg width="14" height="14" viewBox="0 0 14 14">
+                        <circle cx="7" cy="7" r="5.5" fill="rgba(139,92,246,0.2)" stroke="#8b5cf6" strokeWidth="1" />
+                        <text x="7" y="7.5" textAnchor="middle" dominantBaseline="central" fill="#7c3aed" fontSize="7" fontWeight="700">n</text>
+                      </svg>
+                      Comfort Votes
+                    </span>
+                  )}
+                  {/* Weekend / off-hours legend */}
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-gray-500">
+                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(99,102,241,0.15)' }} />
+                    Weekend
+                  </span>
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-gray-500">
+                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(148,163,184,0.10)' }} />
+                    Off-hours
+                  </span>
+                  <span className="mx-1 w-px h-4 bg-gray-200" />
                   <button
                     onClick={() => setHiddenSeries(hiddenSeries.size === 0 ? new Set(seriesKeys) : new Set())}
                     className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded transition-colors"
@@ -511,8 +531,9 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         x1={band.x1}
                         x2={band.x2}
                         fill={band.type === 'weekend' ? '#6366f1' : '#94a3b8'}
-                        fillOpacity={band.type === 'weekend' ? 0.06 : 0.04}
+                        fillOpacity={band.type === 'weekend' ? 0.10 : 0.06}
                         ifOverflow="extendDomain"
+                        label={band.type === 'weekend' ? { value: '🅆', position: 'insideTopLeft', fill: '#818cf8', fontSize: 9, opacity: 0.5 } : undefined}
                       />
                     ))}
                     {/* Thermal comfort background bands (always visible on thermal tab) */}
@@ -591,15 +612,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         hide={hiddenSeries.has(key)}
                       />
                     ))}
-                    {/* Thermal vote overlay */}
+                    {/* Thermal vote overlay — bubbles (no connecting line) */}
                     {showVotes && hasVoteData && activeTab === 'thermal' && (
                       <Line
                         yAxisId="vote"
                         type="monotone"
                         dataKey="Comfort Vote"
-                        stroke="#f43f5e"
-                        strokeWidth={2}
-                        strokeDasharray="6 3"
+                        stroke="none"
+                        strokeWidth={0}
                         dot={(props: any) => {
                           const { cx, cy, payload } = props;
                           if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
@@ -607,17 +627,23 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                           const count = (payload['_voteCount'] as number) ?? 1;
                           const rounded = Math.round(val);
                           const label = COMFORT_LABEL[rounded] ?? '';
+                          // Bubble radius scales with vote count: min 10, max 22
+                          const r = Math.min(22, 10 + count * 2.5);
                           return (
                             <g>
-                              <circle cx={cx} cy={cy} r={4} fill="#f43f5e" stroke="#fff" strokeWidth={1.5} />
-                              <text x={cx} y={cy - 10} textAnchor="middle" fill="#e11d48" fontSize={9} fontWeight={600}>
-                                {label}{count > 1 ? ` (${count})` : ''}
+                              <circle cx={cx} cy={cy} r={r} fill="rgba(139,92,246,0.15)" stroke="#8b5cf6" strokeWidth={1.5} />
+                              <text x={cx} y={cy - 1} textAnchor="middle" dominantBaseline="central" fill="#7c3aed" fontSize={r > 14 ? 10 : 8} fontWeight={700}>
+                                {count}
+                              </text>
+                              <text x={cx} y={cy + r + 10} textAnchor="middle" fill="#6d28d9" fontSize={8} fontWeight={500}>
+                                {label}
                               </text>
                             </g>
                           );
                         }}
-                        connectNulls
+                        connectNulls={false}
                         isAnimationActive={false}
+                        legendType="none"
                       />
                     )}
                     {/* Neutral comfort reference line */}
