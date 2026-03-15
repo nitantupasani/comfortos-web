@@ -80,6 +80,47 @@ function cleanLabel(label: string): string {
   return label.replace(/^0\s*\/\s*/, '');
 }
 
+const COMFORT_LABEL: Record<number, string> = {
+  '-3': 'Cold', '-2': 'Cool', '-1': 'Sl. cool', 0: 'Neutral', 1: 'Sl. warm', 2: 'Warm', 3: 'Hot',
+};
+
+/** Build weekend / non-office-hour shading bands from chart data. */
+function buildOffHourBands(data: Record<string, unknown>[]): { x1: string; x2: string; type: 'weekend' | 'offhours' }[] {
+  const bands: { x1: string; x2: string; type: 'weekend' | 'offhours' }[] = [];
+  if (data.length < 2) return bands;
+  let currentBand: { x1: string; type: 'weekend' | 'offhours' } | null = null;
+  for (const row of data) {
+    const iso = row.time as string;
+    const d = new Date(iso);
+    const day = d.getUTCDay(); // 0=Sun, 6=Sat
+    const hour = d.getUTCHours();
+    const isWeekend = day === 0 || day === 6;
+    const isOffHours = !isWeekend && (hour < 8 || hour >= 18);
+    const display = row._display as string;
+    if (isWeekend) {
+      if (!currentBand || currentBand.type !== 'weekend') {
+        if (currentBand) bands.push({ x1: currentBand.x1, x2: display, type: currentBand.type });
+        currentBand = { x1: display, type: 'weekend' };
+      }
+    } else if (isOffHours) {
+      if (!currentBand || currentBand.type !== 'offhours') {
+        if (currentBand) bands.push({ x1: currentBand.x1, x2: display, type: currentBand.type });
+        currentBand = { x1: display, type: 'offhours' };
+      }
+    } else {
+      if (currentBand) {
+        bands.push({ x1: currentBand.x1, x2: display, type: currentBand.type });
+        currentBand = null;
+      }
+    }
+  }
+  if (currentBand) {
+    const last = data[data.length - 1]._display as string;
+    bands.push({ x1: currentBand.x1, x2: last, type: currentBand.type });
+  }
+  return bands;
+}
+
 /* ── Thermal comfort background bands ──────────────────── */
 
 const COMFORT_BANDS = [
@@ -189,6 +230,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
 
     // Also build vote overlay lookup (thermal_comfort average per time bucket)
     const voteLookup: Record<string, number> = {};
+    const voteCountLookup: Record<string, number> = {};
     if (voteOverlay?.votes && showVotes) {
       const buckets: Record<string, number[]> = {};
       for (const v of voteOverlay.votes) {
@@ -196,20 +238,23 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
         if (thermal === undefined || thermal === null) continue;
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Normalize legacy 1-7 to -3..+3
-        const norm = (val >= 1 && val <= 7) ? val - 4 : val;
+        // Values are already in -3..+3 ASHRAE scale
+        const norm = val;
         // Bucket to hour or day matching granularity
         const d = new Date(v.createdAt);
         let key: string;
         if (granularity === 'daily') {
           key = d.toISOString().split('T')[0] + 'T00:00:00+00:00';
         } else {
-          key = d.toISOString().replace(/:\d{2}\.\d{3}Z/, ':00:00+00:00');
+          // Truncate to hour: 2026-01-15T14:32:00.000Z -> 2026-01-15T14:00:00+00:00
+          const iso = d.toISOString();
+          key = iso.slice(0, 14) + '00:00+00:00';
         }
         (buckets[key] ??= []).push(norm);
       }
       for (const [k, vals] of Object.entries(buckets)) {
         voteLookup[k] = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
+        voteCountLookup[k] = vals.length;
       }
     }
 
@@ -220,12 +265,16 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       }
       if (voteLookup[ts] !== undefined) {
         row['Comfort Vote'] = voteLookup[ts];
+        row['_voteCount'] = voteCountLookup[ts] ?? 0;
       }
       return row;
     });
 
     return { chartData: rows, seriesKeys: keys };
   }, [telemetryData, voteOverlay, showVotes, granularity]);
+
+  /* ── Weekend / off-hours shading bands ── */
+  const offHourBands = useMemo(() => buildOffHourBands(chartData), [chartData]);
 
   /* ── Metric info ── */
   const currentMetricType = activeTab === 'thermal' ? 'temperature' : activeMetric;
@@ -454,6 +503,18 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
               ) : (
                 <ResponsiveContainer width="100%" height={420}>
                   <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
+                    {/* Weekend / off-hours shading */}
+                    {offHourBands.map((band, i) => (
+                      <ReferenceArea
+                        key={`oh-${i}`}
+                        yAxisId="metric"
+                        x1={band.x1}
+                        x2={band.x2}
+                        fill={band.type === 'weekend' ? '#6366f1' : '#94a3b8'}
+                        fillOpacity={band.type === 'weekend' ? 0.06 : 0.04}
+                        ifOverflow="extendDomain"
+                      />
+                    ))}
                     {/* Thermal comfort background bands (always visible on thermal tab) */}
                     {activeTab === 'thermal' && COMFORT_BANDS.map((band) => (
                       <ReferenceArea
@@ -493,10 +554,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         tick={{ fill: '#6b7280', fontSize: 10 }}
                         tickLine={{ stroke: '#d1d5db44' }}
                         axisLine={{ stroke: '#d1d5db44' }}
-                        tickFormatter={(v: number) => {
-                          const labels: Record<number, string> = { '-3': 'Cold', '-2': 'Cool', '-1': 'Sl. cool', 0: 'Neutral', 1: 'Sl. warm', 2: 'Warm', 3: 'Hot' };
-                          return labels[v] ?? String(v);
-                        }}
+                        tickFormatter={(v: number) => COMFORT_LABEL[v] ?? String(v)}
                         width={60}
                       />
                     )}
@@ -511,7 +569,11 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                       }}
                       labelStyle={{ color: '#9ca3af', marginBottom: 6, fontSize: 11 }}
                       formatter={(value: number, name: string) => {
-                        if (name === 'Comfort Vote') return [`${value}`, name];
+                        if (name === 'Comfort Vote') {
+                          const rounded = Math.round(value);
+                          const label = COMFORT_LABEL[rounded] ?? '';
+                          return [`${value} (${label})`, 'Comfort Vote'];
+                        }
                         return [`${value} ${metricInfo.unit}`, name];
                       }}
                     />
@@ -529,17 +591,33 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         hide={hiddenSeries.has(key)}
                       />
                     ))}
-                    {/* Thermal vote overlay line */}
+                    {/* Thermal vote overlay */}
                     {showVotes && hasVoteData && activeTab === 'thermal' && (
                       <Line
                         yAxisId="vote"
                         type="monotone"
                         dataKey="Comfort Vote"
                         stroke="#f43f5e"
-                        strokeWidth={2.5}
+                        strokeWidth={2}
                         strokeDasharray="6 3"
-                        dot={{ r: 3, fill: '#f43f5e', stroke: '#ffffff', strokeWidth: 1 }}
+                        dot={(props: any) => {
+                          const { cx, cy, payload } = props;
+                          if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
+                          const val = payload['Comfort Vote'] as number;
+                          const count = (payload['_voteCount'] as number) ?? 1;
+                          const rounded = Math.round(val);
+                          const label = COMFORT_LABEL[rounded] ?? '';
+                          return (
+                            <g>
+                              <circle cx={cx} cy={cy} r={4} fill="#f43f5e" stroke="#fff" strokeWidth={1.5} />
+                              <text x={cx} y={cy - 10} textAnchor="middle" fill="#e11d48" fontSize={9} fontWeight={600}>
+                                {label}{count > 1 ? ` (${count})` : ''}
+                              </text>
+                            </g>
+                          );
+                        }}
                         connectNulls
+                        isAnimationActive={false}
                       />
                     )}
                     {/* Neutral comfort reference line */}
