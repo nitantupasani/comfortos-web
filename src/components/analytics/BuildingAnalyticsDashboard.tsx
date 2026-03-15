@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Loader2,
   Building2,
@@ -12,6 +12,8 @@ import {
   BarChart3,
   Layers,
   Grid,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   LineChart,
@@ -21,9 +23,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
   Brush,
   ReferenceLine,
+  ReferenceArea,
 } from 'recharts';
 import { buildingsApi } from '../../api/buildings';
 import { telemetryApi, TelemetryQueryResponse, TelemetryMetric } from '../../api/telemetry';
@@ -73,6 +75,21 @@ function toISODate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+/** Strip generic floor prefixes like "0 / " from labels */
+function cleanLabel(label: string): string {
+  return label.replace(/^0\s*\/\s*/, '');
+}
+
+/* ── Thermal comfort background bands ──────────────────── */
+
+const COMFORT_BANDS = [
+  { from: -3, to: -2, color: 'rgba(59,130,246,0.18)' },   // cold – blue
+  { from: -2, to: -1, color: 'rgba(96,165,250,0.12)' },   // cool – lighter blue
+  { from: -1, to:  1, color: 'rgba(74,222,128,0.10)' },    // neutral – green
+  { from:  1, to:  2, color: 'rgba(251,146,60,0.12)' },    // warm – orange
+  { from:  2, to:  3, color: 'rgba(239,68,68,0.18)' },     // hot – red
+];
+
 /* ── Component ──────────────────────────────────────────── */
 
 interface Props {
@@ -97,6 +114,15 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
   const [telemetryData, setTelemetryData] = useState<TelemetryQueryResponse | null>(null);
   const [voteOverlay, setVoteOverlay] = useState<VoteAnalyticsResponse | null>(null);
   const [showVotes, setShowVotes] = useState(true);
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  const toggleSeries = useCallback((key: string) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
 
   /* ── Load buildings ── */
   useEffect(() => {
@@ -131,6 +157,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       setTelemetryData(series);
       setAvailableMetrics(metrics);
       setVoteOverlay(votes);
+      setHiddenSeries(new Set());
     }).finally(() => setDataLoading(false));
   }, [selectedBuilding, activeTab, activeMetric, dateRange, granularity]);
 
@@ -146,14 +173,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       for (const p of s.points) tsSet.add(p.recordedAt);
     }
     const timestamps = Array.from(tsSet).sort();
-    const keys = telemetryData.series.map((s) => s.label);
+    const keys = telemetryData.series.map((s) => cleanLabel(s.label));
 
     // Build lookup per series
     const lookup: Record<string, Record<string, number>> = {};
     for (const s of telemetryData.series) {
       const map: Record<string, number> = {};
       for (const p of s.points) map[p.recordedAt] = p.value;
-      lookup[s.label] = map;
+      lookup[cleanLabel(s.label)] = map;
     }
 
     // Also build vote overlay lookup (thermal_comfort average per time bucket)
@@ -188,7 +215,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
         row[k] = lookup[k]?.[ts] ?? null;
       }
       if (voteLookup[ts] !== undefined) {
-        row['Avg. Thermal Vote'] = voteLookup[ts];
+        row['Comfort Vote'] = voteLookup[ts];
       }
       return row;
     });
@@ -343,21 +370,56 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
           </div>
 
           {/* ── Chart Card ── */}
-          <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-700 flex items-center gap-2">
-              <MetricIcon className="h-4 w-4 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-200 uppercase tracking-wider">
-                Avg. {metricInfo.label} by floor
-              </span>
+          <div className="bg-[#0f1729] rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
+            <div className="px-5 py-4 border-b border-gray-700/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MetricIcon className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-semibold text-gray-200 uppercase tracking-wider">
+                  {metricInfo.label} by Zone
+                </span>
+              </div>
+              {/* Zone toggles */}
+              {seriesKeys.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <button
+                    onClick={() => setHiddenSeries(hiddenSeries.size === 0 ? new Set(seriesKeys) : new Set())}
+                    className="text-[10px] text-gray-500 hover:text-gray-300 px-1.5 py-0.5 rounded transition-colors"
+                  >
+                    {hiddenSeries.size === 0 ? 'Hide all' : 'Show all'}
+                  </button>
+                  {seriesKeys.map((key, i) => {
+                    const isHidden = hiddenSeries.has(key);
+                    const color = SERIES_COLORS[i % SERIES_COLORS.length];
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => toggleSeries(key)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all border ${
+                          isHidden
+                            ? 'border-gray-700 text-gray-600 bg-transparent'
+                            : 'border-transparent text-gray-200'
+                        }`}
+                        style={isHidden ? {} : { backgroundColor: `${color}22`, borderColor: `${color}44` }}
+                      >
+                        <span
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: isHidden ? '#4b5563' : color }}
+                        />
+                        {key}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="p-4" style={{ minHeight: 420 }}>
+            <div className="p-4" style={{ minHeight: 460 }}>
               {dataLoading ? (
-                <div className="flex items-center justify-center h-80">
+                <div className="flex items-center justify-center h-96">
                   <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                 </div>
               ) : chartData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-80 text-gray-500 text-sm">
+                <div className="flex flex-col items-center justify-center h-96 text-gray-500 text-sm">
                   <Building2 className="h-10 w-10 mb-3 text-gray-600" />
                   <p className="font-medium">No telemetry data available</p>
                   <p className="text-gray-600 mt-1">Connect a building service to start seeing data here.</p>
@@ -368,53 +430,70 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                   )}
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={380}>
-                  <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <ResponsiveContainer width="100%" height={420}>
+                  <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
+                    {/* Thermal comfort background bands (always visible on thermal tab) */}
+                    {activeTab === 'thermal' && COMFORT_BANDS.map((band) => (
+                      <ReferenceArea
+                        key={`band-${band.from}`}
+                        yAxisId="vote"
+                        y1={band.from}
+                        y2={band.to}
+                        fill={band.color}
+                        fillOpacity={1}
+                        ifOverflow="extendDomain"
+                      />
+                    ))}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                     <XAxis
                       dataKey="_display"
-                      tick={{ fill: '#9ca3af', fontSize: 11 }}
-                      tickLine={{ stroke: '#4b5563' }}
-                      axisLine={{ stroke: '#4b5563' }}
+                      tick={{ fill: '#64748b', fontSize: 10 }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
                       interval="preserveStartEnd"
                     />
                     <YAxis
                       yAxisId="metric"
-                      tick={{ fill: '#9ca3af', fontSize: 11 }}
-                      tickLine={{ stroke: '#4b5563' }}
-                      axisLine={{ stroke: '#4b5563' }}
+                      domain={['auto', 'auto']}
+                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
                       unit={` ${metricInfo.unit}`}
+                      width={65}
                     />
-                    {/* Vote overlay Y axis (-3 to +3) */}
-                    {showVotes && hasVoteData && activeTab === 'thermal' && (
+                    {/* Comfort vote right Y-axis — always present on thermal tab */}
+                    {activeTab === 'thermal' && (
                       <YAxis
                         yAxisId="vote"
                         orientation="right"
                         domain={[-3, 3]}
-                        tick={{ fill: '#f43f5e', fontSize: 11 }}
-                        tickLine={{ stroke: '#f43f5e44' }}
-                        axisLine={{ stroke: '#f43f5e44' }}
-                        label={{ value: 'Thermal Vote', angle: 90, position: 'insideRight', fill: '#f43f5e', fontSize: 11 }}
+                        ticks={[-3, -2, -1, 0, 1, 2, 3]}
+                        tick={{ fill: '#64748b', fontSize: 10 }}
+                        tickLine={{ stroke: '#33415544' }}
+                        axisLine={{ stroke: '#33415544' }}
+                        tickFormatter={(v: number) => {
+                          const labels: Record<number, string> = { '-3': 'Cold', '-2': 'Cool', '-1': 'Sl. cool', 0: 'Neutral', 1: 'Sl. warm', 2: 'Warm', 3: 'Hot' };
+                          return labels[v] ?? String(v);
+                        }}
+                        width={60}
                       />
                     )}
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#1f2937',
-                        border: '1px solid #374151',
-                        borderRadius: 8,
-                        color: '#e5e7eb',
-                        fontSize: 13,
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: 10,
+                        color: '#e2e8f0',
+                        fontSize: 12,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                       }}
-                      labelStyle={{ color: '#9ca3af', marginBottom: 4 }}
+                      labelStyle={{ color: '#64748b', marginBottom: 6, fontSize: 11 }}
                       formatter={(value: number, name: string) => {
-                        if (name === 'Avg. Thermal Vote') return [`${value}`, name];
+                        if (name === 'Comfort Vote') return [`${value}`, name];
                         return [`${value} ${metricInfo.unit}`, name];
                       }}
                     />
-                    <Legend
-                      wrapperStyle={{ color: '#d1d5db', fontSize: 12, paddingTop: 8 }}
-                    />
-                    {/* Sensor series */}
+                    {/* Sensor series lines */}
                     {seriesKeys.map((key, i) => (
                       <Line
                         key={key}
@@ -422,33 +501,34 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                         type="monotone"
                         dataKey={key}
                         stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-                        strokeWidth={2}
+                        strokeWidth={hiddenSeries.has(key) ? 0 : 2}
                         dot={false}
                         connectNulls
+                        hide={hiddenSeries.has(key)}
                       />
                     ))}
-                    {/* Thermal vote overlay */}
+                    {/* Thermal vote overlay line */}
                     {showVotes && hasVoteData && activeTab === 'thermal' && (
                       <Line
                         yAxisId="vote"
                         type="monotone"
-                        dataKey="Avg. Thermal Vote"
-                        stroke={VOTE_LINE_COLOR}
-                        strokeWidth={2}
+                        dataKey="Comfort Vote"
+                        stroke="#f43f5e"
+                        strokeWidth={2.5}
                         strokeDasharray="6 3"
-                        dot={{ r: 3, fill: VOTE_LINE_COLOR }}
+                        dot={{ r: 3, fill: '#f43f5e', stroke: '#0f1729', strokeWidth: 1 }}
                         connectNulls
                       />
                     )}
-                    {/* Neutral vote reference line */}
-                    {showVotes && hasVoteData && activeTab === 'thermal' && (
-                      <ReferenceLine yAxisId="vote" y={0} stroke="#f43f5e33" strokeDasharray="4 4" />
+                    {/* Neutral comfort reference line */}
+                    {activeTab === 'thermal' && (
+                      <ReferenceLine yAxisId="vote" y={0} stroke="#64748b33" strokeDasharray="4 4" label={{ value: 'Neutral', fill: '#64748b', fontSize: 9, position: 'right' }} />
                     )}
                     <Brush
                       dataKey="_display"
-                      height={30}
-                      stroke="#4b5563"
-                      fill="#111827"
+                      height={28}
+                      stroke="#334155"
+                      fill="#0f1729"
                       travellerWidth={10}
                     />
                   </LineChart>
@@ -477,7 +557,7 @@ function LatestReadings({ buildingId, metric }: { buildingId: string; metric: st
         data
           .filter((r) => r.metricType === metric)
           .map((r) => ({
-            label: r.floor ? (r.zone ? `${r.floor} / ${r.zone}` : r.floor) : r.zone ?? 'Building',
+            label: cleanLabel(r.floor ? (r.zone ? `${r.floor} / ${r.zone}` : r.floor) : r.zone ?? 'Building'),
             value: Math.round(r.value * 10) / 10,
             unit: r.unit,
             time: new Date(r.recordedAt).toLocaleString(),
