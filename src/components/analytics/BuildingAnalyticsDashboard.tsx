@@ -174,6 +174,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
   const [voteOverlay, setVoteOverlay] = useState<VoteAnalyticsResponse | null>(null);
   const [showVotes, setShowVotes] = useState(true);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  const [brushRange, setBrushRange] = useState<{ startIndex: number; endIndex: number } | null>(null);
 
   const toggleSeries = useCallback((key: string) => {
     setHiddenSeries((prev) => {
@@ -216,6 +217,9 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       setHiddenSeries(new Set());
     }).finally(() => setDataLoading(false));
   }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity]);
+
+  // Reset brush when underlying data changes
+  useEffect(() => { setBrushRange(null); }, [telemetryData]);
 
   /* ── Transform telemetry into Recharts-friendly data ── */
   const { chartData, seriesKeys } = useMemo(() => {
@@ -281,29 +285,37 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       return row;
     });
 
-    // Merge nearby vote bubbles so they don't overlap when zoomed out.
-    // Minimum gap = enough rows that bubbles won't visually collide.
-    const minGap = Math.max(1, Math.ceil(rows.length / 60));
+    return { chartData: rows, seriesKeys: keys };
+  }, [telemetryData, voteOverlay, showVotes, granularity]);
+
+  /* ── Merge nearby vote bubbles based on visible range ── */
+  const mergedChartData = useMemo(() => {
+    const start = brushRange?.startIndex ?? 0;
+    const end = brushRange?.endIndex ?? chartData.length - 1;
+    const visibleLen = Math.max(1, end - start + 1);
+    const minGap = Math.max(1, Math.ceil(visibleLen / 60));
+
+    // Deep-copy rows so the source chartData stays clean
+    const rows = chartData.map((r) => ({ ...r }));
     let lastVoteIdx = -Infinity;
     for (let i = 0; i < rows.length; i++) {
       if (rows[i]['Comfort Vote'] == null) continue;
       if (i - lastVoteIdx < minGap) {
-        // Merge into the previous bubble (weighted average)
         const prev = rows[lastVoteIdx];
-        const cPrev = prev['_voteCount'] as number;
-        const cCur = rows[i]['_voteCount'] as number;
+        const cPrev = (prev['_voteCount'] as number) || 1;
+        const cCur = (rows[i]['_voteCount'] as number) || 1;
         const total = cPrev + cCur;
         prev['Comfort Vote'] = Math.round(((prev['Comfort Vote'] as number) * cPrev + (rows[i]['Comfort Vote'] as number) * cCur) / total * 100) / 100;
         prev['_voteCount'] = total;
+        rows[i] = { ...rows[i] };
         delete rows[i]['Comfort Vote'];
         delete rows[i]['_voteCount'];
       } else {
         lastVoteIdx = i;
       }
     }
-
-    return { chartData: rows, seriesKeys: keys };
-  }, [telemetryData, voteOverlay, showVotes, granularity]);
+    return rows;
+  }, [chartData, brushRange]);
 
   /* ── Weekend / off-hours shading bands ── */
   const offHourBands = useMemo(() => buildOffHourBands(chartData), [chartData]);
@@ -556,7 +568,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={420}>
-                  <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
+                  <LineChart data={mergedChartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
                     {/* Weekend / off-hours shading */}
                     {offHourBands.map((band, i) => (
                       <ReferenceArea
@@ -660,8 +672,8 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                           const val = payload['Comfort Vote'] as number;
                           const count = (payload['_voteCount'] as number) ?? 1;
                           const fill = voteColor(val);
-                          // Smaller radius to reduce overlap: min 7, max 14
-                          const r = Math.min(14, 7 + count * 1.5);
+                          // Radius scales with sqrt of count for area-proportional sizing
+                          const r = Math.min(28, 8 + Math.sqrt(count) * 5);
                           return (
                             <g>
                               <circle cx={cx} cy={cy} r={r} fill={fill + '44'} stroke={fill} strokeWidth={1.5} />
@@ -688,6 +700,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
                       stroke="#d1d5db"
                       fill="#f9fafb"
                       travellerWidth={10}
+                      onChange={(range: any) => setBrushRange({ startIndex: range.startIndex, endIndex: range.endIndex })}
                     />
                   </LineChart>
                 </ResponsiveContainer>
