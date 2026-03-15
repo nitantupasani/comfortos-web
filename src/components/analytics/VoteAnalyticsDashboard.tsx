@@ -164,9 +164,9 @@ function buildThermalDistribution(
     const raw = v.payload[field.id];
     if (raw === undefined || raw === null) continue;
     const n = Number(raw);
-    // Normalize legacy 1-7 scale to -3..+3
-    const normalized = n >= 1 && n <= 7 ? n - 4 : n;
-    const idx = normalized - min;
+    // Data is already in -3..+3 ASHRAE scale
+    const clamped = Math.max(min, Math.min(max, Math.round(n)));
+    const idx = clamped - min;
     if (idx >= 0 && idx < dist.length) dist[idx].value++;
   }
   return dist;
