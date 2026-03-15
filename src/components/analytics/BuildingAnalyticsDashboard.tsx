@@ -281,6 +281,27 @@ export default function BuildingAnalyticsDashboard({ showDocs = false }: Props) 
       return row;
     });
 
+    // Merge nearby vote bubbles so they don't overlap when zoomed out.
+    // Minimum gap = enough rows that bubbles won't visually collide.
+    const minGap = Math.max(1, Math.ceil(rows.length / 60));
+    let lastVoteIdx = -Infinity;
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i]['Comfort Vote'] == null) continue;
+      if (i - lastVoteIdx < minGap) {
+        // Merge into the previous bubble (weighted average)
+        const prev = rows[lastVoteIdx];
+        const cPrev = prev['_voteCount'] as number;
+        const cCur = rows[i]['_voteCount'] as number;
+        const total = cPrev + cCur;
+        prev['Comfort Vote'] = Math.round(((prev['Comfort Vote'] as number) * cPrev + (rows[i]['Comfort Vote'] as number) * cCur) / total * 100) / 100;
+        prev['_voteCount'] = total;
+        delete rows[i]['Comfort Vote'];
+        delete rows[i]['_voteCount'];
+      } else {
+        lastVoteIdx = i;
+      }
+    }
+
     return { chartData: rows, seriesKeys: keys };
   }, [telemetryData, voteOverlay, showVotes, granularity]);
 
