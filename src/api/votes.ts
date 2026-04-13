@@ -24,10 +24,11 @@ export const votesApi = {
   history: (userId: string) =>
     api.get<Vote[]>(`/votes/history?userId=${userId}`),
 
-  analytics: (buildingId: string, dateFrom?: string, dateTo?: string) => {
+  analytics: (buildingId: string, dateFrom?: string, dateTo?: string, zone?: string) => {
     const params = new URLSearchParams({ buildingId });
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
+    if (zone) params.set('zone', zone);
     return api.get<VoteAnalyticsResponse>(`/votes/analytics?${params.toString()}`);
   },
 };

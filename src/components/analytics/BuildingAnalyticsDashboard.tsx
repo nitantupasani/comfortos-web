@@ -263,10 +263,25 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     const voteLookup: Record<string, number> = {};
     const voteCountLookup: Record<string, number> = {};
     if (voteOverlay?.votes && showVotes) {
+      // Determine which zones are visible (all visible when hiddenSeries is empty)
+      const allVisible = hiddenSeries.size === 0;
       const buckets: Record<string, number[]> = {};
       for (const v of voteOverlay.votes) {
         const thermal = v.payload?.thermal_comfort;
         if (thermal === undefined || thermal === null) continue;
+
+        // Filter by zone: skip votes whose zone is hidden
+        const voteZone = v.payload?.zone as string | undefined;
+        if (!allVisible) {
+          if (voteZone) {
+            // Vote has a zone — only show if that zone is visible
+            if (hiddenSeries.has(voteZone)) continue;
+          } else {
+            // Vote has no zone — hide when any zone is filtered out
+            continue;
+          }
+        }
+
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
         // Values are already in -3..+3 ASHRAE scale
@@ -302,7 +317,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     });
 
     return { chartData: rows, seriesKeys: keys };
-  }, [telemetryData, voteOverlay, showVotes, granularity]);
+  }, [telemetryData, voteOverlay, showVotes, granularity, hiddenSeries]);
 
   /* ── Build merge map for grouped bubble mode (called imperatively) ── */
   const rebuildMergeMap = useCallback(() => {
@@ -748,10 +763,17 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                           const fill = voteColor(val);
 
                           if (voteMode === 'individual') {
-                            // Small fixed-size dot per hourly bucket
+                            // Dot size scales with extremity (distance from neutral)
+                            const extremity = Math.abs(val);
+                            const r = 4 + extremity * 1.5;
                             return (
                               <g>
-                                <circle cx={cx} cy={cy} r={5} fill={fill + '88'} stroke={fill} strokeWidth={1} />
+                                <circle cx={cx} cy={cy} r={r} fill={fill + '88'} stroke={fill} strokeWidth={1.5} />
+                                {count > 1 && (
+                                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fill="#1f2937" fontSize={8} fontWeight={600}>
+                                    {count}
+                                  </text>
+                                )}
                               </g>
                             );
                           }
