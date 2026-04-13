@@ -260,43 +260,30 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     }
 
     // Also build vote overlay lookup (thermal_comfort average per time bucket)
+    // Always include ALL votes here — zone visibility is handled in the dot renderer
     const voteLookup: Record<string, number> = {};
     const voteCountLookup: Record<string, number> = {};
+    const voteZonesLookup: Record<string, Set<string>> = {};
     if (voteOverlay?.votes && showVotes) {
-      // Determine which zones are visible (all visible when hiddenSeries is empty)
-      const allVisible = hiddenSeries.size === 0;
       const buckets: Record<string, number[]> = {};
       for (const v of voteOverlay.votes) {
         const thermal = v.payload?.thermal_comfort;
         if (thermal === undefined || thermal === null) continue;
-
-        // Filter by zone: skip votes whose zone is hidden
-        const voteZone = v.payload?.zone as string | undefined;
-        if (!allVisible) {
-          if (voteZone) {
-            // Vote has a zone — only show if that zone is visible
-            if (hiddenSeries.has(voteZone)) continue;
-          } else {
-            // Vote has no zone — hide when any zone is filtered out
-            continue;
-          }
-        }
-
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Values are already in -3..+3 ASHRAE scale
-        const norm = val;
+        // Track which zones contribute to each bucket
+        const voteZone = v.payload?.zone as string | undefined;
         // Bucket to hour or day matching granularity
         const d = new Date(v.createdAt);
         let key: string;
         if (granularity === 'daily') {
           key = d.toISOString().split('T')[0] + 'T00:00:00+00:00';
         } else {
-          // Truncate to hour: 2026-01-15T14:32:00.000Z -> 2026-01-15T14:00:00+00:00
           const iso = d.toISOString();
           key = iso.slice(0, 14) + '00:00+00:00';
         }
-        (buckets[key] ??= []).push(norm);
+        (buckets[key] ??= []).push(val);
+        if (voteZone) (voteZonesLookup[key] ??= new Set()).add(voteZone);
       }
       for (const [k, vals] of Object.entries(buckets)) {
         voteLookup[k] = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
@@ -312,12 +299,13 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       if (voteLookup[ts] !== undefined) {
         row['Comfort Vote'] = voteLookup[ts];
         row['_voteCount'] = voteCountLookup[ts] ?? 0;
+        row['_voteZones'] = voteZonesLookup[ts] ? Array.from(voteZonesLookup[ts]) : [];
       }
       return row;
     });
 
     return { chartData: rows, seriesKeys: keys };
-  }, [telemetryData, voteOverlay, showVotes, granularity, hiddenSeries]);
+  }, [telemetryData, voteOverlay, showVotes, granularity]);
 
   /* ── Build merge map for grouped bubble mode (called imperatively) ── */
   const rebuildMergeMap = useCallback(() => {
@@ -750,6 +738,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                     {/* Thermal vote overlay — bubbles (no connecting line) */}
                     {showVotes && hasVoteData && activeTab === 'thermal' && (
                       <Line
+                        key={`comfort-vote-${Array.from(hiddenSeries).sort().join('|')}`}
                         yAxisId="vote"
                         type="monotone"
                         dataKey="Comfort Vote"
@@ -758,6 +747,13 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                         dot={(props: any) => {
                           const { cx, cy, payload, index } = props;
                           if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
+
+                          // Zone-based visibility: hide dot if ALL its contributing zones are hidden
+                          const zones = (payload['_voteZones'] as string[]) ?? [];
+                          if (hiddenSeries.size > 0 && zones.length > 0) {
+                            if (zones.every((z: string) => hiddenSeries.has(z))) return <g />;
+                          }
+
                           const val = payload['Comfort Vote'] as number;
                           const count = (payload['_voteCount'] as number) ?? 1;
                           const fill = voteColor(val);
