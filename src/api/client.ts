@@ -1,5 +1,9 @@
 const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
+if (BASE.includes('localhost') && window.location.protocol === 'https:') {
+  console.warn('[ComfortOS] API base URL points to localhost but site is served over HTTPS. Set VITE_API_BASE_URL to your production API.');
+}
+
 function getToken(): string | null {
   return localStorage.getItem('auth_token');
 }
@@ -15,7 +19,15 @@ async function request<T>(
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, headers });
+  } catch (err) {
+    // Network-level failure: CORS, DNS, offline, mixed-content, etc.
+    const url = `${BASE}${path}`;
+    console.error(`[ComfortOS] Network error fetching ${url}`, err);
+    throw new ApiError(0, `Cannot reach server (${BASE}). Check your connection.`);
+  }
 
   if (res.status === 204) return null as T;
   if (!res.ok) {

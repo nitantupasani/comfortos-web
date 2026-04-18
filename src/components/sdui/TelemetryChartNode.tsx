@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
-import { Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { telemetryApi, type TelemetryQueryResponse } from '../../api/telemetry';
 import { locationsApi, type LocationNode } from '../../api/locations';
@@ -27,6 +27,11 @@ const SERIES_COLORS = [
 ];
 
 /* ── Helpers ────────────────────────────────────────────── */
+
+/** Format a Date as ISO string without the trailing Z (Python < 3.11 compat) */
+function toISOCompat(d: Date): string {
+  return d.toISOString().replace('Z', '+00:00');
+}
 
 function formatTime(iso: string, granularity: string): string {
   const d = new Date(iso);
@@ -54,24 +59,30 @@ function formatTimeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+/** User-friendly error message */
+function friendlyError(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.message === 'Failed to fetch') {
+      return 'Cannot reach the server. Check your connection.';
+    }
+    if (err.message.includes('expired') || err.message.includes('authenticated')) {
+      return 'Session expired — please log in again.';
+    }
+    return err.message;
+  }
+  return 'Failed to load data';
+}
+
 /* ── Props ──────────────────────────────────────────────── */
 
 export interface TelemetryChartNodeProps {
-  /** Metric to display, e.g. "temperature", "co2", "humidity" */
   metricType?: string;
-  /** Chart title */
   title?: string;
-  /** Unit label */
   unit?: string;
-  /** Time range options (defaults to 2h/24h) */
   timeRanges?: TimeRange[];
-  /** Group by level */
   groupBy?: 'room' | 'floor' | 'wing';
-  /** Chart height in px */
   height?: number;
-  /** Show location readings grid below chart */
   showReadings?: boolean;
-  /** Link to full page */
   detailLink?: string;
 }
 
@@ -97,42 +108,54 @@ export default function TelemetryChartNode({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TelemetryQueryResponse | null>(null);
   const [locations, setLocations] = useState<LocationNode[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
 
   const range = ranges[rangeIdx];
 
+  const fetchData = useCallback(async (buildingId: string, r: TimeRange) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const now = new Date();
+      const from = new Date(now.getTime() - r.hours * 60 * 60 * 1000);
+
+      // Fetch telemetry and locations independently — one failing shouldn't block the other
+      const [seriesResult, locsResult] = await Promise.allSettled([
+        telemetryApi.series(buildingId, {
+          metricType,
+          dateFrom: toISOCompat(from),
+          dateTo: toISOCompat(now),
+          granularity: r.granularity,
+          groupBy,
+        }),
+        locationsApi.list(buildingId, 'room'),
+      ]);
+
+      if (seriesResult.status === 'fulfilled') {
+        setData(seriesResult.value);
+        setError(null);
+      } else {
+        setData(null);
+        setError(friendlyError(seriesResult.reason));
+      }
+
+      if (locsResult.status === 'fulfilled') {
+        setLocations(locsResult.value);
+      }
+      // locations failure is non-critical — just keep existing list
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [metricType, groupBy]);
+
   useEffect(() => {
     if (!activeBuilding) return;
-    let cancelled = false;
+    fetchData(activeBuilding.id, range);
+  }, [activeBuilding?.id, rangeIdx, retryCount, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const now = new Date();
-        const from = new Date(now.getTime() - range.hours * 60 * 60 * 1000);
-        const [result, locs] = await Promise.all([
-          telemetryApi.series(activeBuilding.id, {
-            metricType,
-            dateFrom: from.toISOString(),
-            dateTo: now.toISOString(),
-            granularity: range.granularity,
-            groupBy,
-          }),
-          locationsApi.list(activeBuilding.id, 'room').catch(() => [] as LocationNode[]),
-        ]);
-        if (!cancelled) {
-          setData(result);
-          setLocations(locs);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [activeBuilding?.id, rangeIdx, metricType, groupBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleRetry = () => setRetryCount((c) => c + 1);
 
   // Build chart data
   const { chartData, seriesKeys, seriesLabels } = useMemo(() => {
@@ -157,7 +180,7 @@ export default function TelemetryChartNode({
     return { chartData: sorted, seriesKeys: data.series.map((_, i) => `s${i}`), seriesLabels: labels };
   }, [data, range.granularity]);
 
-  // Latest values per location (for readings grid)
+  // Latest values per location
   const latestValues = useMemo(() => {
     if (!data) return [];
     const locationNames = new Map<string, string>();
@@ -229,14 +252,29 @@ export default function TelemetryChartNode({
       {/* Chart */}
       <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-sm">
         {loading ? (
-          <div className="flex justify-center" style={{ height }}>
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-500 mt-20" />
+          <div className="flex justify-center items-center" style={{ height }}>
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
           </div>
         ) : error ? (
-          <div className="text-center text-xs text-red-500" style={{ height, lineHeight: `${height}px` }}>{error}</div>
+          <div className="flex flex-col items-center justify-center gap-3" style={{ height }}>
+            <p className="text-xs text-red-400 text-center px-4">{error}</p>
+            <button
+              onClick={handleRetry}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-200 transition-colors"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </button>
+          </div>
         ) : chartData.length === 0 ? (
-          <div className="text-center text-xs text-slate-400" style={{ height, lineHeight: `${height}px` }}>
-            No {metricType} data for this period
+          <div className="flex flex-col items-center justify-center gap-2" style={{ height }}>
+            <p className="text-xs text-slate-400">No {metricType} data for this period</p>
+            <button
+              onClick={() => { if (rangeIdx === 0 && ranges.length > 1) setRangeIdx(1); else handleRetry(); }}
+              className="text-[11px] text-emerald-600 font-medium hover:text-emerald-700"
+            >
+              {rangeIdx === 0 && ranges.length > 1 ? 'Try last 24 hours' : 'Refresh'}
+            </button>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={height}>
