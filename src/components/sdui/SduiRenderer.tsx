@@ -4,6 +4,7 @@ import {
   Users, Clock, AlertTriangle, Info, Building2, Wifi, Eye,
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import TelemetryChartNode from './TelemetryChartNode';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   thermostat: Thermometer, thermometer: Thermometer,
@@ -279,6 +280,20 @@ function renderNode(node: SduiNode): React.ReactNode {
         <div className="bg-gray-100 rounded-lg px-3 py-2 text-sm text-gray-600">
           📍 {node.room as string}
         </div>
+      );
+
+    case 'telemetry_chart':
+      return (
+        <TelemetryChartNode
+          metricType={node.metricType as string | undefined}
+          title={node.title as string | undefined}
+          unit={node.unit as string | undefined}
+          timeRanges={node.timeRanges as { label: string; hours: number; granularity: 'raw' | 'hourly' | 'daily' }[] | undefined}
+          groupBy={node.groupBy as 'room' | 'floor' | 'wing' | undefined}
+          height={node.height as number | undefined}
+          showReadings={node.showReadings as boolean | undefined}
+          detailLink={node.detailLink as string | undefined}
+        />
       );
 
     default:
