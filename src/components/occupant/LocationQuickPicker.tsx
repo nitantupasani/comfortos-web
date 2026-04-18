@@ -3,6 +3,7 @@ import { MapPin, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useBuildingStore } from '../../store/buildingStore';
 import { usePresenceStore } from '../../store/presenceStore';
 import { locationsApi, type LocationTreeNode } from '../../api/locations';
+import { telemetryApi } from '../../api/telemetry';
 import BottomSheet from '../common/BottomSheet';
 import type { LocationFloor } from '../../types';
 
@@ -11,57 +12,74 @@ interface Props {
   onClose: () => void;
 }
 
-/** Convert a locations API tree into the LocationFloor[] format the picker expects */
+/* ── Converters ────────────────────────────────────────── */
+
+/** Convert a locations API tree into LocationFloor[] */
 function treeToFloors(tree: LocationTreeNode[]): LocationFloor[] {
   const floors: LocationFloor[] = [];
 
-  function walk(nodes: LocationTreeNode[], parentFloorId?: string, parentFloorLabel?: string) {
+  function walk(nodes: LocationTreeNode[]) {
     for (const node of nodes) {
       if (node.type === 'floor') {
-        const floor: LocationFloor = {
-          id: node.id,
-          label: node.name,
-          rooms: [],
-        };
-        // Collect rooms directly under this floor
+        const rooms: { id: string; label: string }[] = [];
         for (const child of node.children) {
           if (child.type === 'room') {
-            floor.rooms.push({ id: child.id, label: child.name });
+            rooms.push({ id: child.id, label: child.name });
           } else if (child.type === 'block_or_wing') {
-            // Rooms nested under wings
-            for (const grandchild of child.children) {
-              if (grandchild.type === 'room') {
-                floor.rooms.push({ id: grandchild.id, label: grandchild.name });
-              }
+            for (const gc of child.children) {
+              if (gc.type === 'room') rooms.push({ id: gc.id, label: gc.name });
             }
           }
         }
-        if (floor.rooms.length > 0) {
-          floors.push(floor);
-        }
+        if (rooms.length > 0) floors.push({ id: node.id, label: node.name, rooms });
       } else if (node.type === 'building') {
-        // Recurse into building root
         walk(node.children);
       } else if (node.type === 'block_or_wing') {
-        // Wing at top level (no floor parent) — create a synthetic floor
         const rooms = node.children
           .filter((c) => c.type === 'room')
           .map((c) => ({ id: c.id, label: c.name }));
-        if (rooms.length > 0) {
-          floors.push({ id: node.id, label: node.name, rooms });
-        }
-      } else if (node.type === 'room' && parentFloorId) {
-        // Room directly in a walk — already handled above
+        if (rooms.length > 0) floors.push({ id: node.id, label: node.name, rooms });
       }
     }
   }
 
   walk(tree);
-
-  // Sort floors by label (natural sort for "Floor 1", "Floor 2", etc.)
   floors.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   return floors;
 }
+
+/** Derive LocationFloor[] from telemetry latest readings (floor + zone fields) */
+function latestReadingsToFloors(
+  readings: { floor: string | null; zone: string | null }[],
+): LocationFloor[] {
+  const floorMap = new Map<string, Set<string>>();
+
+  for (const r of readings) {
+    const floorKey = r.floor || 'default';
+    const zoneKey = r.zone || null;
+    if (!zoneKey) continue;
+
+    if (!floorMap.has(floorKey)) floorMap.set(floorKey, new Set());
+    floorMap.get(floorKey)!.add(zoneKey);
+  }
+
+  const floors: LocationFloor[] = [];
+  for (const [floorKey, zones] of floorMap) {
+    const rooms = Array.from(zones)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((z) => ({ id: z, label: z }));
+    floors.push({
+      id: floorKey,
+      label: floorKey === 'default' ? 'Default' : `Floor ${floorKey}`,
+      rooms,
+    });
+  }
+
+  floors.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  return floors;
+}
+
+/* ── Component ─────────────────────────────────────────── */
 
 export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
@@ -83,28 +101,36 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     setDynamicFloors([]);
 
     (async () => {
-      // 1. Try the configured location form
-      await fetchLocationForm(activeBuilding.id);
-      const form = useBuildingStore.getState().locationForm;
-
-      if (cancelled) return;
-
-      // 2. If configured form has floors, use it (dynamicFloors stays empty)
-      if (form && form.floors && form.floors.length > 0) {
-        setLoading(false);
-        return;
-      }
-
-      // 3. Otherwise, fetch from locations API tree
       try {
-        const tree = await locationsApi.tree(activeBuilding.id);
-        if (!cancelled) {
-          const converted = treeToFloors(tree);
-          setDynamicFloors(converted);
+        // 1. Try configured location form
+        await fetchLocationForm(activeBuilding.id);
+        const form = useBuildingStore.getState().locationForm;
+        if (cancelled) return;
+        if (form && form.floors && form.floors.length > 0) return;
+
+        // 2. Try locations API tree
+        try {
+          const tree = await locationsApi.tree(activeBuilding.id);
+          if (cancelled) return;
+          const fromTree = treeToFloors(tree);
+          if (fromTree.length > 0) {
+            setDynamicFloors(fromTree);
+            return;
+          }
+        } catch {
+          // locations table might be empty — continue to fallback
         }
-      } catch (err) {
-        console.error('[LocationQuickPicker] Failed to load locations tree:', err);
-        if (!cancelled) setDynamicFloors([]);
+
+        // 3. Fallback: derive from telemetry latest readings
+        if (cancelled) return;
+        try {
+          const latest = await telemetryApi.latest(activeBuilding.id);
+          if (cancelled) return;
+          const fromTelemetry = latestReadingsToFloors(latest);
+          setDynamicFloors(fromTelemetry);
+        } catch {
+          // nothing we can do
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -113,7 +139,7 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     return () => { cancelled = true; };
   }, [isOpen, activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Use configured floors if available, otherwise use dynamic floors from API
+  // Use configured floors if available, otherwise use dynamic floors
   const configuredFloors = locationForm?.floors ?? [];
   const floors = configuredFloors.length > 0 ? configuredFloors : dynamicFloors;
   const currentFloor = floors.find((f) => f.id === selectedFloor);
