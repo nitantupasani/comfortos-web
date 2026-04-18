@@ -75,28 +75,43 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   const [dynamicFloors, setDynamicFloors] = useState<LocationFloor[]>([]);
 
   useEffect(() => {
-    if (isOpen && activeBuilding) {
-      setLoading(true);
-      setSelectedFloor(null);
-      setDynamicFloors([]);
+    if (!isOpen || !activeBuilding) return;
 
-      // Try the configured location form first, then fall back to locations API
-      fetchLocationForm(activeBuilding.id)
-        .then(async () => {
-          const form = useBuildingStore.getState().locationForm;
-          if (!form || form.floors.length === 0) {
-            // No configured form — fetch from locations API
-            try {
-              const tree = await locationsApi.tree(activeBuilding.id);
-              setDynamicFloors(treeToFloors(tree));
-            } catch {
-              setDynamicFloors([]);
-            }
-          }
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen, activeBuilding, fetchLocationForm]);
+    let cancelled = false;
+    setLoading(true);
+    setSelectedFloor(null);
+    setDynamicFloors([]);
+
+    (async () => {
+      // 1. Try the configured location form
+      await fetchLocationForm(activeBuilding.id);
+      const form = useBuildingStore.getState().locationForm;
+
+      if (cancelled) return;
+
+      // 2. If configured form has floors, use it (dynamicFloors stays empty)
+      if (form && form.floors && form.floors.length > 0) {
+        setLoading(false);
+        return;
+      }
+
+      // 3. Otherwise, fetch from locations API tree
+      try {
+        const tree = await locationsApi.tree(activeBuilding.id);
+        if (!cancelled) {
+          const converted = treeToFloors(tree);
+          setDynamicFloors(converted);
+        }
+      } catch (err) {
+        console.error('[LocationQuickPicker] Failed to load locations tree:', err);
+        if (!cancelled) setDynamicFloors([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Use configured floors if available, otherwise use dynamic floors from API
   const configuredFloors = locationForm?.floors ?? [];
