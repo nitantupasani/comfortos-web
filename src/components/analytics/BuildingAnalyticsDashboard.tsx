@@ -274,29 +274,28 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
 
     // Build zone→label map from the series `zones` array so vote zones can
     // be matched to visible series regardless of groupBy mode (room/floor/wing).
-    // Also build a fallback set of all zone codes covered by any series.
     const zoneToLabel: Record<string, string> = {};
-    const allSeriesZones = new Set<string>();
     for (const s of telemetryData.series) {
       const label = cleanLabel(s.label);
       for (const z of (s.zones ?? [])) {
         zoneToLabel[z] = label;
-        allSeriesZones.add(z);
       }
       // Fallback: if `zones` array is empty, use the legacy `zone` field
       if ((!s.zones || s.zones.length === 0) && s.zone) {
         zoneToLabel[s.zone] = label;
-        allSeriesZones.add(s.zone);
       }
     }
+    const hasZoneMapping = Object.keys(zoneToLabel).length > 0;
 
     // Determine which labels are currently visible
     const visibleLabels = new Set(keys.filter((k) => !hiddenSeries.has(k)));
     const allHidden = visibleLabels.size === 0;
     // Collect all zone codes that belong to currently visible series
     const visibleZones = new Set<string>();
-    for (const [z, label] of Object.entries(zoneToLabel)) {
-      if (visibleLabels.has(label)) visibleZones.add(z);
+    if (hasZoneMapping) {
+      for (const [z, label] of Object.entries(zoneToLabel)) {
+        if (visibleLabels.has(label)) visibleZones.add(z);
+      }
     }
 
     // Build vote overlay lookup — only include votes whose zone is visible
@@ -313,13 +312,15 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         // Resolve vote zone from payload (zone or legacy room field)
         const voteZone = (v.payload?.zone as string | undefined)
           ?? (v.payload?.room as string | undefined);
-        if (voteZone) {
+        if (voteZone && hasZoneMapping) {
           // Skip vote if its zone is not in any visible series
           if (!visibleZones.has(voteZone)) continue;
-        } else {
+        } else if (!voteZone) {
           // Vote has no zone — only show when nothing is hidden
           if (hiddenSeries.size > 0) continue;
         }
+        // When hasZoneMapping is false (backend hasn't deployed zones yet),
+        // show all zoned votes whenever any series is visible.
         // Bucket to hour or day matching granularity
         const d = new Date(v.createdAt);
         let key: string;
