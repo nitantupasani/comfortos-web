@@ -272,20 +272,32 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       lookup[cleanLabel(s.label)] = map;
     }
 
-    // Also build vote overlay lookup (thermal_comfort average per time bucket)
-    // Always include ALL votes here — zone visibility is handled in the dot renderer
+    // Build zone→label map so vote zones can be matched to visible series
+    const zoneToLabel: Record<string, string> = {};
+    for (const s of telemetryData.series) {
+      if (s.zone) zoneToLabel[s.zone] = cleanLabel(s.label);
+    }
+    // Determine which labels are currently visible
+    const visibleLabels = new Set(keys.filter((k) => !hiddenSeries.has(k)));
+    const allHidden = visibleLabels.size === 0;
+
+    // Build vote overlay lookup — only include votes whose zone is visible
     const voteLookup: Record<string, number> = {};
     const voteCountLookup: Record<string, number> = {};
     const voteZonesLookup: Record<string, Set<string>> = {};
-    if (voteOverlay?.votes && showVotes) {
+    if (voteOverlay?.votes && showVotes && !allHidden) {
       const buckets: Record<string, number[]> = {};
       for (const v of voteOverlay.votes) {
         const thermal = v.payload?.thermal_comfort;
         if (thermal === undefined || thermal === null) continue;
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Track which zones contribute to each bucket
+        // Filter by zone visibility
         const voteZone = v.payload?.zone as string | undefined;
+        if (voteZone) {
+          const label = zoneToLabel[voteZone];
+          if (label && !visibleLabels.has(label)) continue;
+        }
         // Bucket to hour or day matching granularity
         const d = new Date(v.createdAt);
         let key: string;
@@ -318,7 +330,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     });
 
     return { chartData: rows, seriesKeys: keys };
-  }, [telemetryData, voteOverlay, showVotes, granularity]);
+  }, [telemetryData, voteOverlay, showVotes, granularity, hiddenSeries]);
 
   /* ── Build merge map for grouped bubble mode (called imperatively) ── */
   const rebuildMergeMap = useCallback(() => {
@@ -772,12 +784,6 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                         dot={(props: any) => {
                           const { cx, cy, payload, index } = props;
                           if (cx == null || cy == null || payload?.['Comfort Vote'] == null) return <g />;
-
-                          // Zone-based visibility: hide dot if ALL its contributing zones are hidden
-                          const zones = (payload['_voteZones'] as string[]) ?? [];
-                          if (hiddenSeries.size > 0 && zones.length > 0) {
-                            if (zones.every((z: string) => hiddenSeries.has(z))) return <g />;
-                          }
 
                           const val = payload['Comfort Vote'] as number;
                           const count = (payload['_voteCount'] as number) ?? 1;
