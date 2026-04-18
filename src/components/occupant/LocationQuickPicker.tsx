@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MapPin, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useBuildingStore } from '../../store/buildingStore';
 import { usePresenceStore } from '../../store/presenceStore';
@@ -12,12 +12,19 @@ interface Props {
   onClose: () => void;
 }
 
+/* ── Hierarchy types ───────────────────────────────────── */
+
+interface HierarchyNode {
+  id: string;
+  label: string;
+  children: HierarchyNode[];
+}
+
 /* ── Converters ────────────────────────────────────────── */
 
-/** Convert a locations API tree into LocationFloor[] */
+/** Convert a locations API tree into a flat LocationFloor[] (for the configured form fallback) */
 function treeToFloors(tree: LocationTreeNode[]): LocationFloor[] {
   const floors: LocationFloor[] = [];
-
   function walk(nodes: LocationTreeNode[]) {
     for (const node of nodes) {
       if (node.type === 'floor') {
@@ -35,48 +42,98 @@ function treeToFloors(tree: LocationTreeNode[]): LocationFloor[] {
       } else if (node.type === 'building') {
         walk(node.children);
       } else if (node.type === 'block_or_wing') {
-        const rooms = node.children
-          .filter((c) => c.type === 'room')
-          .map((c) => ({ id: c.id, label: c.name }));
+        const rooms = node.children.filter((c) => c.type === 'room').map((c) => ({ id: c.id, label: c.name }));
         if (rooms.length > 0) floors.push({ id: node.id, label: node.name, rooms });
       }
     }
   }
-
   walk(tree);
   floors.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   return floors;
 }
 
-/** Derive LocationFloor[] from telemetry latest readings (floor + zone fields) */
-function latestReadingsToFloors(
+/** Build a multi-level hierarchy from telemetry zone codes.
+ *  Zone codes like "1-W-560" are parsed as floor-wing-room.
+ *  Returns a tree: Floor → Wing → Room (leaf nodes have empty children).
+ */
+function buildHierarchyFromReadings(
   readings: { floor: string | null; zone: string | null }[],
-): LocationFloor[] {
-  const floorMap = new Map<string, Set<string>>();
-
+): { levels: string[]; roots: HierarchyNode[] } {
+  // Collect unique zones
+  const zones = new Set<string>();
   for (const r of readings) {
-    const floorKey = r.floor || 'default';
-    const zoneKey = r.zone || null;
-    if (!zoneKey) continue;
-
-    if (!floorMap.has(floorKey)) floorMap.set(floorKey, new Set());
-    floorMap.get(floorKey)!.add(zoneKey);
+    if (r.zone) zones.add(r.zone);
   }
 
-  const floors: LocationFloor[] = [];
-  for (const [floorKey, zones] of floorMap) {
-    const rooms = Array.from(zones)
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-      .map((z) => ({ id: z, label: z }));
-    floors.push({
-      id: floorKey,
-      label: floorKey === 'default' ? 'Default' : `Floor ${floorKey}`,
-      rooms,
+  // Detect if zones follow {floor}-{wing}-{room} pattern
+  const parsed: { floor: string; wing: string; room: string; zone: string }[] = [];
+  let hasWings = false;
+  for (const z of zones) {
+    const parts = z.split('-');
+    if (parts.length >= 3) {
+      parsed.push({ floor: parts[0], wing: parts[1], room: parts.slice(2).join('-'), zone: z });
+      hasWings = true;
+    } else if (parts.length === 2) {
+      parsed.push({ floor: parts[0], wing: '', room: parts[1], zone: z });
+    } else {
+      parsed.push({ floor: '', wing: '', room: z, zone: z });
+    }
+  }
+
+  if (!hasWings || parsed.length === 0) {
+    // No wing structure — fall back to flat floor → room
+    const floorMap = new Map<string, string[]>();
+    for (const p of parsed) {
+      const key = p.floor || 'default';
+      if (!floorMap.has(key)) floorMap.set(key, []);
+      floorMap.get(key)!.push(p.zone);
+    }
+    const roots: HierarchyNode[] = [];
+    for (const [f, roomZones] of floorMap) {
+      roots.push({
+        id: f,
+        label: f === 'default' ? 'Default' : `Floor ${f}`,
+        children: roomZones.sort().map((z) => ({ id: z, label: z, children: [] })),
+      });
+    }
+    roots.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+    return { levels: ['Floor', 'Room'], roots };
+  }
+
+  // Build Floor → Wing → Room tree
+  const floorMap = new Map<string, Map<string, string[]>>();
+  for (const p of parsed) {
+    if (!floorMap.has(p.floor)) floorMap.set(p.floor, new Map());
+    const wingMap = floorMap.get(p.floor)!;
+    if (!wingMap.has(p.wing)) wingMap.set(p.wing, []);
+    wingMap.get(p.wing)!.push(p.zone);
+  }
+
+  const roots: HierarchyNode[] = [];
+  for (const [floor, wingMap] of floorMap) {
+    const wingNodes: HierarchyNode[] = [];
+    for (const [wing, roomZones] of wingMap) {
+      wingNodes.push({
+        id: `${floor}-${wing}`,
+        label: `Wing ${wing}`,
+        children: roomZones.sort().map((z) => {
+          // Show just the room number as label
+          const parts = z.split('-');
+          const roomNum = parts.length >= 3 ? parts.slice(2).join('-') : z;
+          return { id: z, label: `Room ${roomNum}`, children: [] };
+        }),
+      });
+    }
+    wingNodes.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+    roots.push({
+      id: floor,
+      label: `Floor ${floor}`,
+      children: wingNodes,
     });
   }
 
-  floors.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
-  return floors;
+  roots.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  return { levels: ['Floor', 'Wing', 'Room'], roots };
 }
 
 /* ── Component ─────────────────────────────────────────── */
@@ -88,25 +145,35 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   const currentRoomId = usePresenceStore((s) => s.room);
   const { locationForm, fetchLocationForm } = useBuildingStore();
 
-  const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [dynamicFloors, setDynamicFloors] = useState<LocationFloor[]>([]);
+  // Navigation path through the hierarchy: each entry is a selected node
+  const [path, setPath] = useState<HierarchyNode[]>([]);
+  const [hierarchy, setHierarchy] = useState<{ levels: string[]; roots: HierarchyNode[] } | null>(null);
 
   useEffect(() => {
     if (!isOpen || !activeBuilding) return;
 
     let cancelled = false;
     setLoading(true);
-    setSelectedFloor(null);
-    setDynamicFloors([]);
+    setPath([]);
+    setHierarchy(null);
 
     (async () => {
       try {
-        // 1. Try configured location form
+        // 1. Try configured location form (2-level: floor → room)
         await fetchLocationForm(activeBuilding.id);
         const form = useBuildingStore.getState().locationForm;
         if (cancelled) return;
-        if (form && form.floors && form.floors.length > 0) return;
+        if (form && form.floors && form.floors.length > 0) {
+          // Convert to hierarchy
+          const roots: HierarchyNode[] = form.floors.map((f) => ({
+            id: f.id,
+            label: f.label,
+            children: f.rooms.map((r) => ({ id: r.id, label: r.label, children: [] })),
+          }));
+          setHierarchy({ levels: ['Floor', 'Room'], roots });
+          return;
+        }
 
         // 2. Try locations API tree
         try {
@@ -114,23 +181,23 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
           if (cancelled) return;
           const fromTree = treeToFloors(tree);
           if (fromTree.length > 0) {
-            setDynamicFloors(fromTree);
+            const roots: HierarchyNode[] = fromTree.map((f) => ({
+              id: f.id,
+              label: f.label,
+              children: f.rooms.map((r) => ({ id: r.id, label: r.label, children: [] })),
+            }));
+            setHierarchy({ levels: ['Floor', 'Room'], roots });
             return;
           }
-        } catch {
-          // locations table might be empty — continue to fallback
-        }
+        } catch { /* continue */ }
 
-        // 3. Fallback: derive from telemetry latest readings
+        // 3. Fallback: derive multi-level hierarchy from telemetry data
         if (cancelled) return;
         try {
           const latest = await telemetryApi.latest(activeBuilding.id);
           if (cancelled) return;
-          const fromTelemetry = latestReadingsToFloors(latest);
-          setDynamicFloors(fromTelemetry);
-        } catch {
-          // nothing we can do
-        }
+          setHierarchy(buildHierarchyFromReadings(latest));
+        } catch { /* nothing */ }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -139,15 +206,41 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     return () => { cancelled = true; };
   }, [isOpen, activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Use configured floors if available, otherwise use dynamic floors
-  const configuredFloors = locationForm?.floors ?? [];
-  const floors = configuredFloors.length > 0 ? configuredFloors : dynamicFloors;
-  const currentFloor = floors.find((f) => f.id === selectedFloor);
+  // Current view: the nodes at the current level
+  const currentNodes = useMemo(() => {
+    if (!hierarchy) return [];
+    let nodes = hierarchy.roots;
+    for (const p of path) {
+      const found = nodes.find((n) => n.id === p.id);
+      if (found) nodes = found.children;
+      else return [];
+    }
+    return nodes;
+  }, [hierarchy, path]);
 
-  const handleRoomSelect = (roomId: string, roomLabel: string) => {
-    const floor = floors.find((f) => f.id === selectedFloor)!;
-    setLocation(floor.id, floor.label, roomId, roomLabel);
-    onClose();
+  const currentLevelLabel = hierarchy
+    ? hierarchy.levels[path.length] ?? 'Location'
+    : 'Location';
+
+  const isLeafLevel = currentNodes.length > 0 && currentNodes[0].children.length === 0;
+
+  const handleSelect = (node: HierarchyNode) => {
+    if (node.children.length === 0) {
+      // Leaf — this is the room/zone selection
+      // Build floor label from path
+      const floorNode = path[0];
+      const floorId = floorNode?.id ?? 'default';
+      const floorLabel = floorNode?.label ?? 'Default';
+      setLocation(floorId, floorLabel, node.id, node.label);
+      onClose();
+    } else {
+      // Drill down
+      setPath([...path, node]);
+    }
+  };
+
+  const handleBack = () => {
+    setPath(path.slice(0, -1));
   };
 
   const handleDefaultLocation = () => {
@@ -161,12 +254,32 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
         </div>
-      ) : !selectedFloor ? (
+      ) : (
         <div className="space-y-2">
+          {/* Back button */}
+          {path.length > 0 && (
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mb-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back{path.length > 0 ? ` to ${hierarchy?.levels[path.length - 1] ?? ''}` : ''}
+            </button>
+          )}
+
+          {/* Breadcrumb */}
+          {path.length > 0 && (
+            <div className="text-[10px] text-slate-400 px-1 mb-1">
+              {path.map((p) => p.label).join(' › ')}
+            </div>
+          )}
+
+          {/* Level label */}
           <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-3 px-1">
-            Select Floor
+            Select {currentLevelLabel}
           </div>
-          {floors.length === 0 ? (
+
+          {currentNodes.length === 0 ? (
             <div className="text-center py-6">
               <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
               <p className="text-sm text-gray-400 mb-3">No location data available</p>
@@ -178,67 +291,45 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
               </button>
             </div>
           ) : (
-            floors.map((floor) => (
-              <button
-                key={floor.id}
-                onClick={() => setSelectedFloor(floor.id)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${
-                  floor.id === currentFloorId
-                    ? 'bg-emerald-50 border border-emerald-200'
-                    : 'hover:bg-gray-50 border border-transparent'
-                }`}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600">
-                  {floor.label.replace(/[^0-9A-Za-z]/g, '').slice(0, 2) || 'F'}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-slate-800">{floor.label}</div>
-                  <div className="text-xs text-slate-400">
-                    {floor.rooms.length} room{floor.rooms.length === 1 ? '' : 's'}
+            currentNodes.map((node) => {
+              const isCurrent =
+                (isLeafLevel && node.id === currentRoomId) ||
+                (!isLeafLevel && node.id === currentFloorId);
+              const childCount = node.children.length;
+
+              return (
+                <button
+                  key={node.id}
+                  onClick={() => handleSelect(node)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${
+                    isCurrent
+                      ? 'bg-emerald-50 border border-emerald-200'
+                      : 'hover:bg-gray-50 border border-transparent'
+                  }`}
+                >
+                  {!isLeafLevel && (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600">
+                      {node.label.replace(/[^0-9A-Za-z]/g, '').slice(0, 2) || '?'}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{node.label}</div>
+                    {childCount > 0 && (
+                      <div className="text-xs text-slate-400">
+                        {childCount} {hierarchy?.levels[path.length + 1]?.toLowerCase() ?? 'item'}{childCount === 1 ? '' : 's'}
+                      </div>
+                    )}
                   </div>
-                </div>
-                {floor.id === currentFloorId && (
-                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
-                    Current
-                  </span>
-                )}
-                <ChevronRight className="h-4 w-4 text-gray-300" />
-              </button>
-            ))
+                  {isCurrent && (
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      Current
+                    </span>
+                  )}
+                  {!isLeafLevel && <ChevronRight className="h-4 w-4 text-gray-300" />}
+                </button>
+              );
+            })
           )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <button
-            onClick={() => setSelectedFloor(null)}
-            className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mb-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to floors
-          </button>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-3 px-1">
-            {currentFloor?.label} — Select Room
-          </div>
-          {currentFloor?.rooms.map((room) => (
-            <button
-              key={room.id}
-              onClick={() => handleRoomSelect(room.id, room.label)}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${
-                room.id === currentRoomId
-                  ? 'bg-emerald-50 border border-emerald-200'
-                  : 'hover:bg-gray-50 border border-transparent'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-slate-800">{room.label}</div>
-              </div>
-              {room.id === currentRoomId && (
-                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  Current
-                </span>
-              )}
-            </button>
-          ))}
         </div>
       )}
     </BottomSheet>
