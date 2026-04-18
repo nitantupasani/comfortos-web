@@ -274,16 +274,30 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
 
     // Build zone→label map from the series `zones` array so vote zones can
     // be matched to visible series regardless of groupBy mode (room/floor/wing).
+    // Also build a fallback set of all zone codes covered by any series.
     const zoneToLabel: Record<string, string> = {};
+    const allSeriesZones = new Set<string>();
     for (const s of telemetryData.series) {
       const label = cleanLabel(s.label);
       for (const z of (s.zones ?? [])) {
         zoneToLabel[z] = label;
+        allSeriesZones.add(z);
+      }
+      // Fallback: if `zones` array is empty, use the legacy `zone` field
+      if ((!s.zones || s.zones.length === 0) && s.zone) {
+        zoneToLabel[s.zone] = label;
+        allSeriesZones.add(s.zone);
       }
     }
+
     // Determine which labels are currently visible
     const visibleLabels = new Set(keys.filter((k) => !hiddenSeries.has(k)));
     const allHidden = visibleLabels.size === 0;
+    // Collect all zone codes that belong to currently visible series
+    const visibleZones = new Set<string>();
+    for (const [z, label] of Object.entries(zoneToLabel)) {
+      if (visibleLabels.has(label)) visibleZones.add(z);
+    }
 
     // Build vote overlay lookup — only include votes whose zone is visible
     const voteLookup: Record<string, number> = {};
@@ -296,19 +310,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         if (thermal === undefined || thermal === null) continue;
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Filter by zone visibility — skip vote if its zone maps to a hidden series.
-        // Legacy frontend submissions stored the occupant's current room under
-        // `room` rather than `zone`; accept either so pre-normalization rows
-        // still resolve to a location.
+        // Resolve vote zone from payload (zone or legacy room field)
         const voteZone = (v.payload?.zone as string | undefined)
           ?? (v.payload?.room as string | undefined);
         if (voteZone) {
-          const label = zoneToLabel[voteZone];
-          if (label && !visibleLabels.has(label)) continue;
-          // If vote zone isn't in any series at all, skip it
-          if (!label) continue;
+          // Skip vote if its zone is not in any visible series
+          if (!visibleZones.has(voteZone)) continue;
         } else {
-          // Vote has no zone — skip when any filtering is active
+          // Vote has no zone — only show when nothing is hidden
           if (hiddenSeries.size > 0) continue;
         }
         // Bucket to hour or day matching granularity
