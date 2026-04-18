@@ -296,8 +296,12 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         if (thermal === undefined || thermal === null) continue;
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Filter by zone visibility — skip vote if its zone maps to a hidden series
-        const voteZone = v.payload?.zone as string | undefined;
+        // Filter by zone visibility — skip vote if its zone maps to a hidden series.
+        // Legacy frontend submissions stored the occupant's current room under
+        // `room` rather than `zone`; accept either so pre-normalization rows
+        // still resolve to a location.
+        const voteZone = (v.payload?.zone as string | undefined)
+          ?? (v.payload?.room as string | undefined);
         if (voteZone) {
           const label = zoneToLabel[voteZone];
           if (label && !visibleLabels.has(label)) continue;
