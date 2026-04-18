@@ -18,6 +18,7 @@ export interface TelemetrySeriesGroup {
   label: string;
   locationId: string | null;
   locationName: string | null;
+  zones: string[];
   floor: string | null;
   zone: string | null;
   points: TelemetryPoint[];

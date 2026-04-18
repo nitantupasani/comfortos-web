@@ -272,10 +272,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       lookup[cleanLabel(s.label)] = map;
     }
 
-    // Build zone→label map so vote zones can be matched to visible series
+    // Build zone→label map from the series `zones` array so vote zones can
+    // be matched to visible series regardless of groupBy mode (room/floor/wing).
     const zoneToLabel: Record<string, string> = {};
     for (const s of telemetryData.series) {
-      if (s.zone) zoneToLabel[s.zone] = cleanLabel(s.label);
+      const label = cleanLabel(s.label);
+      for (const z of (s.zones ?? [])) {
+        zoneToLabel[z] = label;
+      }
     }
     // Determine which labels are currently visible
     const visibleLabels = new Set(keys.filter((k) => !hiddenSeries.has(k)));
@@ -292,11 +296,16 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         if (thermal === undefined || thermal === null) continue;
         const val = typeof thermal === 'number' ? thermal : parseFloat(String(thermal));
         if (isNaN(val)) continue;
-        // Filter by zone visibility
+        // Filter by zone visibility — skip vote if its zone maps to a hidden series
         const voteZone = v.payload?.zone as string | undefined;
         if (voteZone) {
           const label = zoneToLabel[voteZone];
           if (label && !visibleLabels.has(label)) continue;
+          // If vote zone isn't in any series at all, skip it
+          if (!label) continue;
+        } else {
+          // Vote has no zone — skip when any filtering is active
+          if (hiddenSeries.size > 0) continue;
         }
         // Bucket to hour or day matching granularity
         const d = new Date(v.createdAt);
