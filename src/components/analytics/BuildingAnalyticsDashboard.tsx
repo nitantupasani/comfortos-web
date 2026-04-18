@@ -539,19 +539,17 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
               <option value="daily">Daily avg</option>
             </select>
 
-            {groupingLevels.length > 1 && (
-              <select
-                value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value as 'room' | 'floor' | 'wing')}
-                className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
-              >
-                {groupingLevels.map((level) => (
-                  <option key={level.key} value={level.key}>
-                    {level.label}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as 'room' | 'floor' | 'wing')}
+              className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+            >
+              {groupingLevels.map((level) => (
+                <option key={level.key} value={level.key}>
+                  {level.label}
+                </option>
+              ))}
+            </select>
 
             {activeTab === 'thermal' && hasVoteData && (
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
