@@ -434,7 +434,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     <div className="space-y-6">
       {/* ── Weather Card ── */}
       {weather && (
-        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-xl px-5 py-3">
+        <div className="flex items-center gap-4 bg-gradient-to-r from-primary-50 to-emerald-50 border border-primary-200 rounded-xl px-5 py-3">
           <span className="text-3xl">{weather.icon}</span>
           <div>
             <div className="text-sm font-semibold text-gray-700">{weather.description}</div>
@@ -959,7 +959,7 @@ function IntegrationDocs() {
       <div className="flex-1 min-w-0">
         <div className="bg-white rounded-xl border overflow-hidden">
           {/* Header */}
-          <div className="px-8 py-8 border-b bg-gradient-to-br from-primary-50 via-white to-blue-50">
+          <div className="px-8 py-8 border-b bg-gradient-to-br from-primary-50 via-white to-emerald-50">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
                 <BookOpen className="h-5 w-5 text-primary-600" />
