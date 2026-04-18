@@ -223,6 +223,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
   /* ── Load telemetry + votes when building/metric/range changes ── */
   useEffect(() => {
     if (!selectedBuilding) return;
+    let stale = false;
     setDataLoading(true);
 
     const metricType = activeTab === 'thermal' ? 'temperature'
@@ -240,11 +241,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       telemetryApi.metrics(selectedBuilding).catch(() => []),
       votesApi.analytics(selectedBuilding, startDate, endDate).catch(() => null),
     ]).then(([series, metrics, votes]) => {
+      if (stale) return;
       setTelemetryData(series);
       setAvailableMetrics(metrics);
       setVoteOverlay(votes);
       setHiddenSeries(new Set());
-    }).finally(() => setDataLoading(false));
+    }).finally(() => { if (!stale) setDataLoading(false); });
+
+    return () => { stale = true; };
   }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity, groupBy]);
 
   // Reset brush ref when underlying data changes
