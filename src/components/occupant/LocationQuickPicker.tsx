@@ -111,24 +111,51 @@ function buildHierarchyFromReadings(
   if (maxSegments >= 3) {
     // {floor}-{wing}-{room...}
     const floorMap = new Map<string, Map<string, Set<string>>>();
+    const allWings = new Set<string>();
     for (const p of parsed) {
       const floor = p.segments[0];
       const wing = p.segments[1];
       const room = p.segments.slice(2).join('-');
+      allWings.add(wing);
       if (!floorMap.has(floor)) floorMap.set(floor, new Map());
       const wm = floorMap.get(floor)!;
       if (!wm.has(wing)) wm.set(wing, new Set());
       wm.get(wing)!.add(room);
     }
+
+    // Ensure continuous floors (1..max or 0..max)
+    const floorNums = Array.from(floorMap.keys()).map(Number).filter((n) => !isNaN(n));
+    if (floorNums.length > 0) {
+      const minFloor = Math.min(...floorNums) <= 0 ? Math.min(...floorNums) : 1;
+      const maxFloor = Math.max(...floorNums);
+      for (let f = minFloor; f <= maxFloor; f++) {
+        const key = String(f);
+        if (!floorMap.has(key)) {
+          // Add empty floor with all known wings (no rooms)
+          const wm = new Map<string, Set<string>>();
+          for (const w of allWings) wm.set(w, new Set());
+          floorMap.set(key, wm);
+        } else {
+          // Ensure every wing appears on every floor
+          const wm = floorMap.get(key)!;
+          for (const w of allWings) {
+            if (!wm.has(w)) wm.set(w, new Set());
+          }
+        }
+      }
+    }
+
     const roots: HierarchyNode[] = [];
     for (const [floor, wingMap] of floorMap) {
       const wings: HierarchyNode[] = [];
       for (const [wing, rooms] of wingMap) {
+        const roomNodes = Array.from(rooms)
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+          .map((r) => ({ id: `${floor}-${wing}-${r}`, label: `Room ${r}`, children: [] }));
         wings.push({
           id: `${floor}-${wing}`,
           label: `Wing ${wing}`,
-          children: Array.from(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-            .map((r) => ({ id: `${floor}-${wing}-${r}`, label: `Room ${r}`, children: [] })),
+          children: roomNodes,
         });
       }
       wings.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
@@ -147,6 +174,17 @@ function buildHierarchyFromReadings(
       if (!floorMap.has(floor)) floorMap.set(floor, new Set());
       floorMap.get(floor)!.add(room);
     }
+
+    // Ensure continuous floors
+    const floorNums = Array.from(floorMap.keys()).map(Number).filter((n) => !isNaN(n));
+    if (floorNums.length > 0) {
+      const minFloor = Math.min(...floorNums) <= 0 ? Math.min(...floorNums) : 1;
+      const maxFloor = Math.max(...floorNums);
+      for (let f = minFloor; f <= maxFloor; f++) {
+        if (!floorMap.has(String(f))) floorMap.set(String(f), new Set());
+      }
+    }
+
     const roots: HierarchyNode[] = [];
     for (const [floor, rooms] of floorMap) {
       roots.push({
