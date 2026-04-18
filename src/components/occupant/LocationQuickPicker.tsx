@@ -2,11 +2,65 @@ import { useEffect, useState } from 'react';
 import { MapPin, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import { useBuildingStore } from '../../store/buildingStore';
 import { usePresenceStore } from '../../store/presenceStore';
+import { locationsApi, type LocationTreeNode } from '../../api/locations';
 import BottomSheet from '../common/BottomSheet';
+import type { LocationFloor } from '../../types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+}
+
+/** Convert a locations API tree into the LocationFloor[] format the picker expects */
+function treeToFloors(tree: LocationTreeNode[]): LocationFloor[] {
+  const floors: LocationFloor[] = [];
+
+  function walk(nodes: LocationTreeNode[], parentFloorId?: string, parentFloorLabel?: string) {
+    for (const node of nodes) {
+      if (node.type === 'floor') {
+        const floor: LocationFloor = {
+          id: node.id,
+          label: node.name,
+          rooms: [],
+        };
+        // Collect rooms directly under this floor
+        for (const child of node.children) {
+          if (child.type === 'room') {
+            floor.rooms.push({ id: child.id, label: child.name });
+          } else if (child.type === 'block_or_wing') {
+            // Rooms nested under wings
+            for (const grandchild of child.children) {
+              if (grandchild.type === 'room') {
+                floor.rooms.push({ id: grandchild.id, label: grandchild.name });
+              }
+            }
+          }
+        }
+        if (floor.rooms.length > 0) {
+          floors.push(floor);
+        }
+      } else if (node.type === 'building') {
+        // Recurse into building root
+        walk(node.children);
+      } else if (node.type === 'block_or_wing') {
+        // Wing at top level (no floor parent) — create a synthetic floor
+        const rooms = node.children
+          .filter((c) => c.type === 'room')
+          .map((c) => ({ id: c.id, label: c.name }));
+        if (rooms.length > 0) {
+          floors.push({ id: node.id, label: node.name, rooms });
+        }
+      } else if (node.type === 'room' && parentFloorId) {
+        // Room directly in a walk — already handled above
+      }
+    }
+  }
+
+  walk(tree);
+
+  // Sort floors by label (natural sort for "Floor 1", "Floor 2", etc.)
+  floors.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  return floors;
 }
 
 export default function LocationQuickPicker({ isOpen, onClose }: Props) {
@@ -18,16 +72,35 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
 
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dynamicFloors, setDynamicFloors] = useState<LocationFloor[]>([]);
 
   useEffect(() => {
     if (isOpen && activeBuilding) {
       setLoading(true);
       setSelectedFloor(null);
-      fetchLocationForm(activeBuilding.id).finally(() => setLoading(false));
+      setDynamicFloors([]);
+
+      // Try the configured location form first, then fall back to locations API
+      fetchLocationForm(activeBuilding.id)
+        .then(async () => {
+          const form = useBuildingStore.getState().locationForm;
+          if (!form || form.floors.length === 0) {
+            // No configured form — fetch from locations API
+            try {
+              const tree = await locationsApi.tree(activeBuilding.id);
+              setDynamicFloors(treeToFloors(tree));
+            } catch {
+              setDynamicFloors([]);
+            }
+          }
+        })
+        .finally(() => setLoading(false));
     }
   }, [isOpen, activeBuilding, fetchLocationForm]);
 
-  const floors = locationForm?.floors ?? [];
+  // Use configured floors if available, otherwise use dynamic floors from API
+  const configuredFloors = locationForm?.floors ?? [];
+  const floors = configuredFloors.length > 0 ? configuredFloors : dynamicFloors;
   const currentFloor = floors.find((f) => f.id === selectedFloor);
 
   const handleRoomSelect = (roomId: string, roomLabel: string) => {

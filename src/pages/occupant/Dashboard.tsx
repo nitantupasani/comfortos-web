@@ -200,46 +200,6 @@ export default function Dashboard() {
     );
   }
 
-  // If building selected but no location, prompt to pick location
-  if (!floor) {
-    return (
-      <div className="space-y-4">
-        <DashboardContextBar
-          buildingName={activeBuilding.name}
-          floorLabel={null}
-          roomLabel={null}
-          loading={false}
-          onSwitchBuilding={() => setShowBuildingSwitch(true)}
-          onChangeLocation={() => setShowLocationPicker(true)}
-          onRefresh={loadData}
-        />
-
-        <div className="rounded-[28px] border border-emerald-100 bg-[linear-gradient(180deg,_rgba(236,253,245,0.92)_0%,_rgba(255,255,255,0.98)_100%)] px-5 py-8 text-center shadow-[0_12px_40px_rgba(22,101,52,0.08)]">
-          <MapPin className="mx-auto mb-3 h-10 w-10 text-emerald-600" />
-          <h2 className="text-lg font-bold text-slate-800">Set Your Location</h2>
-          <p className="mt-2 text-sm text-slate-500">Choose your floor and room to see environment data</p>
-          <button
-            onClick={() => setShowLocationPicker(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
-          >
-            <MapPin className="h-4 w-4" />
-            Select Location
-          </button>
-        </div>
-
-        <BuildingQuickSwitch
-          isOpen={showBuildingSwitch}
-          onClose={() => setShowBuildingSwitch(false)}
-          onSelect={handleBuildingSelect}
-        />
-        <LocationQuickPicker
-          isOpen={showLocationPicker}
-          onClose={() => setShowLocationPicker(false)}
-        />
-      </div>
-    );
-  }
-
   // Full dashboard view — use server config if available, otherwise DEFAULT_DASHBOARD with chart
   const hasContent = dashboardConfig && dashboardConfig.children && dashboardConfig.children.length > 0;
   const config = hasContent ? dashboardConfig : DEFAULT_DASHBOARD;
@@ -256,6 +216,20 @@ export default function Dashboard() {
         onChangeLocation={() => setShowLocationPicker(true)}
         onRefresh={loadData}
       />
+
+      {/* Inline location prompt when no location set */}
+      {!floor && (
+        <button
+          onClick={() => setShowLocationPicker(true)}
+          className="w-full flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-left transition-colors hover:bg-emerald-100"
+        >
+          <MapPin className="h-5 w-5 text-emerald-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-slate-700">Set your location</div>
+            <div className="text-xs text-slate-400">Pick floor & room for personalised data</div>
+          </div>
+        </button>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
