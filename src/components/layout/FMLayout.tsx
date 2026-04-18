@@ -23,7 +23,6 @@ const links = [
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
   { to: '/fm/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
   { to: '/fm/vote-config', icon: FileQuestion, label: 'Vote Form Config' },
-  { to: '/fm/connectors', icon: Plug, label: 'Connectors' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];
 

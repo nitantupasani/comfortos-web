@@ -38,7 +38,6 @@ const links = [
   { to: '/admin/tenants', icon: Users, label: 'Tenants' },
   { to: '/admin/fm-approvals', icon: ShieldCheck, label: 'FM Approvals' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
-  { to: '/admin/connectors', icon: Plug, label: 'Connectors' },
   { to: '/admin/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
   { to: '/admin/vote-config', icon: FileQuestion, label: 'Vote Form Config' },
 ];

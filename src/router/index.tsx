@@ -31,11 +31,8 @@ import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
 import AdminDashboardConfig from '../pages/admin/DashboardConfig';
 import AdminVoteFormConfig from '../pages/admin/VoteFormConfig';
 import FMApprovals from '../pages/admin/FMApprovals';
-import ConnectorManagement from '../pages/admin/ConnectorManagement';
-
 // FM
 import FMDashboard from '../pages/fm/FMDashboard';
-import BuildingOverview from '../pages/fm/BuildingOverview';
 import ComfortAnalytics from '../pages/fm/ComfortAnalytics';
 import FMBuildingAnalytics from '../pages/fm/BuildingAnalytics';
 import FMNotifications from '../pages/fm/Notifications';
@@ -138,7 +135,6 @@ export default function AppRouter() {
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
         <Route path="/admin/building-analytics" element={<BuildingAnalytics />} />
-        <Route path="/admin/connectors" element={<ConnectorManagement />} />
         <Route path="/admin/dashboard-config" element={<AdminDashboardConfig />} />
         <Route path="/admin/vote-config" element={<AdminVoteFormConfig />} />
         <Route path="/admin/fm-approvals" element={<FMApprovals />} />
@@ -154,12 +150,11 @@ export default function AppRouter() {
       >
         <Route path="/fm" element={<FMBuildingAnalytics />} />
         <Route path="/fm/overview" element={<FMDashboard />} />
-        <Route path="/fm/buildings" element={<BuildingOverview />} />
+        <Route path="/fm/buildings" element={<BuildingManagement managedOnly />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
         <Route path="/fm/dashboard-config" element={<FMDashboardConfig />} />
         <Route path="/fm/vote-config" element={<FMVoteFormConfig />} />
-        <Route path="/fm/connectors" element={<ConnectorManagement />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
       </Route>
 

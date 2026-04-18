@@ -28,7 +28,7 @@ import {
   ReferenceArea,
 } from 'recharts';
 import { buildingsApi } from '../../api/buildings';
-import { telemetryApi, TelemetryQueryResponse, TelemetryMetric } from '../../api/telemetry';
+import { telemetryApi, TelemetryQueryResponse, TelemetryMetric, GroupingLevel } from '../../api/telemetry';
 import { votesApi, VoteAnalyticsResponse } from '../../api/votes';
 import { fetchWeather } from '../../utils/weather';
 import type { Building, WeatherData } from '../../types';
@@ -167,6 +167,8 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
   const [startDate, setStartDate] = useState(() => toISODate(new Date(Date.now() - 7 * 86400000)));
   const [endDate, setEndDate] = useState(() => toISODate(new Date()));
   const [granularity, setGranularity] = useState<'raw' | 'hourly' | 'daily'>('hourly');
+  const [groupBy, setGroupBy] = useState<'room' | 'floor' | 'wing'>('room');
+  const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([{ key: 'room', label: 'Room / Zone' }]);
 
   /** Apply a preset range (days from today) */
   const applyPreset = useCallback((days: number) => {
@@ -200,12 +202,22 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     }).finally(() => setLoading(false));
   }, [managedOnly]);
 
-  /* ── Fetch weather when building changes ── */
+  /* ── Fetch weather + grouping levels when building changes ── */
   useEffect(() => {
     if (!selectedBuilding) return;
     const bld = buildings.find((b) => b.id === selectedBuilding);
     if (!bld) return;
     fetchWeather(bld.latitude, bld.longitude).then((w) => setWeather(w));
+    telemetryApi.groupingLevels(selectedBuilding).then((resp) => {
+      setGroupingLevels(resp.levels);
+      // Reset to room if current groupBy is not available for this building
+      if (!resp.levels.some((l) => l.key === groupBy)) {
+        setGroupBy('room');
+      }
+    }).catch(() => {
+      setGroupingLevels([{ key: 'room', label: 'Room / Zone' }]);
+      setGroupBy('room');
+    });
   }, [selectedBuilding, buildings]);
 
   /* ── Load telemetry + votes when building/metric/range changes ── */
@@ -223,6 +235,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         dateFrom: startDate,
         dateTo: endDate,
         granularity,
+        groupBy,
       }).catch(() => null),
       telemetryApi.metrics(selectedBuilding).catch(() => []),
       votesApi.analytics(selectedBuilding, startDate, endDate).catch(() => null),
@@ -232,7 +245,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       setVoteOverlay(votes);
       setHiddenSeries(new Set());
     }).finally(() => setDataLoading(false));
-  }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity]);
+  }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity, groupBy]);
 
   // Reset brush ref when underlying data changes
   useEffect(() => { brushRef.current = { start: 0, end: 0 }; }, [telemetryData]);
@@ -525,6 +538,20 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
               <option value="hourly">Hourly avg</option>
               <option value="daily">Daily avg</option>
             </select>
+
+            {groupingLevels.length > 1 && (
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as 'room' | 'floor' | 'wing')}
+                className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+              >
+                {groupingLevels.map((level) => (
+                  <option key={level.key} value={level.key}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {activeTab === 'thermal' && hasVoteData && (
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

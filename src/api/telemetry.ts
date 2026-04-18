@@ -47,8 +47,22 @@ export interface TelemetrySeriesParams {
   dateFrom?: string;
   dateTo?: string;
   granularity?: 'raw' | 'hourly' | 'daily';
+  groupBy?: 'room' | 'floor' | 'wing';
   floor?: string;
   zone?: string;
+}
+
+export interface GroupingLevel {
+  key: string;
+  label: string;
+}
+
+export interface GroupingLevelsResponse {
+  buildingId: string;
+  levels: GroupingLevel[];
+  floors: string[];
+  wings: string[];
+  roomCount: number;
 }
 
 /* ── API ───────────────────────────────────────────────── */
@@ -64,6 +78,7 @@ export const telemetryApi = {
     if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
     if (params.dateTo) qs.set('dateTo', params.dateTo);
     if (params.granularity) qs.set('granularity', params.granularity);
+    if (params.groupBy) qs.set('groupBy', params.groupBy);
     if (params.floor) qs.set('floor', params.floor);
     if (params.zone) qs.set('zone', params.zone);
     return api.get<TelemetryQueryResponse>(
@@ -74,4 +89,8 @@ export const telemetryApi = {
   /** Get latest reading per metric per floor/zone. */
   latest: (buildingId: string) =>
     api.get<TelemetryLatestReading[]>(`/telemetry/${buildingId}/latest`),
+
+  /** Get available grouping levels for a building. */
+  groupingLevels: (buildingId: string) =>
+    api.get<GroupingLevelsResponse>(`/telemetry/${buildingId}/grouping-levels`),
 };
