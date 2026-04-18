@@ -13,8 +13,14 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return null; // still loading
 
-  // When admin is previewing another role, treat them as that role for access checks.
-  const effectiveRole: UserRole = user.role === 'admin' && viewAsRole ? viewAsRole : user.role;
+  // When admin or FM is previewing another role, treat them as that role for access checks.
+  const effectiveRole: UserRole =
+    viewAsRole && (
+      user.role === 'admin' ||
+      (viewAsRole === 'occupant' && (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager'))
+    )
+      ? viewAsRole
+      : user.role;
 
   if (allowedRoles && !allowedRoles.includes(effectiveRole)) {
     // Redirect to the entry point appropriate for the effective role

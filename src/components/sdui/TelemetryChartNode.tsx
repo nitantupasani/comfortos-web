@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Loader2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
+import { useAuthStore } from '../../store/authStore';
 import { telemetryApi, type TelemetryQueryResponse } from '../../api/telemetry';
 import { locationsApi, type LocationNode } from '../../api/locations';
 
@@ -99,6 +100,8 @@ export default function TelemetryChartNode({
   detailLink = '/environment',
 }: TelemetryChartNodeProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
   const ranges = timeRanges ?? DEFAULT_RANGES;
@@ -151,9 +154,10 @@ export default function TelemetryChartNode({
   }, [metricType, groupBy]);
 
   useEffect(() => {
-    if (!activeBuilding) return;
+    // Wait for both building selection AND a valid auth session before fetching
+    if (!activeBuilding || !token || !user) return;
     fetchData(activeBuilding.id, range);
-  }, [activeBuilding?.id, rangeIdx, retryCount, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeBuilding?.id, token, user?.id, rangeIdx, retryCount, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRetry = () => setRetryCount((c) => c + 1);
 
