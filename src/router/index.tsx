@@ -20,6 +20,7 @@ import VotePage from '../pages/occupant/Vote';
 import Comfort from '../pages/occupant/Comfort';
 import HistoryPage from '../pages/occupant/History';
 import SettingsPage from '../pages/occupant/Settings';
+import EnvironmentData from '../pages/occupant/EnvironmentData';
 import RequestFMRole from '../pages/occupant/RequestFMRole';
 
 // Admin
@@ -93,6 +94,7 @@ export default function AppRouter() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/environment" element={<EnvironmentData />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/request-fm" element={<RequestFMRole />} />
