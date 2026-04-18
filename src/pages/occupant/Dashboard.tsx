@@ -4,11 +4,13 @@ import { usePresenceStore } from '../../store/presenceStore';
 import { useBuildingStore } from '../../store/buildingStore';
 import { useAuthStore } from '../../store/authStore';
 import { fetchWeather } from '../../utils/weather';
+import { telemetryApi, type TelemetryLatestReading } from '../../api/telemetry';
+import { locationsApi, type LocationNode } from '../../api/locations';
 import SduiRenderer from '../../components/sdui/SduiRenderer';
 import DashboardContextBar from '../../components/occupant/DashboardContextBar';
 import BuildingQuickSwitch from '../../components/occupant/BuildingQuickSwitch';
 import LocationQuickPicker from '../../components/occupant/LocationQuickPicker';
-import { Vote, Loader2, Building2, MapPin } from 'lucide-react';
+import { Vote, Loader2, Building2, MapPin, Thermometer, ChevronRight } from 'lucide-react';
 import type { SduiNode, WeatherData, Building } from '../../types';
 
 /* Default dashboard when backend returns null */
@@ -52,13 +54,21 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showBuildingSwitch, setShowBuildingSwitch] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [latestReadings, setLatestReadings] = useState<TelemetryLatestReading[]>([]);
+  const [locations, setLocations] = useState<LocationNode[]>([]);
 
   const loadData = async () => {
     if (!activeBuilding) return;
     setLoading(true);
     await fetchDashboard(activeBuilding.id);
-    const w = await fetchWeather(activeBuilding.latitude, activeBuilding.longitude);
+    const [w, readings, locs] = await Promise.all([
+      fetchWeather(activeBuilding.latitude, activeBuilding.longitude),
+      telemetryApi.latest(activeBuilding.id).catch(() => [] as TelemetryLatestReading[]),
+      locationsApi.list(activeBuilding.id, 'room').catch(() => [] as LocationNode[]),
+    ]);
     if (w) setWeather(w);
+    setLatestReadings(readings);
+    setLocations(locs);
     setLoading(false);
   };
 
@@ -248,6 +258,13 @@ export default function Dashboard() {
         <SduiRenderer config={injected} />
       )}
 
+      {/* Temperature overview */}
+      {!loading && <TemperatureOverview
+        readings={latestReadings}
+        locations={locations}
+        onViewAll={() => navigate('/environment')}
+      />}
+
       {/* Vote CTA */}
       <button
         onClick={() => navigate('/vote')}
@@ -268,6 +285,133 @@ export default function Dashboard() {
       />
     </div>
   );
+}
+
+/* ── Temperature Overview ──────────────────────────────── */
+
+function TemperatureOverview({
+  readings,
+  locations,
+  onViewAll,
+}: {
+  readings: TelemetryLatestReading[];
+  locations: LocationNode[];
+  onViewAll: () => void;
+}) {
+  // Filter to temperature readings only
+  const tempReadings = readings.filter((r) => r.metricType === 'temperature');
+  if (tempReadings.length === 0 && locations.length === 0) return null;
+
+  // Build a map of location names from the locations list
+  const locationNames = new Map<string, string>();
+  for (const loc of locations) {
+    locationNames.set(loc.id, loc.name);
+    if (loc.code) locationNames.set(loc.code, loc.name);
+  }
+
+  // Enrich readings with location names
+  const enriched = tempReadings.map((r) => {
+    const name =
+      (r.zone && locationNames.get(r.zone)) ||
+      locationNames.get(r.zone ?? '') ||
+      r.zone ||
+      r.floor ||
+      'Unknown';
+    return { ...r, displayName: name };
+  });
+
+  // Sort by floor then zone
+  enriched.sort((a, b) => {
+    const fa = a.floor ?? '';
+    const fb = b.floor ?? '';
+    if (fa !== fb) return fa.localeCompare(fb);
+    return (a.displayName).localeCompare(b.displayName);
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <Thermometer className="h-4 w-4 text-emerald-600" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            Temperatures — All Locations
+          </span>
+        </div>
+        <button
+          onClick={onViewAll}
+          className="flex items-center gap-0.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+        >
+          View chart
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {enriched.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/75 px-4 py-6 text-center text-xs text-slate-400">
+          No temperature readings yet
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {enriched.map((r) => {
+            const tempColor =
+              r.value < 18 ? 'text-blue-600' :
+              r.value > 26 ? 'text-red-500' :
+              'text-emerald-600';
+            const ago = formatTimeAgo(r.recordedAt);
+            return (
+              <div
+                key={r.id}
+                className="rounded-2xl border border-slate-200/80 bg-white px-3 py-3 shadow-sm"
+              >
+                <div className="text-[11px] font-medium text-slate-500 truncate">{r.displayName}</div>
+                <div className={`text-lg font-bold tabular-nums ${tempColor}`}>
+                  {r.value.toFixed(1)}<span className="text-xs font-normal text-slate-400">°C</span>
+                </div>
+                <div className="text-[10px] text-slate-300 mt-0.5">{ago}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Show locations that have no readings */}
+      {locations.length > 0 && (() => {
+        const readingZones = new Set(tempReadings.map((r) => r.zone));
+        const noData = locations.filter(
+          (loc) => !readingZones.has(loc.code ?? '') && !readingZones.has(loc.name)
+        );
+        if (noData.length === 0) return null;
+        return (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-300 mb-1.5 px-1">
+              No recent data
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {noData.map((loc) => (
+                <div
+                  key={loc.id}
+                  className="rounded-2xl border border-dashed border-slate-200 bg-white/60 px-3 py-3"
+                >
+                  <div className="text-[11px] font-medium text-slate-400 truncate">{loc.name}</div>
+                  <div className="text-lg font-bold text-slate-200">--<span className="text-xs font-normal">°C</span></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 /** Inject live weather data into weather_badge nodes */
