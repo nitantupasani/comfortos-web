@@ -14,7 +14,7 @@ export default function Login() {
     if (user.role === 'admin') navigate('/admin', { replace: true });
     else if (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager')
       navigate('/fm', { replace: true });
-    else navigate('/presence', { replace: true });
+    else navigate('/dashboard', { replace: true });
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {

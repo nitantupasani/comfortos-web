@@ -1,8 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, History, Settings, Building2, ArrowLeftRight } from 'lucide-react';
+import { LayoutDashboard, History, Settings, Building2, ArrowLeftRight, ChevronDown } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
+import BuildingQuickSwitch from '../occupant/BuildingQuickSwitch';
+import type { Building } from '../../types';
 
 const tabs = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -17,10 +19,13 @@ interface OccupantShellProps {
 
 export default function OccupantShell({ children, showNav = false }: OccupantShellProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
+  const selectBuilding = usePresenceStore((s) => s.selectBuilding);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const viewAsRole = useAuthStore((s) => s.viewAsRole);
   const setViewAsRole = useAuthStore((s) => s.setViewAsRole);
+
+  const [showBuildingSwitch, setShowBuildingSwitch] = useState(false);
 
   const isFMViewingAsOccupant = viewAsRole === 'occupant' &&
     (user?.role === 'tenant_facility_manager' || user?.role === 'building_facility_manager');
@@ -28,6 +33,11 @@ export default function OccupantShell({ children, showNav = false }: OccupantShe
   const handleSwitchBackToFM = () => {
     setViewAsRole(null);
     navigate('/fm');
+  };
+
+  const handleBuildingSelect = async (building: Building) => {
+    await selectBuilding(building);
+    navigate('/dashboard');
   };
 
   return (
@@ -56,11 +66,12 @@ export default function OccupantShell({ children, showNav = false }: OccupantShe
             </div>
             {activeBuilding && (
               <button
-                onClick={() => navigate('/presence')}
-                className="flex max-w-[158px] items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-left text-xs text-slate-600 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
+                onClick={() => setShowBuildingSwitch(true)}
+                className="flex max-w-[170px] items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-left text-xs text-slate-600 transition-colors hover:border-emerald-200 hover:bg-emerald-50"
               >
                 <Building2 className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span className="truncate font-medium">{activeBuilding.name}</span>
+                <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" />
               </button>
             )}
           </div>
@@ -95,6 +106,12 @@ export default function OccupantShell({ children, showNav = false }: OccupantShe
           </nav>
         )}
       </div>
+
+      <BuildingQuickSwitch
+        isOpen={showBuildingSwitch}
+        onClose={() => setShowBuildingSwitch(false)}
+        onSelect={handleBuildingSelect}
+      />
     </div>
   );
 }

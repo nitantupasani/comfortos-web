@@ -24,7 +24,7 @@ export default function VotePage() {
   }, [activeBuilding, fetchVoteForm, clearResult]);
 
   if (!activeBuilding || !user) {
-    navigate('/presence');
+    navigate('/dashboard');
     return null;
   }
 

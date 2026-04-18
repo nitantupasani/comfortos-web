@@ -25,6 +25,7 @@ import RequestFMRole from '../pages/occupant/RequestFMRole';
 // Admin
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import BuildingManagement from '../pages/admin/BuildingManagement';
+import BuildingSetupWizard from '../pages/admin/BuildingSetupWizard';
 import TenantManagement from '../pages/admin/TenantManagement';
 import VoteAnalytics from '../pages/admin/VoteAnalytics';
 import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
@@ -53,7 +54,7 @@ export default function AppRouter() {
     if (effectiveRole === 'admin') return '/admin';
     if (effectiveRole === 'tenant_facility_manager' || effectiveRole === 'building_facility_manager')
       return '/fm';
-    return '/presence';
+    return '/dashboard';
   };
 
   return (
@@ -66,13 +67,12 @@ export default function AppRouter() {
       <Route path="/" element={<Navigate to={roleRedirect()} replace />} />
 
       {/* ─── Occupant routes (mobile-like) ─── */}
+      {/* Legacy presence/location routes — redirect to dashboard which handles everything inline */}
       <Route
         path="/presence"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <OccupantShell>
-              <Presence />
-            </OccupantShell>
+            <Navigate to="/dashboard" replace />
           </ProtectedRoute>
         }
       />
@@ -80,9 +80,7 @@ export default function AppRouter() {
         path="/location"
         element={
           <ProtectedRoute allowedRoles={['occupant', 'tenant_facility_manager', 'building_facility_manager', 'admin']}>
-            <OccupantShell>
-              <Location />
-            </OccupantShell>
+            <Navigate to="/dashboard" replace />
           </ProtectedRoute>
         }
       />
@@ -132,6 +130,7 @@ export default function AppRouter() {
         <Route path="/admin" element={<BuildingAnalytics />} />
         <Route path="/admin/overview" element={<AdminDashboard />} />
         <Route path="/admin/buildings" element={<BuildingManagement />} />
+        <Route path="/admin/buildings/new" element={<BuildingSetupWizard />} />
         <Route path="/admin/tenants" element={<TenantManagement />} />
         <Route path="/admin/analytics" element={<VoteAnalytics />} />
         <Route path="/admin/building-analytics" element={<BuildingAnalytics />} />

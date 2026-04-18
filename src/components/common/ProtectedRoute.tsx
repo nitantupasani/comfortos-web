@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
     if (effectiveRole === 'admin') return <Navigate to="/admin" replace />;
     if (effectiveRole === 'tenant_facility_manager' || effectiveRole === 'building_facility_manager')
       return <Navigate to="/fm" replace />;
-    return <Navigate to="/presence" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

@@ -313,11 +313,12 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
         const voteZone = (v.payload?.zone as string | undefined)
           ?? (v.payload?.room as string | undefined);
         if (voteZone && hasZoneMapping) {
-          // Skip vote if its zone is not in any visible series
-          if (!visibleZones.has(voteZone)) continue;
-        } else if (!voteZone) {
-          // Vote has no zone — only show when nothing is hidden
-          if (hiddenSeries.size > 0) continue;
+          // If this vote's zone is mapped to a series label, only show it
+          // when that series is visible. If the zone isn't in the mapping
+          // at all (e.g. vote uses room ID while grouping is by wing),
+          // include the vote as long as any series is visible.
+          const mappedLabel = zoneToLabel[voteZone];
+          if (mappedLabel && !visibleLabels.has(mappedLabel)) continue;
         }
         // When hasZoneMapping is false (backend hasn't deployed zones yet),
         // show all zoned votes whenever any series is visible.

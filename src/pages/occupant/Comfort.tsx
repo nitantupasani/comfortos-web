@@ -25,7 +25,7 @@ export default function Comfort() {
   }, [activeBuilding, fetchComfort]);
 
   if (!activeBuilding) {
-    navigate('/presence');
+    navigate('/dashboard');
     return null;
   }
 

@@ -14,7 +14,7 @@ const ROLE_ENTRY_PATHS: Record<UserRole, string> = {
   admin: '/admin',
   building_facility_manager: '/fm',
   tenant_facility_manager: '/fm',
-  occupant: '/presence',
+  occupant: '/dashboard',
 };
 
 const PREVIEWABLE_ROLES: UserRole[] = [

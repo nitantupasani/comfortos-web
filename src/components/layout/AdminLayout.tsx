@@ -28,7 +28,7 @@ const ROLE_ENTRY_PATHS: Record<UserRole, string> = {
   admin: '/admin',
   building_facility_manager: '/fm',
   tenant_facility_manager: '/fm',
-  occupant: '/presence',
+  occupant: '/dashboard',
 };
 
 const links = [
@@ -63,8 +63,8 @@ export default function AdminLayout() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar — desktop */}
-      <aside className="hidden lg:flex lg:flex-col w-64 bg-gray-900 text-gray-200">
-        <div className="flex items-center gap-2 px-6 py-5 border-b border-gray-700">
+      <aside className="hidden lg:flex lg:flex-col w-64 bg-primary-900 text-gray-200">
+        <div className="flex items-center gap-2 px-6 py-5 border-b border-primary-700">
           <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center font-bold text-sm">C</div>
           <span className="font-semibold text-white text-lg">ComfortOS</span>
           <span className="ml-auto text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full">Admin</span>
@@ -79,7 +79,7 @@ export default function AdminLayout() {
                 `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive
                     ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    : 'text-gray-300 hover:bg-primary-800 hover:text-white'
                 }`
               }
             >
@@ -88,7 +88,7 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="px-4 py-3 border-t border-gray-700">
+        <div className="px-4 py-3 border-t border-primary-700">
           <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
             <Eye className="h-3.5 w-3.5" />
             <span className="uppercase tracking-wider">Preview as</span>
@@ -98,14 +98,14 @@ export default function AdminLayout() {
               <button
                 key={role}
                 onClick={() => handlePreview(role)}
-                className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-primary-800 hover:text-white transition-colors"
               >
                 {label}
               </button>
             ))}
           </div>
         </div>
-        <div className="px-4 py-4 border-t border-gray-700">
+        <div className="px-4 py-4 border-t border-primary-700">
           <div className="text-xs text-gray-400 mb-2 truncate">{user?.email}</div>
           <button
             onClick={handleLogout}
@@ -121,8 +121,8 @@ export default function AdminLayout() {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative w-64 bg-gray-900 text-gray-200 h-full flex flex-col">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
+          <aside className="relative w-64 bg-primary-900 text-gray-200 h-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-primary-700">
               <span className="font-semibold text-white">ComfortOS Admin</span>
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="h-5 w-5 text-gray-400" />
@@ -137,7 +137,7 @@ export default function AdminLayout() {
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      isActive ? 'bg-primary-600 text-white' : 'text-gray-300 hover:bg-gray-800'
+                      isActive ? 'bg-primary-600 text-white' : 'text-gray-300 hover:bg-primary-800'
                     }`
                   }
                 >
@@ -146,7 +146,7 @@ export default function AdminLayout() {
                 </NavLink>
               ))}
             </nav>
-            <div className="px-4 py-3 border-t border-gray-700">
+            <div className="px-4 py-3 border-t border-primary-700">
               <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
                 <Eye className="h-3.5 w-3.5" />
                 <span className="uppercase tracking-wider">Preview as</span>
@@ -156,14 +156,14 @@ export default function AdminLayout() {
                   <button
                     key={role}
                     onClick={() => handlePreview(role)}
-                    className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    className="text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-primary-800 hover:text-white transition-colors"
                   >
                     {label}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="px-4 py-4 border-t border-gray-700">
+            <div className="px-4 py-4 border-t border-primary-700">
               <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-300 hover:text-red-400">
                 <LogOut className="h-4 w-4" />
                 Sign out

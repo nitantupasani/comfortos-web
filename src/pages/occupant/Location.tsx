@@ -20,7 +20,7 @@ export default function Location() {
   }, [activeBuilding, fetchLocationForm]);
 
   if (!activeBuilding) {
-    navigate('/presence');
+    navigate('/dashboard');
     return null;
   }
 

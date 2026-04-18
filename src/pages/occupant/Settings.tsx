@@ -15,7 +15,7 @@ export default function SettingsPage() {
 
   const handleChangeBuilding = () => {
     clearBuilding();
-    navigate('/presence');
+    navigate('/dashboard');
   };
 
   if (!user) return null;
