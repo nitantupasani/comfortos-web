@@ -872,55 +872,8 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
             </div>
           </div>
 
-          {/* ── Latest readings KPI cards ── */}
-          <LatestReadings buildingId={selectedBuilding} metric={currentMetricType} />
         </>
       )}
-    </div>
-  );
-}
-
-/* ── Latest Readings sub-component ────────────────────── */
-
-function LatestReadings({ buildingId, metric }: { buildingId: string; metric: string }) {
-  const [readings, setReadings] = useState<Array<{ label: string; value: number; unit: string; time: string }>>([]);
-
-  useEffect(() => {
-    if (!buildingId) return;
-    telemetryApi.latest(buildingId).then((data) => {
-      setReadings(
-        data
-          .filter((r) => r.metricType === metric)
-          .map((r) => ({
-            label: cleanLabel(r.floor ? (r.zone ? `${r.floor} / ${r.zone}` : r.floor) : r.zone ?? 'Building'),
-            value: Math.round(r.value * 10) / 10,
-            unit: r.unit,
-            time: new Date(r.recordedAt).toLocaleString(),
-          })),
-      );
-    }).catch(() => setReadings([]));
-  }, [buildingId, metric]);
-
-  if (readings.length === 0) return null;
-
-  const info = METRIC_CONFIG[metric];
-
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-3">
-        Latest Readings — {info?.label ?? metric}
-      </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {readings.map((r) => (
-          <div key={r.label} className="bg-white rounded-xl border p-4">
-            <div className="text-xs text-gray-400 mb-1">{r.label}</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {r.value}<span className="text-sm font-normal text-gray-400 ml-1">{r.unit}</span>
-            </div>
-            <div className="text-xs text-gray-400 mt-1">{r.time}</div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
