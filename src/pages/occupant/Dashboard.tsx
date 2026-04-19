@@ -41,7 +41,7 @@ const DEFAULT_DASHBOARD: SduiNode = {
       metricType: 'temperature',
       title: 'Temperature',
       unit: '°C',
-      groupBy: 'floor',
+      groupBy: 'room',
       height: 240,
       showReadings: true,
       detailLink: '/environment',

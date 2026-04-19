@@ -89,17 +89,21 @@ export interface TelemetryChartNodeProps {
 
 /* ── Component ──────────────────────────────────────────── */
 
+type ViewMode = 'zone' | 'floor' | 'wing';
+const VIEW_LABELS: Record<ViewMode, string> = { zone: 'My Zone', floor: 'By Floor', wing: 'By Wing' };
+
 export default function TelemetryChartNode({
   metricType = 'temperature',
   title = 'Temperature',
   unit = '°C',
   timeRanges,
-  groupBy = 'room',
+  groupBy: _groupByProp = 'room',
   height = 240,
   showReadings = true,
   detailLink = '/environment',
 }: TelemetryChartNodeProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
+  const userRoom = usePresenceStore((s) => s.room);
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
@@ -107,6 +111,7 @@ export default function TelemetryChartNode({
   const ranges = timeRanges ?? DEFAULT_RANGES;
   const [rangeIdx, setRangeIdx] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(userRoom ? 'zone' : 'floor');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TelemetryQueryResponse | null>(null);
@@ -114,6 +119,10 @@ export default function TelemetryChartNode({
   const [retryCount, setRetryCount] = useState(0);
 
   const range = ranges[rangeIdx];
+
+  // Derive actual API params from viewMode
+  const effectiveGroupBy = viewMode === 'zone' ? 'room' : viewMode;
+  const effectiveLocationId = viewMode === 'zone' ? (userRoom ?? undefined) : undefined;
 
   const fetchData = useCallback(async (buildingId: string, r: TimeRange) => {
     setLoading(true);
@@ -129,7 +138,8 @@ export default function TelemetryChartNode({
           dateFrom: toISOCompat(from),
           dateTo: toISOCompat(now),
           granularity: r.granularity,
-          groupBy,
+          groupBy: effectiveGroupBy,
+          locationId: effectiveLocationId,
         }),
         locationsApi.list(buildingId, 'room'),
       ]);
@@ -151,13 +161,13 @@ export default function TelemetryChartNode({
     } finally {
       setLoading(false);
     }
-  }, [metricType, groupBy]);
+  }, [metricType, effectiveGroupBy, effectiveLocationId]);
 
   useEffect(() => {
     // Wait for both building selection AND a valid auth session before fetching
     if (!activeBuilding || !token || !user) return;
     fetchData(activeBuilding.id, range);
-  }, [activeBuilding?.id, token, user?.id, rangeIdx, retryCount, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeBuilding?.id, token, user?.id, rangeIdx, retryCount, viewMode, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRetry = () => setRetryCount((c) => c + 1);
 
@@ -251,6 +261,24 @@ export default function TelemetryChartNode({
             </div>
           )}
         </div>
+      </div>
+
+      {/* View mode toggle */}
+      <div className="flex gap-1.5">
+        {(['zone', 'floor', 'wing'] as ViewMode[]).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            disabled={mode === 'zone' && !userRoom}
+            className={`rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              viewMode === mode
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
+            } ${mode === 'zone' && !userRoom ? 'opacity-40 cursor-not-allowed' : ''}`}
+          >
+            {VIEW_LABELS[mode]}
+          </button>
+        ))}
       </div>
 
       {/* Chart */}

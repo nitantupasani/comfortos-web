@@ -53,6 +53,7 @@ export interface TelemetrySeriesParams {
   groupBy?: 'room' | 'floor' | 'wing';
   floor?: string;
   zone?: string;
+  locationId?: string;
 }
 
 export interface GroupingLevel {
@@ -84,6 +85,7 @@ export const telemetryApi = {
     if (params.groupBy) qs.set('groupBy', params.groupBy);
     if (params.floor) qs.set('floor', params.floor);
     if (params.zone) qs.set('zone', params.zone);
+    if (params.locationId) qs.set('locationId', params.locationId);
     return api.get<TelemetryQueryResponse>(
       `/telemetry/${buildingId}/series?${qs.toString()}`,
     );
