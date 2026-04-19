@@ -1,20 +1,33 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Lock, Globe, Loader2, Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Building2,
+  MapPin,
+  Lock,
+  Globe,
+  Loader2,
+  Plus,
+  ArrowLeft,
+} from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import type { Building, BuildingComfortData } from '../../types';
 import LocationHierarchyTab from '../../components/building/LocationHierarchyTab';
 import TelemetryEndpointsTab from '../../components/building/TelemetryEndpointsTab';
 import MetricConfigTab from '../../components/building/MetricConfigTab';
+import DashboardLayoutTab from '../../components/building/DashboardLayoutTab';
+import VoteFormTab from '../../components/building/VoteFormTab';
 import BuildingSetupChecklist from '../../components/building/BuildingSetupChecklist';
+import { PageHeader, StatusBadge } from '../../components/common/ui';
 
-type TabKey = 'overview' | 'locations' | 'endpoints' | 'config';
+type TabKey = 'overview' | 'locations' | 'endpoints' | 'config' | 'dashboard' | 'vote-form';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'locations', label: 'Zones' },
   { key: 'endpoints', label: 'Telemetry' },
   { key: 'config', label: 'Metrics' },
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'vote-form', label: 'Vote form' },
 ];
 
 interface Props {
@@ -23,219 +36,370 @@ interface Props {
 
 export default function BuildingManagement({ managedOnly = false }: Props) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedId = searchParams.get('id');
+  const tabParam = searchParams.get('tab') as TabKey | null;
+
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [comforts, setComforts] = useState<Map<string, BuildingComfortData>>(new Map());
+  const [loading, setLoading] = useState(true);
+
   const [selected, setSelected] = useState<Building | null>(null);
   const [comfort, setComfort] = useState<BuildingComfortData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [comfortLoading, setComfortLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>(tabParam ?? 'overview');
+
+  const basePath = managedOnly ? '/fm/buildings' : '/admin/buildings';
 
   useEffect(() => {
     const loader = managedOnly ? buildingsApi.listManaged() : buildingsApi.list();
-    loader.then(setBuildings).finally(() => setLoading(false));
+    loader
+      .then(async (bs) => {
+        setBuildings(bs);
+        const map = new Map<string, BuildingComfortData>();
+        await Promise.all(
+          bs.map(async (b) => {
+            try {
+              const c = await buildingsApi.comfort(b.id);
+              if (c) map.set(b.id, c);
+            } catch {
+              /* skip */
+            }
+          }),
+        );
+        setComforts(map);
+      })
+      .finally(() => setLoading(false));
   }, [managedOnly]);
 
-  const selectBuilding = async (b: Building) => {
-    setSelected(b);
-    setActiveTab('overview');
-    setComfortLoading(true);
-    try {
-      const data = await buildingsApi.comfort(b.id);
-      setComfort(data);
-    } catch {
+  const loadBuilding = useCallback(
+    async (id: string) => {
+      const b = buildings.find((x) => x.id === id);
+      setSelected(b ?? null);
+      if (!b) return;
+      setComfortLoading(true);
+      try {
+        const data = await buildingsApi.comfort(id);
+        setComfort(data);
+      } catch {
+        setComfort(null);
+      }
+      setComfortLoading(false);
+    },
+    [buildings],
+  );
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSelected(null);
       setComfort(null);
+      return;
     }
-    setComfortLoading(false);
+    loadBuilding(selectedId);
+  }, [selectedId, loadBuilding]);
+
+  useEffect(() => {
+    if (tabParam && TABS.some((t) => t.key === tabParam)) {
+      setActiveTab(tabParam);
+    } else {
+      setActiveTab('overview');
+    }
+  }, [tabParam, selectedId]);
+
+  const openBuilding = (b: Building) => {
+    setSearchParams({ id: b.id });
+  };
+
+  const closeDetail = () => {
+    setSearchParams({});
+  };
+
+  const setTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams);
+    if (tab === 'overview') params.delete('tab');
+    else params.set('tab', tab);
+    setSearchParams(params);
   };
 
   const handleChecklistNav = (tab: string) => {
-    if (tab === 'dashboard-config') {
-      navigate(managedOnly ? '/fm/dashboard-config' : '/admin/dashboard-config');
-    } else if (tab === 'vote-config') {
-      navigate(managedOnly ? '/fm/vote-config' : '/admin/vote-config');
-    } else {
-      setActiveTab(tab as TabKey);
-    }
+    const map: Record<string, TabKey> = {
+      locations: 'locations',
+      endpoints: 'endpoints',
+      'dashboard-config': 'dashboard',
+      'vote-config': 'vote-form',
+    };
+    const target = map[tab];
+    if (target) setTab(target);
   };
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>;
+  const filtered = useMemo(() => buildings, [buildings]);
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  // Full-width detail when a building is selected
+  if (selected) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <button
+            onClick={closeDetail}
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-2"
+          >
+            <ArrowLeft className="h-4 w-4" /> All buildings
+          </button>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{selected.name}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {selected.address}
+                {selected.city ? ` · ${selected.city}` : ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <StatusBadge tone={selected.requiresAccessPermission ? 'warning' : 'success'}>
+                {selected.requiresAccessPermission ? 'Restricted' : 'Open'}
+              </StatusBadge>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="border-b border-gray-200 px-4 overflow-x-auto">
+            <nav className="flex gap-1 min-w-max">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setTab(tab.key)}
+                  className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                    activeTab === tab.key
+                      ? 'border-primary-500 text-primary-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'overview' && (
+              <OverviewPanel
+                building={selected}
+                comfort={comfort}
+                comfortLoading={comfortLoading}
+                onNavigateTab={handleChecklistNav}
+              />
+            )}
+            {activeTab === 'locations' && <LocationHierarchyTab buildingId={selected.id} />}
+            {activeTab === 'endpoints' && <TelemetryEndpointsTab buildingId={selected.id} />}
+            {activeTab === 'config' && <MetricConfigTab buildingId={selected.id} />}
+            {activeTab === 'dashboard' && <DashboardLayoutTab buildingId={selected.id} />}
+            {activeTab === 'vote-form' && <VoteFormTab buildingId={selected.id} />}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Grid view (no building selected)
+  return (
+    <>
+      <PageHeader
+        title={managedOnly ? 'My buildings' : 'Buildings'}
+        description="Select a building to view and configure setup, zones, telemetry, and dashboards."
+        actions={
+          !managedOnly ? (
+            <button
+              onClick={() => navigate('/admin/buildings/new')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
+            >
+              <Plus className="h-4 w-4" /> Add Building
+            </button>
+          ) : null
+        }
+      />
+
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+          <Building2 className="mx-auto h-8 w-8 text-gray-300" />
+          <h3 className="mt-3 text-sm font-medium text-gray-900">No buildings yet</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {managedOnly
+              ? 'Once an admin grants you access, your buildings will appear here.'
+              : 'Add your first building to get started.'}
+          </p>
+          {!managedOnly && (
+            <button
+              onClick={() => navigate('/admin/buildings/new')}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" /> Add building
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((b) => {
+            const c = comforts.get(b.id);
+            const score = c?.overallScore;
+            const tone =
+              score == null
+                ? 'neutral'
+                : score >= 7
+                  ? 'success'
+                  : score >= 5
+                    ? 'warning'
+                    : 'danger';
+            return (
+              <button
+                key={b.id}
+                onClick={() => openBuilding(b)}
+                className="text-left rounded-xl border border-gray-200 bg-white p-4 hover:border-primary-300 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm text-gray-900 truncate">{b.name}</div>
+                    <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 truncate">
+                      <MapPin className="h-3 w-3" />
+                      {b.city || b.address}
+                    </div>
+                  </div>
+                  {b.requiresAccessPermission ? (
+                    <Lock className="h-4 w-4 text-amber-400" />
+                  ) : (
+                    <Globe className="h-4 w-4 text-emerald-500" />
+                  )}
+                </div>
+                <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+                  <span>{c ? `${c.totalVotes} votes` : 'No votes yet'}</span>
+                  {score != null ? (
+                    <StatusBadge tone={tone} dot>
+                      {score.toFixed(1)}
+                    </StatusBadge>
+                  ) : (
+                    <StatusBadge tone="neutral">No data</StatusBadge>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function OverviewPanel({
+  building,
+  comfort,
+  comfortLoading,
+  onNavigateTab,
+}: {
+  building: Building;
+  comfort: BuildingComfortData | null;
+  comfortLoading: boolean;
+  onNavigateTab: (tab: string) => void;
+}) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">
-          {managedOnly ? 'My Buildings' : 'Building Management'}
-        </h2>
-        {!managedOnly && (
-          <button
-            onClick={() => navigate('/admin/buildings/new')}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add Building
-          </button>
+      <BuildingSetupChecklist buildingId={building.id} onNavigateTab={onNavigateTab} />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <DetailCard label="City" value={building.city || '—'} />
+        <DetailCard
+          label="Latitude"
+          value={building.latitude != null ? building.latitude.toFixed(4) : '—'}
+        />
+        <DetailCard
+          label="Longitude"
+          value={building.longitude != null ? building.longitude.toFixed(4) : '—'}
+        />
+        <DetailCard label="ID" value={building.id} mono />
+      </div>
+
+      <div>
+        <h4 className="font-semibold text-gray-700 mb-2 text-sm">Comfort score</h4>
+        {comfortLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-primary-400" />
+        ) : comfort ? (
+          <div className="flex items-center gap-4">
+            <div
+              className="text-4xl font-bold"
+              style={{
+                color:
+                  comfort.overallScore >= 7
+                    ? '#22c55e'
+                    : comfort.overallScore >= 5
+                      ? '#eab308'
+                      : '#ef4444',
+              }}
+            >
+              {comfort.overallScore.toFixed(1)}
+            </div>
+            <div className="text-sm text-gray-500">
+              <div>/10 overall score</div>
+              <div>{comfort.totalVotes} total votes</div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No comfort data available yet.</p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Building List */}
-        <div className="lg:col-span-1 space-y-3">
-          {buildings.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => selectBuilding(b)}
-              className={`w-full text-left bg-white rounded-xl border p-4 transition-all ${
-                selected?.id === b.id ? 'border-primary-400 ring-2 ring-primary-100' : 'hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
-                  <Building2 className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate">{b.name}</div>
-                  <div className="text-xs text-gray-400 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {b.city}
-                  </div>
-                </div>
-                {b.requiresAccessPermission ? (
-                  <Lock className="h-4 w-4 text-amber-400" />
-                ) : (
-                  <Globe className="h-4 w-4 text-green-400" />
-                )}
-              </div>
-            </button>
-          ))}
+      {comfort && comfort.locations.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-gray-700 mb-2 text-sm">Per-location breakdown</h4>
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Floor</th>
+                  <th className="px-4 py-2 text-left font-medium">Room</th>
+                  <th className="px-4 py-2 text-right font-medium">Score</th>
+                  <th className="px-4 py-2 text-right font-medium">Votes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {comfort.locations.map((loc) => (
+                  <tr key={`${loc.floor}-${loc.room}`}>
+                    <td className="px-4 py-2">{loc.floorLabel}</td>
+                    <td className="px-4 py-2">{loc.roomLabel}</td>
+                    <td className="px-4 py-2 text-right font-medium tabular-nums">
+                      {loc.comfortScore.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2 text-right text-gray-500 tabular-nums">
+                      {loc.voteCount}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        {/* Building Detail */}
-        <div className="lg:col-span-2">
-          {selected ? (
-            <div className="bg-white rounded-xl border overflow-hidden">
-              {/* Header */}
-              <div className="px-6 pt-6 pb-4">
-                <h3 className="text-xl font-bold text-gray-800">{selected.name}</h3>
-                <p className="text-sm text-gray-500">{selected.address}</p>
-              </div>
-
-              {/* Tab Bar */}
-              <div className="px-6 border-b">
-                <nav className="flex gap-6">
-                  {TABS.map(tab => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === tab.key
-                          ? 'border-primary-500 text-primary-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-
-              {/* Tab Content */}
-              <div className="p-6">
-                {activeTab === 'overview' && (
-                  <div className="space-y-6">
-                    {/* Setup Checklist */}
-                    <BuildingSetupChecklist
-                      buildingId={selected.id}
-                      onNavigateTab={handleChecklistNav}
-                    />
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <DetailCard label="City" value={selected.city} />
-                      <DetailCard label="Latitude" value={selected.latitude?.toFixed(4) || '-'} />
-                      <DetailCard label="Longitude" value={selected.longitude?.toFixed(4) || '-'} />
-                      <DetailCard label="ID" value={selected.id} />
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-gray-700 mb-2">Access</h4>
-                      <span className={`text-sm px-3 py-1 rounded-full ${
-                        selected.requiresAccessPermission ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'
-                      }`}>
-                        {selected.requiresAccessPermission ? 'Restricted (Tenant Mapping Required)' : 'Open to All Authenticated Users'}
-                      </span>
-                    </div>
-
-                    {/* Comfort Data */}
-                    <div>
-                      <h4 className="font-semibold text-gray-700 mb-2">Comfort Score</h4>
-                      {comfortLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-primary-400" />
-                      ) : comfort ? (
-                        <div className="flex items-center gap-4">
-                          <div className="text-4xl font-bold" style={{ color: comfort.overallScore >= 7 ? '#22c55e' : comfort.overallScore >= 5 ? '#eab308' : '#ef4444' }}>
-                            {comfort.overallScore.toFixed(1)}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            <div>/10 overall score</div>
-                            <div>{comfort.totalVotes} total votes</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-400">No comfort data available</p>
-                      )}
-                    </div>
-
-                    {/* Location breakdown */}
-                    {comfort && comfort.locations.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Location Breakdown</h4>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                              <tr>
-                                <th className="px-4 py-2 text-left">Floor</th>
-                                <th className="px-4 py-2 text-left">Room</th>
-                                <th className="px-4 py-2 text-center">Score</th>
-                                <th className="px-4 py-2 text-center">Votes</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {comfort.locations.map((loc) => (
-                                <tr key={`${loc.floor}-${loc.room}`}>
-                                  <td className="px-4 py-2">{loc.floorLabel}</td>
-                                  <td className="px-4 py-2">{loc.roomLabel}</td>
-                                  <td className="px-4 py-2 text-center font-medium">{loc.comfortScore.toFixed(1)}</td>
-                                  <td className="px-4 py-2 text-center text-gray-500">{loc.voteCount}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'locations' && <LocationHierarchyTab buildingId={selected.id} />}
-                {activeTab === 'endpoints' && <TelemetryEndpointsTab buildingId={selected.id} />}
-                {activeTab === 'config' && <MetricConfigTab buildingId={selected.id} />}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border p-12 text-center text-gray-400">
-              Select a building to view details
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function DetailCard({ label, value }: { label: string; value: string }) {
+function DetailCard({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="font-semibold text-sm mt-0.5 truncate">{value}</div>
+    <div className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+      <div className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</div>
+      <div className={`font-semibold text-sm mt-0.5 truncate ${mono ? 'font-mono text-xs' : ''}`}>
+        {value}
+      </div>
     </div>
   );
 }
