@@ -46,7 +46,7 @@ const DEFAULT_DASHBOARD: SduiNode = {
       showReadings: true,
       detailLink: '/environment',
       timeRanges: [
-        { label: 'Last 2 hours', hours: 2, granularity: 'raw' },
+        { label: 'Last 6 hours', hours: 6, granularity: 'raw' },
         { label: 'Last 24 hours', hours: 24, granularity: 'hourly' },
       ],
     },

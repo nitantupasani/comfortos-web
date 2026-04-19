@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Loader2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
@@ -18,7 +18,7 @@ interface TimeRange {
 }
 
 const DEFAULT_RANGES: TimeRange[] = [
-  { label: 'Last 2 hours', hours: 2, granularity: 'raw' },
+  { label: 'Last 6 hours', hours: 6, granularity: 'raw' },
   { label: 'Last 24 hours', hours: 24, granularity: 'hourly' },
 ];
 
@@ -311,7 +311,7 @@ export default function TelemetryChartNode({
         ) : (
           <ResponsiveContainer width="100%" height={height}>
             <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis
                 dataKey="_display"
                 tick={{ fontSize: 9, fill: '#94a3b8' }}
@@ -324,8 +324,17 @@ export default function TelemetryChartNode({
                 tickLine={false}
                 axisLine={false}
                 domain={metricType === 'temperature' ? [16, 28] : ['auto', 'auto']}
+                ticks={metricType === 'temperature' ? [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28] : undefined}
                 unit={unit === '°C' ? '°' : ''}
               />
+              {/* Integer gridlines (solid subtle) */}
+              {metricType === 'temperature' && Array.from({ length: 13 }, (_, i) => 16 + i).map((v) => (
+                <ReferenceLine key={`int-${v}`} y={v} stroke="#e2e8f0" strokeWidth={1} />
+              ))}
+              {/* Half-degree gridlines (dashed, subtler) */}
+              {metricType === 'temperature' && Array.from({ length: 12 }, (_, i) => 16.5 + i).map((v) => (
+                <ReferenceLine key={`half-${v}`} y={v} stroke="#f1f5f9" strokeDasharray="4 4" strokeWidth={1} />
+              ))}
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, padding: '8px 12px' }}
                 labelStyle={{ fontWeight: 600, marginBottom: 4 }}
