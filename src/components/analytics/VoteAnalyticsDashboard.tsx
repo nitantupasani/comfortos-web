@@ -312,12 +312,12 @@ function buildTimeSeries(
 
 function StatCard({ label, value, sub, icon }: { label: string; value: string | number; sub?: string; icon: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
-      <div className="p-2 rounded-lg bg-gray-50">{icon}</div>
-      <div>
-        <div className="text-2xl font-bold text-gray-800">{value}</div>
-        <div className="text-sm text-gray-500">{label}</div>
-        {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+    <div className="bg-white rounded-2xl border border-gray-200/70 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
+      <div className="p-2.5 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <div className="text-2xl font-bold text-gray-800 tabular-nums">{value}</div>
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</div>
+        {sub && <div className="text-[11px] text-gray-400 mt-0.5">{sub}</div>}
       </div>
     </div>
   );
@@ -349,7 +349,7 @@ function QuestionChart({
       .filter((v) => v !== undefined && v !== null && String(v).trim() !== '')
       .map(String);
     return (
-      <div className="bg-white rounded-xl border p-5">
+      <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
         <h3 className="font-semibold text-gray-700 mb-3">{getFieldLabel(field)}</h3>
         <p className="text-sm text-gray-500 mb-2">{responses.length} response{responses.length !== 1 ? 's' : ''}</p>
         <div className="max-h-48 overflow-y-auto space-y-1.5">
@@ -397,7 +397,7 @@ function QuestionChart({
     && dist.length <= 6;
 
   return (
-    <div className="bg-white rounded-xl border p-5">
+    <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-1">
         <h3 className="font-semibold text-gray-700">{getFieldLabel(field)}</h3>
         {avg !== null && (
@@ -458,7 +458,7 @@ function GroupedQuestionChart({
   }, 0);
 
   return (
-    <div className="bg-white rounded-xl border p-5">
+    <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-1">
         <h3 className="font-semibold text-gray-700">{getFieldLabel(field)}</h3>
         {avg !== null && (
@@ -524,7 +524,7 @@ function GroupAverageSummary({
   if (numericFields.length === 0 || groups.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl border p-5">
+    <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
       <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
         <Layers className="h-4 w-4 text-primary-500" />
         Average Scores by {getFieldLabel(groupByField)}
@@ -634,7 +634,7 @@ function GroupRadarChart({
   });
 
   return (
-    <div className="bg-white rounded-xl border p-5">
+    <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
       <h3 className="font-semibold text-gray-700 mb-3">Comfort Radar — by {getFieldLabel(groupByField)}</h3>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -750,11 +750,16 @@ export default function VoteAnalyticsDashboard({ managedOnly = false }: VoteAnal
       {/* ── Header & Controls ──────────────────────────── */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <BarChart3 className="h-7 w-7 text-primary-500" />
-          <h2 className="text-2xl font-bold text-gray-800">Vote Analytics</h2>
+          <div className="h-10 w-10 rounded-xl bg-primary-50 flex items-center justify-center">
+            <BarChart3 className="h-5 w-5 text-primary-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 leading-tight">Vote Analytics</h2>
+            <p className="text-xs text-gray-500">Occupant comfort feedback · distribution and trends</p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-end gap-3 bg-white border border-gray-200/70 rounded-2xl p-3 shadow-sm">
           {/* Building selector */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -855,7 +860,10 @@ export default function VoteAnalyticsDashboard({ managedOnly = false }: VoteAnal
           {/* ── Per-question charts ──────────────────────── */}
           {fields.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-3">Per-Question Breakdown</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-lg font-semibold text-gray-800">Per-question breakdown</h3>
+                <span className="text-xs text-gray-400">{fields.length} question{fields.length === 1 ? '' : 's'}</span>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {fields.map((f) => (
                   <QuestionChart
@@ -870,8 +878,16 @@ export default function VoteAnalyticsDashboard({ managedOnly = false }: VoteAnal
           )}
 
           {/* ── Time series (votes over time) ────────────── */}
-          <div className="bg-white rounded-xl border p-5">
-            <h3 className="font-semibold text-gray-700 mb-3">Responses Over Time</h3>
+          <div className="bg-white rounded-2xl border border-gray-200/70 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-800">Responses over time</h3>
+                <p className="text-xs text-gray-400">Daily vote count{groupByField ? ` · grouped by ${getFieldLabel(groupByField)}` : ''}</p>
+              </div>
+              <span className="text-[11px] font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">
+                {totalResponses} total
+              </span>
+            </div>
             <div className="h-56">
               {timeSeries.data.length === 0 ? <NoData /> : (
                 <ResponsiveContainer width="100%" height="100%">
