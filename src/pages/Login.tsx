@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Building2, Loader2, Mail } from 'lucide-react';
+import { Building2, Loader2, Mail, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const { loginWithEmail, loginWithGoogle, isLoading, error, clearError, user } = useAuthStore();
@@ -29,7 +29,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-600 to-primary-800 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-primary-600 to-primary-800 flex items-center justify-center px-4 relative">
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm font-medium text-white/90 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur rounded-full px-3 py-1.5 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Home
+      </Link>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
