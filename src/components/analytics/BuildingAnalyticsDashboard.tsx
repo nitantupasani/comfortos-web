@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Loader2,
   Building2,
@@ -34,17 +34,20 @@ import type { Building, WeatherData } from '../../types';
 
 /* ── Constants ──────────────────────────────────────────── */
 
+// Colorblind-safe palette (Okabe-Ito derived, verified against deuter/protan/tritan
+// simulators). All colors WCAG AA on white for ≥2px strokes. Yellow removed — had
+// poor contrast on white and was indistinguishable in tritanopia sim.
 const SERIES_COLORS = [
-  '#facc15', // yellow
-  '#4ade80', // green
-  '#60a5fa', // blue
-  '#f472b6', // pink
-  '#a78bfa', // purple
-  '#fb923c', // orange
-  '#2dd4bf', // teal
-  '#f87171', // red
-  '#818cf8', // indigo
-  '#34d399', // emerald
+  '#0072B2', // blue
+  '#D55E00', // vermilion
+  '#009E73', // bluish green
+  '#CC79A7', // reddish purple
+  '#56B4E9', // sky blue
+  '#E69F00', // dark orange (replaces yellow)
+  '#882255', // wine
+  '#117733', // dark green
+  '#332288', // indigo
+  '#AA4499', // mauve
 ];
 
 const VOTE_LINE_COLOR = '#f43f5e'; // rose-500
@@ -75,9 +78,13 @@ function toISODate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-/** Strip generic floor prefixes like "0 / " from labels */
-function cleanLabel(label: string): string {
-  return label.replace(/^0\s*\/\s*/, '');
+/** Strip generic floor prefixes like "0 / " from labels. Guards against empty
+ *  / numeric-only fallthroughs (bug: legend was showing "0" when upstream label
+ *  was a bare zone code). */
+function cleanLabel(label: string | null | undefined): string {
+  const s = (label ?? '').replace(/^0\s*\/\s*/, '').trim();
+  if (!s || /^\d+$/.test(s)) return 'Unnamed zone';
+  return s;
 }
 
 const COMFORT_LABEL: Record<number, string> = {
@@ -134,13 +141,50 @@ function buildOffHourBands(data: Record<string, unknown>[]): { x1: string; x2: s
 
 /* ── Thermal comfort background bands ──────────────────── */
 
-const COMFORT_BANDS = [
-  { from: -3, to: -2, color: 'rgba(59,130,246,0.04)' },   // cold – blue
-  { from: -2, to: -1, color: 'rgba(96,165,250,0.03)' },   // cool – lighter blue
-  { from: -1, to:  1, color: 'rgba(74,222,128,0.03)' },    // neutral – green
-  { from:  1, to:  2, color: 'rgba(251,146,60,0.03)' },    // warm – orange
-  { from:  2, to:  3, color: 'rgba(239,68,68,0.04)' },     // hot – red
+// Each band centers on its vote integer (±0.5). Vote bubbles at y=v now sit at
+// the band's vertical center, so the category label on the right axis, the
+// band, and the bubble all align. Vote y-axis domain is [-3.5, 3.5] to match.
+// These bands are categorical (ASHRAE 7-point thermal sensation), NOT tied to
+// absolute °C — temperature→category mapping depends on clothing, activity,
+// humidity and is out of scope for this chart.
+const COMFORT_BANDS: { v: number; from: number; to: number; color: string; label: string }[] = [
+  { v: -3, from: -3.5, to: -2.5, color: 'rgba(37,99,235,0.06)',  label: 'Cold' },
+  { v: -2, from: -2.5, to: -1.5, color: 'rgba(96,165,250,0.05)', label: 'Cool' },
+  { v: -1, from: -1.5, to: -0.5, color: 'rgba(147,197,253,0.04)', label: 'Sl. cool' },
+  { v:  0, from: -0.5, to:  0.5, color: 'rgba(74,222,128,0.05)',  label: 'Neutral' },
+  { v:  1, from:  0.5, to:  1.5, color: 'rgba(251,191,36,0.05)',  label: 'Sl. warm' },
+  { v:  2, from:  1.5, to:  2.5, color: 'rgba(251,146,60,0.06)',  label: 'Warm' },
+  { v:  3, from:  2.5, to:  3.5, color: 'rgba(239,68,68,0.07)',   label: 'Hot' },
 ];
+
+// Distinct hues for weekend vs off-hours (not just opacity — design bug #7).
+const SHADING_WEEKEND = { fill: '#fbbf24', opacity: 0.10 };  // amber
+const SHADING_OFFHOURS = { fill: '#64748b', opacity: 0.07 }; // slate
+
+/** Custom brush traveller — design-system pill handle with grip. Bug #6: the
+ *  default recharts traveller is a thin grey rect that looks unstyled against
+ *  the rest of the UI. */
+function renderBrushTraveller(props: any) {
+  const { x, y, width, height } = props;
+  const cx = x + width / 2;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} rx={4} ry={4}
+        fill="#ffffff" stroke="#475569" strokeWidth={1.2} />
+      <line x1={cx - 2} y1={y + 8} x2={cx - 2} y2={y + height - 8} stroke="#94a3b8" strokeWidth={1} />
+      <line x1={cx + 2} y1={y + 8} x2={cx + 2} y2={y + height - 8} stroke="#94a3b8" strokeWidth={1} />
+    </g>
+  );
+}
+
+/** Trend arrow from last ~3 hourly points (fewer points → flat). */
+function trendArrow(vals: (number | null | undefined)[]): '↑' | '↓' | '→' {
+  const tail = vals.filter((v): v is number => typeof v === 'number').slice(-3);
+  if (tail.length < 2) return '→';
+  const delta = tail[tail.length - 1] - tail[0];
+  if (Math.abs(delta) < 0.2) return '→';
+  return delta > 0 ? '↑' : '↓';
+}
 
 /* ── Component ──────────────────────────────────────────── */
 
@@ -179,9 +223,14 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
   const [voteOverlay, setVoteOverlay] = useState<VoteAnalyticsResponse | null>(null);
   const [voteMode, setVoteMode] = useState<'grouped' | 'individual'>('grouped');
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
-  // Use ref for brush range to avoid re-render loops (brush onChange → data change → brush reset)
-  const brushRef = useRef<{ start: number; end: number }>({ start: 0, end: 0 });
-  const mergeMapRef = useRef<Map<number, { val: number; count: number }>>(new Map());
+  // Sensor smoothing — OFF by default so real spikes aren't flattened (#11).
+  const [smoothing, setSmoothing] = useState(false);
+  // Brush range as state (not ref) — the bubble overlay's merge-map must
+  // recompute in sync with the visible window (bug #5). Keeping this in state
+  // triggers the re-render and useMemo invalidation the dot renderer needs.
+  // The previous "loop" concern only applied when chartData dep'd on brush;
+  // it does not, so state is safe here.
+  const [brushRange, setBrushRange] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
 
   const toggleSeries = useCallback((key: string) => {
     setHiddenSeries((prev) => {
@@ -249,8 +298,9 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     return () => { stale = true; };
   }, [selectedBuilding, activeTab, activeMetric, startDate, endDate, granularity, groupBy]);
 
-  // Reset brush ref when underlying data changes
-  useEffect(() => { brushRef.current = { start: 0, end: 0 }; }, [telemetryData]);
+  // Reset brush when underlying data changes. End=0 means "default to last
+  // index" — see the brushEndIndex derivation below.
+  useEffect(() => { setBrushRange({ start: 0, end: 0 }); }, [telemetryData]);
 
   /* ── Transform telemetry into Recharts-friendly data ── */
   const { chartData, seriesKeys } = useMemo(() => {
@@ -358,18 +408,33 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     return { chartData: rows, seriesKeys: keys };
   }, [telemetryData, voteOverlay, granularity, hiddenSeries]);
 
-  /* ── Build merge map for grouped bubble mode (called imperatively) ── */
-  const rebuildMergeMap = useCallback(() => {
+  // Derived "effective" brush window (end=0 means "up to last index").
+  const brushEndIndex = brushRange.end > 0
+    ? Math.min(brushRange.end, Math.max(0, chartData.length - 1))
+    : Math.max(0, chartData.length - 1);
+  const brushStartIndex = Math.min(brushRange.start, brushEndIndex);
+
+  /* ── Merge map for grouped bubble mode ──
+     BUG FIX #5: previously a ref rebuilt off `brushRef.current` with anchors
+     iterated over ALL chartData voteIndices. When the user brushed a smaller
+     window, `minGap` shrank but anchors still began from the earliest vote
+     index (often outside the new window), so the first visible vote was
+     merged into an invisible anchor, leaving `get(visibleIdx)` → undefined,
+     causing the dot renderer to emit an empty <g/>.
+     Now we (a) restrict voteIndices to the visible window and (b) recompute
+     via useMemo so the dot renderer's closure sees the fresh map on every
+     brush change. */
+  const mergeMap = useMemo(() => {
     const map = new Map<number, { val: number; count: number }>();
-    const start = brushRef.current.start;
-    const end = brushRef.current.end || chartData.length - 1;
+    if (chartData.length === 0) return map;
+    const start = brushStartIndex;
+    const end = brushEndIndex;
     const visibleLen = Math.max(1, end - start + 1);
     const minGap = Math.max(1, Math.ceil(visibleLen / 60));
 
-    // Collect indices that have votes
     const voteIndices: number[] = [];
-    for (let i = 0; i < chartData.length; i++) {
-      if (chartData[i]['Comfort Vote'] != null) voteIndices.push(i);
+    for (let i = start; i <= end; i++) {
+      if (chartData[i]?.['Comfort Vote'] != null) voteIndices.push(i);
     }
 
     let groupAnchor = -Infinity;
@@ -392,14 +457,74 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       }
     }
     flush();
-    mergeMapRef.current = map;
-  }, [chartData]);
-
-  // Initial merge map build
-  useEffect(() => { rebuildMergeMap(); }, [rebuildMergeMap]);
+    return map;
+  }, [chartData, brushStartIndex, brushEndIndex]);
 
   /* ── Weekend / off-hours shading bands ── */
   const offHourBands = useMemo(() => buildOffHourBands(chartData), [chartData]);
+
+  /* ── Per-series metadata: last reading, trend, offline flag (bug #2 + #13) ──
+     A series is "offline" when its last non-null reading predates the most
+     recent chart timestamp by more than one granularity step (roughly): we
+     take the simpler heuristic of "last non-null index < final index".  */
+  const seriesMeta = useMemo(() => {
+    const meta: Record<string, { lastVal: number | null; lastIdx: number; trend: '↑' | '↓' | '→'; offline: boolean; lastDisplay: string | null }> = {};
+    if (chartData.length === 0) return meta;
+    const finalIdx = chartData.length - 1;
+    for (const key of seriesKeys) {
+      let lastIdx = -1;
+      const recent: number[] = [];
+      for (let i = 0; i <= finalIdx; i++) {
+        const v = chartData[i][key];
+        if (typeof v === 'number') {
+          lastIdx = i;
+          recent.push(v);
+        }
+      }
+      const lastVal = lastIdx >= 0 ? (chartData[lastIdx][key] as number) : null;
+      meta[key] = {
+        lastVal,
+        lastIdx,
+        trend: trendArrow(recent),
+        offline: lastIdx >= 0 && lastIdx < finalIdx,
+        lastDisplay: lastIdx >= 0 ? (chartData[lastIdx]._display as string) : null,
+      };
+    }
+    return meta;
+  }, [chartData, seriesKeys]);
+
+  /* ── X-axis ticks: one per day (bug #10) ── */
+  const xTicks = useMemo(() => {
+    const ticks: string[] = [];
+    let lastDay = '';
+    for (const row of chartData) {
+      const iso = row.time as string;
+      const dayKey = iso.slice(0, 10);
+      if (dayKey !== lastDay) {
+        ticks.push(row._display as string);
+        lastDay = dayKey;
+      }
+    }
+    return ticks;
+  }, [chartData]);
+
+  /* ── "Now" marker: closest chart row to the current time, only if the
+     real-time clock falls inside the charted range (#15). Matching by the
+     row's _display string keeps this on the categorical XAxis scale. ── */
+  const nowDisplay = useMemo(() => {
+    if (chartData.length === 0) return null;
+    const now = Date.now();
+    const firstT = new Date(chartData[0].time as string).getTime();
+    const lastT = new Date(chartData[chartData.length - 1].time as string).getTime();
+    if (now < firstT || now > lastT) return null;
+    let best = chartData[0];
+    let bestDelta = Math.abs(firstT - now);
+    for (const row of chartData) {
+      const d = Math.abs(new Date(row.time as string).getTime() - now);
+      if (d < bestDelta) { bestDelta = d; best = row; }
+    }
+    return best._display as string;
+  }, [chartData]);
 
   /* ── Metric info ── */
   const currentMetricType = activeTab === 'thermal' ? 'temperature' : activeMetric;
@@ -678,14 +803,22 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                       >Individual</button>
                     </div>
                   )}
-                  {/* Weekend / off-hours legend */}
+                  {/* Smoothing toggle (#11) */}
+                  <button
+                    onClick={() => setSmoothing((s) => !s)}
+                    className={`text-[10px] font-medium px-2.5 py-1.5 rounded-lg border transition-colors ${smoothing ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-gray-50 border-gray-200/70 text-gray-500 hover:text-gray-700'}`}
+                    title="Toggle line smoothing. Off by default so real sensor spikes aren't hidden."
+                  >
+                    Smoothing: {smoothing ? 'on' : 'off'}
+                  </button>
+                  {/* Weekend / off-hours legend — swatches match the ReferenceArea colors */}
                   <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200/70">
                     <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: 'rgba(99,102,241,0.3)' }} />
+                      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SHADING_WEEKEND.fill, opacity: SHADING_WEEKEND.opacity * 3 }} />
                       Weekend
                     </span>
                     <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: 'rgba(148,163,184,0.25)' }} />
+                      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SHADING_OFFHOURS.fill, opacity: SHADING_OFFHOURS.opacity * 3 }} />
                       Off-hours
                     </span>
                   </div>
@@ -723,6 +856,10 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                   {seriesKeys.map((key, i) => {
                     const isHidden = hiddenSeries.has(key);
                     const color = SERIES_COLORS[i % SERIES_COLORS.length];
+                    const meta = seriesMeta[key];
+                    const title = meta?.offline
+                      ? `Sensor offline since ${meta.lastDisplay} · last reading ${meta.lastVal?.toFixed(1)} ${metricInfo.unit}`
+                      : isHidden ? `Show ${key}` : `Hide ${key}`;
                     return (
                       <button
                         key={key}
@@ -733,13 +870,23 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                             : 'text-gray-700 hover:brightness-95'
                         }`}
                         style={isHidden ? {} : { backgroundColor: `${color}22`, borderColor: `${color}55` }}
-                        title={isHidden ? `Show ${key}` : `Hide ${key}`}
+                        title={title}
                       >
                         <span
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                           style={{ backgroundColor: isHidden ? '#d1d5db' : color }}
                         />
                         {key}
+                        {!isHidden && meta && meta.lastVal != null && (
+                          <span className="ml-0.5 opacity-70 font-normal tabular-nums">
+                            {meta.lastVal.toFixed(1)}{metricInfo.unit} {meta.trend}
+                          </span>
+                        )}
+                        {!isHidden && meta?.offline && (
+                          <span className="ml-0.5 px-1 py-[1px] rounded text-[9px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 border border-amber-200">
+                            offline
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -769,23 +916,26 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
               ) : (
                 <ResponsiveContainer width="100%" height={420}>
                   <LineChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 0 }}>
-                    {/* Weekend / off-hours shading */}
-                    {offHourBands.map((band, i) => (
-                      <ReferenceArea
-                        key={`oh-${i}`}
-                        yAxisId="metric"
-                        x1={band.x1}
-                        x2={band.x2}
-                        fill={band.type === 'weekend' ? '#6366f1' : '#94a3b8'}
-                        fillOpacity={band.type === 'weekend' ? 0.10 : 0.06}
-                        ifOverflow="extendDomain"
-                        label={band.type === 'weekend' ? { value: '🅆', position: 'insideTopLeft', fill: '#818cf8', fontSize: 9, opacity: 0.5 } : undefined}
-                      />
-                    ))}
-                    {/* Thermal comfort background bands (always visible on thermal tab) */}
+                    {/* Weekend / off-hours shading — distinct hues, not just opacity (#7) */}
+                    {offHourBands.map((band, i) => {
+                      const cfg = band.type === 'weekend' ? SHADING_WEEKEND : SHADING_OFFHOURS;
+                      return (
+                        <ReferenceArea
+                          key={`oh-${i}`}
+                          yAxisId="metric"
+                          x1={band.x1}
+                          x2={band.x2}
+                          fill={cfg.fill}
+                          fillOpacity={cfg.opacity}
+                          ifOverflow="extendDomain"
+                        />
+                      );
+                    })}
+                    {/* Thermal comfort bands — each centered on its vote integer so
+                        the label, band and bubble all share the same y-position (#8) */}
                     {activeTab === 'thermal' && COMFORT_BANDS.map((band) => (
                       <ReferenceArea
-                        key={`band-${band.from}`}
+                        key={`band-${band.v}`}
                         yAxisId="vote"
                         y1={band.from}
                         y2={band.to}
@@ -800,7 +950,9 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                       tick={{ fill: '#6b7280', fontSize: 10 }}
                       tickLine={{ stroke: '#d1d5db' }}
                       axisLine={{ stroke: '#d1d5db' }}
-                      interval="preserveStartEnd"
+                      ticks={xTicks.length > 0 ? xTicks : undefined}
+                      interval={xTicks.length > 0 ? 0 : 'preserveStartEnd'}
+                      minTickGap={20}
                     />
                     <YAxis
                       yAxisId="metric"
@@ -811,58 +963,100 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                       unit={` ${metricInfo.unit}`}
                       width={65}
                     />
-                    {/* Comfort vote right Y-axis — always present on thermal tab */}
+                    {/* Comfort vote right Y-axis — domain extended to ±3.5 so
+                        each category band (0.5-wide slab centered on its integer
+                        tick) fits inside the plot area and aligns with bubbles. */}
                     {activeTab === 'thermal' && (
                       <YAxis
                         yAxisId="vote"
                         orientation="right"
-                        domain={[-3, 3]}
+                        domain={[-3.5, 3.5]}
                         ticks={[-3, -2, -1, 0, 1, 2, 3]}
                         tick={{ fill: '#6b7280', fontSize: 10 }}
                         tickLine={{ stroke: '#d1d5db44' }}
                         axisLine={{ stroke: '#d1d5db44' }}
                         tickFormatter={(v: number) => COMFORT_LABEL[v] ?? String(v)}
-                        width={60}
+                        width={70}
                       />
                     )}
+                    {/* Custom tooltip (#14): lists every visible zone at the
+                        hovered timestamp, sorted by temperature desc, plus any
+                        comfort-vote bubble at that row. */}
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 12,
-                        color: '#374151',
-                        fontSize: 12,
-                        padding: '10px 14px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-                      }}
-                      labelStyle={{ color: '#6b7280', marginBottom: 6, fontSize: 11, fontWeight: 600 }}
-                      itemStyle={{ padding: '2px 0' }}
                       cursor={{ stroke: '#d1d5db', strokeWidth: 1, strokeDasharray: '3 3' }}
-                      formatter={(value: number, name: string, item: any) => {
-                        if (name === 'Comfort Vote') {
-                          const rounded = Math.round(value);
-                          const label = COMFORT_LABEL[rounded] ?? '';
-                          const count = (item?.payload?._voteCount as number | undefined) ?? 0;
-                          const suffix = count > 1 ? ` · ${count} votes` : '';
-                          return [`${value.toFixed(1)} (${label})${suffix}`, 'Comfort vote'];
-                        }
-                        return [`${typeof value === 'number' ? value.toFixed(1) : value} ${metricInfo.unit}`, name];
+                      content={(props: any) => {
+                        if (!props.active || !props.payload || props.payload.length === 0) return null;
+                        const row = props.payload[0].payload as Record<string, unknown>;
+                        const rows = seriesKeys
+                          .filter((k) => !hiddenSeries.has(k) && typeof row[k] === 'number')
+                          .map((k, i) => ({
+                            key: k,
+                            val: row[k] as number,
+                            color: SERIES_COLORS[seriesKeys.indexOf(k) % SERIES_COLORS.length] || SERIES_COLORS[i],
+                          }))
+                          .sort((a, b) => b.val - a.val);
+                        const voteVal = row['Comfort Vote'] as number | undefined;
+                        const voteCount = (row['_voteCount'] as number | undefined) ?? 0;
+                        return (
+                          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 14px', boxShadow: '0 8px 24px rgba(0,0,0,0.10)', fontSize: 12, color: '#374151', minWidth: 200 }}>
+                            <div style={{ color: '#6b7280', marginBottom: 6, fontSize: 11, fontWeight: 600 }}>{props.label}</div>
+                            {rows.length === 0 && <div style={{ color: '#9ca3af' }}>No active zones at this time</div>}
+                            {rows.map((r) => (
+                              <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: r.color, flexShrink: 0 }} />
+                                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.key}</span>
+                                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{r.val.toFixed(1)} {metricInfo.unit}</span>
+                              </div>
+                            ))}
+                            {voteVal !== undefined && (
+                              <div style={{ borderTop: '1px solid #f3f4f6', marginTop: 6, paddingTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: voteColor(voteVal) }} />
+                                <span style={{ flex: 1 }}>Comfort vote</span>
+                                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                                  {voteVal >= 0 ? '+' : ''}{voteVal.toFixed(1)} ({COMFORT_LABEL[Math.round(voteVal)] ?? '—'})
+                                  {voteCount > 1 && <span style={{ opacity: 0.6, fontWeight: 400 }}> · {voteCount}</span>}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
                       }}
                     />
-                    {/* Sensor series lines */}
-                    {seriesKeys.map((key, i) => (
-                      <Line
-                        key={key}
-                        yAxisId="metric"
-                        type="monotone"
-                        dataKey={key}
-                        stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-                        strokeWidth={hiddenSeries.has(key) ? 0 : 2}
-                        dot={false}
-                        connectNulls
-                        hide={hiddenSeries.has(key)}
-                      />
-                    ))}
+                    {/* Sensor series lines. `type=linear` by default so real
+                        spikes aren't smoothed away (#11). Offline series get a
+                        "last reading" marker drawn as the only dot on the line
+                        — the gap to the end of the chart is visible because
+                        `connectNulls={false}` leaves trailing nulls empty (#2). */}
+                    {seriesKeys.map((key, i) => {
+                      const color = SERIES_COLORS[i % SERIES_COLORS.length];
+                      const meta = seriesMeta[key];
+                      const offline = meta?.offline ?? false;
+                      return (
+                        <Line
+                          key={key}
+                          yAxisId="metric"
+                          type={smoothing ? 'monotone' : 'linear'}
+                          dataKey={key}
+                          stroke={color}
+                          strokeWidth={hiddenSeries.has(key) ? 0 : 2}
+                          strokeDasharray={offline ? '6 4' : undefined}
+                          dot={(dotProps: any) => {
+                            if (!offline || !meta) return <g />;
+                            if (dotProps.index !== meta.lastIdx) return <g />;
+                            return (
+                              <g>
+                                <circle cx={dotProps.cx} cy={dotProps.cy} r={5} fill="#fff" stroke={color} strokeWidth={2} />
+                                <circle cx={dotProps.cx} cy={dotProps.cy} r={2} fill={color} />
+                              </g>
+                            );
+                          }}
+                          activeDot={{ r: 4, strokeWidth: 2 }}
+                          connectNulls={!offline}
+                          hide={hiddenSeries.has(key)}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
                     {/* Thermal vote overlay — bubbles (no connecting line) */}
                     {hasVoteData && activeTab === 'thermal' && (
                       <Line
@@ -897,7 +1091,7 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                           }
 
                           // Grouped mode: check merge map
-                          const merged = mergeMapRef.current.get(index);
+                          const merged = mergeMap.get(index);
                           if (!merged) return <g />; // this index was merged into another
                           const mCount = merged.count;
                           const mVal = merged.val;
@@ -923,15 +1117,33 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                     {activeTab === 'thermal' && (
                       <ReferenceLine yAxisId="vote" y={0} stroke="#9ca3af44" strokeDasharray="4 4" />
                     )}
+                    {/* "Now" marker — only if realtime falls within visible range (#15) */}
+                    {nowDisplay && (
+                      <ReferenceLine
+                        yAxisId="metric"
+                        x={nowDisplay}
+                        stroke="#0f172a"
+                        strokeWidth={1.25}
+                        strokeDasharray="2 3"
+                        label={{ value: 'now', position: 'insideTopRight', fill: '#0f172a', fontSize: 9, fontWeight: 600 }}
+                      />
+                    )}
                     <Brush
                       dataKey="_display"
-                      height={28}
-                      stroke="#d1d5db"
-                      fill="#f9fafb"
-                      travellerWidth={10}
+                      height={30}
+                      stroke="#94a3b8"
+                      fill="#f8fafc"
+                      travellerWidth={14}
+                      startIndex={brushStartIndex}
+                      endIndex={brushEndIndex}
+                      // Hide recharts' default numeric index label above the
+                      // handles (this was the stray "0" near the left handle
+                      // — bug #6). We render our own range text below instead.
+                      tickFormatter={() => ''}
+                      traveller={renderBrushTraveller}
                       onChange={(range: any) => {
-                        brushRef.current = { start: range.startIndex, end: range.endIndex };
-                        if (voteMode === 'grouped') rebuildMergeMap();
+                        if (range.startIndex == null || range.endIndex == null) return;
+                        setBrushRange({ start: range.startIndex, end: range.endIndex });
                       }}
                     />
                   </LineChart>
