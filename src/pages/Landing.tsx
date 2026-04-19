@@ -16,6 +16,7 @@ import {
   Settings2,
   Check,
 } from 'lucide-react';
+import VariationsNav from '../components/landing/VariationsNav';
 
 const features = [
   {
@@ -96,8 +97,9 @@ export default function Landing() {
           "'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
       }}
     >
+      <VariationsNav active="original" />
       {/* Nav */}
-      <header className="sticky top-0 z-30 backdrop-blur bg-white/80 border-b border-gray-100">
+      <header className="sticky top-10 z-30 backdrop-blur bg-white/80 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 cursor-pointer" aria-label="ComfortOS home">
             <div className="w-9 h-9 rounded-xl bg-primary-600 text-white flex items-center justify-center">
