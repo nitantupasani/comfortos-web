@@ -114,8 +114,8 @@ export default function LandingAurora() {
           }}
         />
 
-        <div className="max-w-6xl mx-auto px-6 pt-16 pb-10 w-full">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-0 w-full">
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-start">
             <motion.div variants={stagger} initial="hidden" animate="show" className="lg:col-span-7 text-center lg:text-left">
               <motion.div
                 variants={fadeUp}
@@ -242,34 +242,6 @@ export default function LandingAurora() {
                       </div>
                       <div className="text-[10px] font-semibold text-primary-700">Live</div>
                     </div>
-                    <div className="mt-3 rounded-xl bg-white border border-gray-100 p-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="text-[11px] font-semibold text-gray-900">Your floor · last 24h</div>
-                        <div className="text-[10px] text-gray-500">22.8 – 23.6°C</div>
-                      </div>
-                      <svg viewBox="0 0 200 40" className="w-full h-8" aria-hidden="true">
-                        <defs>
-                          <linearGradient id="occ-trend" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
-                            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <polyline
-                          className="text-primary-600"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          points="0,28 20,24 40,26 60,20 80,22 100,18 120,16 140,20 160,14 180,12 200,10"
-                        />
-                        <polygon
-                          className="text-primary-600"
-                          fill="url(#occ-trend)"
-                          points="0,28 20,24 40,26 60,20 80,22 100,18 120,16 140,20 160,14 180,12 200,10 200,40 0,40"
-                        />
-                      </svg>
-                    </div>
                   </div>
                 </div>
                 {/* Floating "vote received" pill */}
@@ -297,7 +269,7 @@ export default function LandingAurora() {
       </section>
 
       {/* Rich dashboard mock */}
-      <section className="relative pt-4 pb-20">
+      <section className="relative pt-6 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
