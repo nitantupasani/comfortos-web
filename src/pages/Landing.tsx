@@ -151,60 +151,142 @@ export default function Landing() {
         />
 
         <div className="max-w-6xl mx-auto px-6 pt-24 pb-20 md:pt-32 md:pb-28">
-          <motion.div variants={stagger} initial="hidden" animate="show" className="max-w-3xl">
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+            <motion.div variants={stagger} initial="hidden" animate="show" className="lg:col-span-7">
+              <motion.div
+                variants={fadeUp}
+                className="inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-700 mb-6 shadow-sm"
+              >
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                Smart buildings that listen back
+              </motion.div>
+
+              <motion.h1
+                variants={fadeUp}
+                className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tighter text-gray-900 leading-[1.05]"
+              >
+                Two-way comfort,<br />
+                for every space in{' '}
+                <span className="text-primary-700">your building.</span>
+              </motion.h1>
+
+              <motion.p
+                variants={fadeUp}
+                className="mt-6 text-lg md:text-xl text-gray-600 max-w-2xl leading-relaxed"
+              >
+                ComfortOS is a unified, server-driven platform that connects
+                occupants, facility managers and building systems — so comfort
+                feedback turns into action, in real time.
+              </motion.p>
+
+              <motion.div variants={fadeUp} className="mt-9 flex flex-wrap gap-3">
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center gap-2 bg-primary-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-primary-700 cursor-pointer transition-colors duration-200 shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                >
+                  Get started <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 border border-gray-300 bg-white text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+                >
+                  Sign in
+                </Link>
+              </motion.div>
+
+              <motion.div
+                variants={fadeUp}
+                className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500"
+              >
+                {['Real-time votes', 'Role-aware access', 'Server-driven UI', 'Presence-aware'].map((item) => (
+                  <span key={item} className="inline-flex items-center gap-1.5">
+                    <Check className="h-4 w-4 text-primary-600" aria-hidden="true" />
+                    {item}
+                  </span>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* Hero right-side visual: occupant vote mock */}
             <motion.div
               variants={fadeUp}
-              className="inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-700 mb-6 shadow-sm"
+              initial="hidden"
+              animate="show"
+              className="lg:col-span-5 relative hidden lg:block"
             >
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              Smart buildings that listen back
+              <div className="relative mx-auto max-w-sm">
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-primary-100/60 via-primary-50/40 to-transparent blur-2xl"
+                />
+                <div className="rounded-[2rem] border border-gray-200 bg-white shadow-2xl shadow-gray-900/10 p-4">
+                  <div className="rounded-[1.5rem] bg-gradient-to-b from-primary-50/80 to-white p-5">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-primary-600 text-white flex items-center justify-center">
+                          <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-medium text-gray-500 leading-none">Ocean House</div>
+                          <div className="text-[11px] font-semibold text-gray-900 leading-tight">Floor 4 · East wing</div>
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-medium text-gray-400">9:42</div>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 mb-1">How's the comfort right now?</div>
+                    <div className="text-[11px] text-gray-500 mb-4">Tap your feeling — it's anonymous.</div>
+                    <div className="flex justify-between gap-1 mb-2">
+                      {['-3', '-2', '-1', '0', '+1', '+2', '+3'].map((v, i) => (
+                        <div
+                          key={v}
+                          className={`flex-1 rounded-lg text-[11px] font-semibold py-2 text-center ${
+                            i === 5
+                              ? 'bg-primary-600 text-white shadow-sm'
+                              : 'bg-white border border-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {v}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 mb-5 px-1">
+                      <span>Cold</span>
+                      <span>Neutral</span>
+                      <span>Hot</span>
+                    </div>
+                    <div className="rounded-xl bg-white border border-gray-100 p-3 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
+                        <Thermometer className="h-4 w-4 text-primary-700" aria-hidden="true" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[11px] font-semibold text-gray-900">Thermal · 23.4°C</div>
+                        <div className="text-[10px] text-gray-500">48% RH · CO₂ 612 ppm</div>
+                      </div>
+                      <div className="text-[10px] font-semibold text-primary-700">Live</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Floating "vote received" pill */}
+                <div className="absolute -bottom-4 -right-2 bg-white rounded-xl shadow-lg shadow-gray-900/10 border border-gray-100 px-3 py-2 flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500" />
+                  </span>
+                  <div className="text-[11px] font-semibold text-gray-800">Vote received · +2</div>
+                </div>
+                {/* Floating FM action card */}
+                <div className="absolute -top-4 -left-6 bg-white rounded-xl shadow-lg shadow-gray-900/10 border border-gray-100 px-3 py-2 flex items-center gap-2 max-w-[200px]">
+                  <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <Gauge className="h-3.5 w-3.5 text-orange-600" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold text-gray-900 leading-tight">FM action queued</div>
+                    <div className="text-[10px] text-gray-500 leading-tight">Lower setpoint · 0.5°C</div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
-
-            <motion.h1
-              variants={fadeUp}
-              className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tighter text-gray-900 leading-[1.05]"
-            >
-              Two-way comfort,<br />
-              for every space in{' '}
-              <span className="text-primary-700">your building.</span>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeUp}
-              className="mt-6 text-lg md:text-xl text-gray-600 max-w-2xl leading-relaxed"
-            >
-              ComfortOS is a unified, server-driven platform that connects
-              occupants, facility managers and building systems — so comfort
-              feedback turns into action, in real time.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="mt-9 flex flex-wrap gap-3">
-              <Link
-                to="/signup"
-                className="inline-flex items-center gap-2 bg-primary-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-primary-700 cursor-pointer transition-colors duration-200 shadow-md hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-              >
-                Get started <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 border border-gray-300 bg-white text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 cursor-pointer transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
-              >
-                Sign in
-              </Link>
-            </motion.div>
-
-            <motion.div
-              variants={fadeUp}
-              className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500"
-            >
-              {['Real-time votes', 'Role-aware access', 'Server-driven UI', 'Presence-aware'].map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary-600" aria-hidden="true" />
-                  {item}
-                </span>
-              ))}
-            </motion.div>
-          </motion.div>
+          </div>
 
           {/* Visual mock panel */}
           <motion.div
@@ -220,32 +302,216 @@ export default function Landing() {
                 <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
                 <span className="ml-3 text-xs font-medium text-gray-500">comfortos.app / dashboard</span>
               </div>
-              <div className="grid grid-cols-12 gap-4 p-6">
-                <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-5">
-                  <div className="text-xs font-medium text-gray-500">Comfort index</div>
-                  <div className="mt-2 text-3xl font-bold tracking-tight">78 <span className="text-base font-medium text-primary-600">/ 100</span></div>
-                  <div className="mt-3 flex items-center gap-1.5 text-xs text-primary-700">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary-500" />
-                    +4 vs yesterday
+
+              <div className="grid grid-cols-12">
+                {/* Sidebar rail */}
+                <div className="hidden sm:flex col-span-1 border-r border-gray-100 py-5 flex-col items-center gap-3 bg-gray-50/40">
+                  <div className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center shadow-sm">
+                    <Building2 className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="h-px w-5 bg-gray-200 my-1" />
+                  <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="w-8 h-8 rounded-lg text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                    <Vote className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="w-8 h-8 rounded-lg text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                    <Layers className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="w-8 h-8 rounded-lg text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="w-8 h-8 rounded-lg text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-colors">
+                    <Settings2 className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </div>
-                <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-5">
-                  <div className="text-xs font-medium text-gray-500">Votes today</div>
-                  <div className="mt-2 text-3xl font-bold tracking-tight">1,284</div>
-                  <div className="mt-3 flex gap-1 h-8 items-end" aria-hidden="true">
-                    {[30, 55, 40, 70, 60, 85, 75, 90, 65, 80, 95, 72].map((h, i) => (
-                      <div key={i} className="flex-1 rounded-sm bg-primary-200" style={{ height: `${h}%` }} />
-                    ))}
+
+                {/* Main panel */}
+                <div className="col-span-12 sm:col-span-11 p-5 md:p-6 space-y-4">
+                  {/* Title row */}
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                      <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Ocean House · Overview</div>
+                      <div className="text-lg md:text-xl font-bold tracking-tight text-gray-900">Comfort dashboard</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="px-2.5 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-700 inline-flex items-center gap-1">
+                        All buildings
+                        <span className="text-gray-400">▾</span>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-700 inline-flex items-center gap-1">
+                        Last 24h
+                        <span className="text-gray-400">▾</span>
+                      </div>
+                      <div className="h-7 w-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-[11px] font-semibold">NU</div>
+                    </div>
                   </div>
-                </div>
-                <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-5">
-                  <div className="text-xs font-medium text-gray-500">Zones flagged</div>
-                  <div className="mt-2 text-3xl font-bold tracking-tight">3</div>
-                  <ul className="mt-3 space-y-1.5 text-xs text-gray-600">
-                    <li className="flex items-center justify-between"><span>Floor 4 · East wing</span><span className="text-orange-600">Warm</span></li>
-                    <li className="flex items-center justify-between"><span>Floor 2 · Atrium</span><span className="text-blue-600">Cold</span></li>
-                    <li className="flex items-center justify-between"><span>Floor 7 · Lab 3</span><span className="text-orange-600">Warm</span></li>
-                  </ul>
+
+                  {/* KPI row */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="text-[11px] font-medium text-gray-500">Comfort index</div>
+                      <div className="mt-1.5 text-2xl font-bold tracking-tight text-gray-900">
+                        78 <span className="text-sm font-medium text-primary-600">/100</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5 text-[11px] text-primary-700">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary-500" />
+                        +4 vs yesterday
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="text-[11px] font-medium text-gray-500">Votes today</div>
+                      <div className="mt-1.5 text-2xl font-bold tracking-tight text-gray-900">1,284</div>
+                      <div className="mt-2 flex gap-0.5 h-6 items-end" aria-hidden="true">
+                        {[30, 55, 40, 70, 60, 85, 75, 90, 65, 80, 95, 72].map((h, i) => (
+                          <div key={i} className="flex-1 rounded-sm bg-primary-200" style={{ height: `${h}%` }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="text-[11px] font-medium text-gray-500">Response time</div>
+                      <div className="mt-1.5 text-2xl font-bold tracking-tight text-gray-900">
+                        6<span className="text-sm font-medium text-gray-500">m</span> 42<span className="text-sm font-medium text-gray-500">s</span>
+                      </div>
+                      <div className="mt-2 text-[11px] text-gray-500">Median FM reply</div>
+                    </div>
+                    <div className="rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="text-[11px] font-medium text-gray-500">Zones flagged</div>
+                      <div className="mt-1.5 text-2xl font-bold tracking-tight text-gray-900">3</div>
+                      <div className="mt-2 text-[11px] text-orange-600">2 warm · 1 cold</div>
+                    </div>
+                  </div>
+
+                  {/* Chart + list */}
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-12 lg:col-span-8 rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <div>
+                          <div className="text-xs font-semibold text-gray-900">Comfort trend</div>
+                          <div className="text-[11px] text-gray-500">Per floor · last 7 days</div>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-gray-600">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-primary-600" /> Floor 2
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-primary-300" /> Floor 4
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-orange-400" /> Floor 7
+                          </span>
+                        </div>
+                      </div>
+                      <svg viewBox="0 0 400 110" className="w-full h-24" aria-hidden="true">
+                        <line x1="0" y1="20" x2="400" y2="20" stroke="#f3f4f6" strokeWidth="1" />
+                        <line x1="0" y1="55" x2="400" y2="55" stroke="#f3f4f6" strokeWidth="1" />
+                        <line x1="0" y1="90" x2="400" y2="90" stroke="#f3f4f6" strokeWidth="1" />
+                        <polyline
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          className="text-primary-600"
+                          points="0,60 40,52 80,55 120,48 160,42 200,40 240,35 280,30 320,28 360,24 400,22"
+                        />
+                        <polyline
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          className="text-primary-300"
+                          points="0,72 40,68 80,70 120,62 160,60 200,58 240,55 280,50 320,48 360,45 400,42"
+                        />
+                        <polyline
+                          fill="none"
+                          stroke="#fb923c"
+                          strokeWidth="1.75"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          points="0,50 40,56 80,48 120,62 160,70 200,66 240,72 280,70 320,80 360,76 400,82"
+                        />
+                      </svg>
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-1">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-12 lg:col-span-4 rounded-xl border border-gray-100 p-4 bg-white">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs font-semibold text-gray-900">Zones flagged</div>
+                        <div className="text-[10px] font-medium text-primary-700">View all →</div>
+                      </div>
+                      <ul className="space-y-3 text-xs">
+                        <li className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 truncate">Floor 4 · East wing</div>
+                            <div className="text-[10px] text-gray-500">14 votes · 18m ago</div>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-semibold shrink-0">Warm</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 truncate">Floor 2 · Atrium</div>
+                            <div className="text-[10px] text-gray-500">8 votes · 34m ago</div>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold shrink-0">Cold</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 truncate">Floor 7 · Lab 3</div>
+                            <div className="text-[10px] text-gray-500">21 votes · 47m ago</div>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-semibold shrink-0">Warm</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Activity feed */}
+                  <div className="rounded-xl border border-gray-100 p-4 bg-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-xs font-semibold text-gray-900">Live activity</div>
+                      <div className="inline-flex items-center gap-1.5 text-[10px] font-medium text-primary-700">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75 animate-ping" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-500" />
+                        </span>
+                        Streaming
+                      </div>
+                    </div>
+                    <ul className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px] text-gray-600">
+                      <li className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-md bg-primary-50 flex items-center justify-center shrink-0 mt-0.5">
+                          <Vote className="h-3 w-3 text-primary-700" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-gray-900 font-medium">+2 vote · Floor 4 · East wing</div>
+                          <div className="text-gray-500">Thermal · 2m ago</div>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-md bg-orange-50 flex items-center justify-center shrink-0 mt-0.5">
+                          <Gauge className="h-3 w-3 text-orange-600" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-gray-900 font-medium">Setpoint lowered 0.5°C</div>
+                          <div className="text-gray-500">HVAC · Zone 4E · 3m ago</div>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                          <Thermometer className="h-3 w-3 text-blue-600" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <div className="text-gray-900 font-medium">Atrium flagged cold</div>
+                          <div className="text-gray-500">8 votes · 34m ago</div>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -278,7 +544,7 @@ export default function Landing() {
                   <f.icon className="size-4 text-primary-700" aria-hidden="true" />
                   <h3 className="text-sm font-semibold text-gray-900">{f.title}</h3>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">{f.body}</p>
+                <p className="text-sm text-gray-600 leading-relaxed text-justify hyphens-auto">{f.body}</p>
               </div>
             ))}
           </div>
