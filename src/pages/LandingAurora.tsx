@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Building2,
@@ -32,6 +32,8 @@ const titleLines: { words: string[]; accentIdx: number }[] = [
 
 export default function LandingAurora() {
   const reduce = useReducedMotion();
+  const { pathname } = useLocation();
+  const showVariationsNav = pathname.startsWith('/landing/');
 
   useEffect(() => {
     const id = 'comfortos-aurora-fonts';
@@ -66,7 +68,7 @@ export default function LandingAurora() {
       <VariationsNav active="aurora" />
 
       {/* Nav */}
-      <header className="sticky top-10 z-30 backdrop-blur bg-white/80 border-b border-gray-100">
+      <header className={`sticky ${showVariationsNav ? 'top-10' : 'top-0'} z-30 backdrop-blur bg-white/80 border-b border-gray-100`}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="ComfortOS home">
             <div className="w-9 h-9 rounded-xl bg-primary-600 text-white flex items-center justify-center">
