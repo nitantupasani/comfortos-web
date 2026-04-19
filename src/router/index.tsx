@@ -12,6 +12,12 @@ import FMLayout from '../components/layout/FMLayout';
 import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
 import Landing from '../pages/Landing';
+import LandingAurora from '../pages/LandingAurora';
+import LandingBento from '../pages/LandingBento';
+import LandingKinetic from '../pages/LandingKinetic';
+import LandingEditorial from '../pages/LandingEditorial';
+import LandingMidnight from '../pages/LandingMidnight';
+import LandingCove from '../pages/LandingCove';
 
 // Occupant
 import Presence from '../pages/occupant/Presence';
@@ -63,6 +69,15 @@ export default function AppRouter() {
       {/* Public */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+
+      {/* Landing variations (always accessible for review) */}
+      <Route path="/landing-original" element={<Landing />} />
+      <Route path="/v1" element={<LandingAurora />} />
+      <Route path="/v2" element={<LandingBento />} />
+      <Route path="/v3" element={<LandingKinetic />} />
+      <Route path="/v4" element={<LandingEditorial />} />
+      <Route path="/v5" element={<LandingMidnight />} />
+      <Route path="/v6" element={<LandingCove />} />
 
       {/* Root: landing for logged-out, role dashboard for logged-in */}
       <Route
@@ -132,8 +147,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<BuildingAnalytics />} />
-        <Route path="/admin/overview" element={<AdminDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/overview" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/buildings" element={<BuildingManagement />} />
         <Route path="/admin/buildings/new" element={<BuildingSetupWizard />} />
         <Route path="/admin/tenants" element={<TenantManagement />} />
@@ -152,8 +167,8 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
-        <Route path="/fm" element={<FMBuildingAnalytics />} />
-        <Route path="/fm/overview" element={<FMDashboard />} />
+        <Route path="/fm" element={<FMDashboard />} />
+        <Route path="/fm/overview" element={<Navigate to="/fm" replace />} />
         <Route path="/fm/buildings" element={<BuildingManagement managedOnly />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
