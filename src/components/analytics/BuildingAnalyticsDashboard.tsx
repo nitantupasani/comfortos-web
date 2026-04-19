@@ -1043,6 +1043,13 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
                           dot={(dotProps: any) => {
                             if (!offline || !meta) return <g />;
                             if (dotProps.index !== meta.lastIdx) return <g />;
+                            // Guard: if lastIdx falls outside the current brush
+                            // window, recharts may still invoke the dot renderer
+                            // with null/0 cx/cy — drawing the ring at (0,0)
+                            // floats it above the plot. Skip those.
+                            if (dotProps.index < brushStartIndex || dotProps.index > brushEndIndex) return <g />;
+                            if (typeof dotProps.cx !== 'number' || typeof dotProps.cy !== 'number') return <g />;
+                            if (!isFinite(dotProps.cx) || !isFinite(dotProps.cy)) return <g />;
                             return (
                               <g>
                                 <circle cx={dotProps.cx} cy={dotProps.cy} r={5} fill="#fff" stroke={color} strokeWidth={2} />
