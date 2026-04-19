@@ -86,18 +86,15 @@ export default function EnvironmentData() {
   }, [activeBuilding?.id, token, user?.id, rangeIdx, groupBy, retryCount, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build chart data — for room view, only include selected rooms
-  const { chartData, seriesKeys, seriesLabels } = useMemo(() => {
-    if (!data || data.series.length === 0) {
-      return { chartData: [], seriesKeys: [], seriesLabels: {} as Record<string, string> };
-    }
+  const { chartData, seriesKeys, seriesLabels, hourTicks, halfHourTicks } = useMemo(() => {
+    const empty = { chartData: [] as Record<string, number | string>[], seriesKeys: [] as string[], seriesLabels: {} as Record<string, string>, hourTicks: [] as number[], halfHourTicks: [] as number[] };
+    if (!data || data.series.length === 0) return empty;
 
     const visibleSeries = groupBy === 'room'
       ? data.series.filter((_, i) => selectedRooms.has(`s${i}`))
       : data.series;
 
-    if (visibleSeries.length === 0) {
-      return { chartData: [], seriesKeys: [], seriesLabels: {} as Record<string, string> };
-    }
+    if (visibleSeries.length === 0) return empty;
 
     const labels: Record<string, string> = {};
     const timeMap = new Map<string, Record<string, number | string>>();
@@ -107,19 +104,33 @@ export default function EnvironmentData() {
       const key = `s${origIdx}`;
       labels[key] = cleanLabel(s.locationName || s.label);
       for (const pt of s.points) {
-        const display = formatTime(pt.recordedAt, range.granularity);
-        const existing = timeMap.get(pt.recordedAt) || { time: pt.recordedAt, _display: display };
+        const existing = timeMap.get(pt.recordedAt) || { time: pt.recordedAt, _ts: new Date(pt.recordedAt).getTime() };
         existing[key] = pt.value;
         timeMap.set(pt.recordedAt, existing);
       }
     });
 
     const sorted = Array.from(timeMap.values()).sort(
-      (a, b) => new Date(a.time as string).getTime() - new Date(b.time as string).getTime(),
+      (a, b) => (a._ts as number) - (b._ts as number),
     );
+
+    // Compute hourly and half-hourly ticks
+    const hours: number[] = [];
+    const halves: number[] = [];
+    if (sorted.length > 0) {
+      const minTs = sorted[0]._ts as number;
+      const maxTs = sorted[sorted.length - 1]._ts as number;
+      const startHour = new Date(minTs);
+      startHour.setMinutes(0, 0, 0);
+      for (let t = startHour.getTime(); t <= maxTs + 3600000; t += 3600000) {
+        hours.push(t);
+        halves.push(t + 1800000);
+      }
+    }
+
     const keys = visibleSeries.map((s) => `s${data.series.indexOf(s)}`);
-    return { chartData: sorted, seriesKeys: keys, seriesLabels: labels };
-  }, [data, range.granularity, groupBy, selectedRooms]);
+    return { chartData: sorted, seriesKeys: keys, seriesLabels: labels, hourTicks: hours, halfHourTicks: halves };
+  }, [data, groupBy, selectedRooms]);
 
   const toggleRoom = (key: string) => {
     setSelectedRooms((prev) => {
@@ -240,20 +251,39 @@ export default function EnvironmentData() {
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -16 }}>
-              <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="_display" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} interval="preserveStartEnd" />
+              <CartesianGrid horizontal={false} vertical={false} />
+              <XAxis
+                dataKey="_ts"
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                ticks={hourTicks}
+                tickFormatter={(ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                tick={{ fontSize: 9, fill: '#94a3b8' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+              />
               <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={[16, 28]} ticks={[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]} unit="°" />
-              {/* Integer gridlines */}
+              {/* Vertical hourly gridlines */}
+              {hourTicks.map((t) => (
+                <ReferenceLine key={`xh-${t}`} x={t} stroke="#e2e8f0" strokeWidth={1} />
+              ))}
+              {/* Vertical half-hour gridlines (dashed, subtler) */}
+              {halfHourTicks.map((t) => (
+                <ReferenceLine key={`xhh-${t}`} x={t} stroke="#f1f5f9" strokeDasharray="4 4" strokeWidth={1} />
+              ))}
+              {/* Horizontal integer gridlines */}
               {Array.from({ length: 13 }, (_, i) => 16 + i).map((v) => (
                 <ReferenceLine key={`int-${v}`} y={v} stroke="#e2e8f0" strokeWidth={1} />
               ))}
-              {/* Half-degree gridlines (dashed, subtler) */}
+              {/* Horizontal half-degree gridlines (dashed, subtler) */}
               {Array.from({ length: 12 }, (_, i) => 16.5 + i).map((v) => (
                 <ReferenceLine key={`half-${v}`} y={v} stroke="#f1f5f9" strokeDasharray="4 4" strokeWidth={1} />
               ))}
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, padding: '8px 12px' }}
                 labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                labelFormatter={(ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                 formatter={(value: number, name: string) => [`${value.toFixed(1)}°C`, seriesLabels[name] || name]}
               />
               {seriesKeys.map((key) => {
