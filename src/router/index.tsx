@@ -11,7 +11,6 @@ import FMLayout from '../components/layout/FMLayout';
 // Pages
 import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
-import Landing from '../pages/Landing';
 import LandingAurora from '../pages/LandingAurora';
 import LandingBento from '../pages/LandingBento';
 import LandingKinetic from '../pages/LandingKinetic';
@@ -71,7 +70,7 @@ export default function AppRouter() {
       <Route path="/signup" element={<SignUp />} />
 
       {/* Landing variations (always accessible for review) */}
-      <Route path="/landing-original" element={<Landing />} />
+      <Route path="/landing-original" element={<LandingAurora />} />
       <Route path="/v1" element={<LandingAurora />} />
       <Route path="/v2" element={<LandingBento />} />
       <Route path="/v3" element={<LandingKinetic />} />
@@ -82,7 +81,7 @@ export default function AppRouter() {
       {/* Root: landing for logged-out, role dashboard for logged-in */}
       <Route
         path="/"
-        element={user ? <Navigate to={roleRedirect()} replace /> : <Landing />}
+        element={user ? <Navigate to={roleRedirect()} replace /> : <LandingAurora />}
       />
 
       {/* ─── Occupant routes (mobile-like) ─── */}
