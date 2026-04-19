@@ -119,21 +119,7 @@ export default function LandingAurora() {
         <div className="max-w-6xl mx-auto px-6 pt-16 pb-0 w-full">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-start">
             <motion.div variants={stagger} initial="hidden" animate="show" className="lg:col-span-7 text-center lg:text-left">
-              <motion.div
-                variants={fadeUp}
-                className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white/90 pl-2 pr-3.5 py-1.5 text-xs font-medium text-gray-700 mb-8 shadow-sm backdrop-blur"
-              >
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-600 text-white px-2 py-0.5 text-[10px] font-semibold tracking-wide">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-white/80 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
-                  </span>
-                  Live
-                </span>
-                <span className="text-gray-600">A building that takes hints</span>
-              </motion.div>
-
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter leading-[1.04]">
+<h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter leading-[1.04]">
                 {titleLines.map((line, li) => (
                   <span key={li} className="block">
                     {line.words.map((word, wi) => {
