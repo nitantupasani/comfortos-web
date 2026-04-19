@@ -323,7 +323,7 @@ export default function TelemetryChartNode({
                 tick={{ fontSize: 9, fill: '#94a3b8' }}
                 tickLine={false}
                 axisLine={false}
-                domain={['auto', 'auto']}
+                domain={metricType === 'temperature' ? [16, 28] : ['auto', 'auto']}
                 unit={unit === '°C' ? '°' : ''}
               />
               <Tooltip
