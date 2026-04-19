@@ -11,6 +11,7 @@ import FMLayout from '../components/layout/FMLayout';
 // Pages
 import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
+import Landing from '../pages/Landing';
 
 // Occupant
 import Presence from '../pages/occupant/Presence';
@@ -49,9 +50,8 @@ export default function AppRouter() {
     ? viewAsRole
     : user?.role;
 
-  /** Role-based root redirect */
+  /** Role-based root redirect (for logged-in users) */
   const roleRedirect = () => {
-    if (!user) return '/login';
     if (effectiveRole === 'admin') return '/admin';
     if (effectiveRole === 'tenant_facility_manager' || effectiveRole === 'building_facility_manager')
       return '/fm';
@@ -64,8 +64,11 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
 
-      {/* Root redirect */}
-      <Route path="/" element={<Navigate to={roleRedirect()} replace />} />
+      {/* Root: landing for logged-out, role dashboard for logged-in */}
+      <Route
+        path="/"
+        element={user ? <Navigate to={roleRedirect()} replace /> : <Landing />}
+      />
 
       {/* ─── Occupant routes (mobile-like) ─── */}
       {/* Legacy presence/location routes — redirect to dashboard which handles everything inline */}
