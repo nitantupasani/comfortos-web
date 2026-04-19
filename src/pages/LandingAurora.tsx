@@ -5,7 +5,6 @@ import {
   Building2,
   Thermometer,
   ArrowRight,
-  Sparkles,
   Vote,
   BarChart3,
   Layers,
@@ -89,7 +88,7 @@ export default function LandingAurora() {
       </header>
 
       {/* Hero with Aurora */}
-      <section className="relative overflow-hidden min-h-[88vh] flex items-center">
+      <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 pointer-events-none" aria-hidden>
           <div
             className="absolute -top-40 left-1/4 h-[34rem] w-[34rem] rounded-full bg-primary-300/40 blur-3xl"
@@ -115,15 +114,21 @@ export default function LandingAurora() {
           }}
         />
 
-        <div className="max-w-6xl mx-auto px-6 pt-20 pb-16 w-full">
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-10 w-full">
           <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             <motion.div variants={stagger} initial="hidden" animate="show" className="lg:col-span-7 text-center lg:text-left">
               <motion.div
                 variants={fadeUp}
-                className="inline-flex items-center gap-2 rounded-full border border-primary-200/70 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-700 mb-8 shadow-sm backdrop-blur"
+                className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white/90 pl-2 pr-3.5 py-1.5 text-xs font-medium text-gray-700 mb-8 shadow-sm backdrop-blur"
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                Finally — a building that takes hints
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-600 text-white px-2 py-0.5 text-[10px] font-semibold tracking-wide">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-white/80 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+                  </span>
+                  Live
+                </span>
+                <span className="text-gray-600">A building that takes hints</span>
               </motion.div>
 
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tighter leading-[1.04]">
@@ -200,8 +205,8 @@ export default function LandingAurora() {
                           <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </div>
                         <div>
-                          <div className="text-[10px] font-medium text-gray-500 leading-none">Ocean House</div>
-                          <div className="text-[11px] font-semibold text-gray-900 leading-tight">Floor 4 · East wing</div>
+                          <div className="text-[10px] font-medium text-gray-500 leading-none">De Rotterdam</div>
+                          <div className="text-[11px] font-semibold text-gray-900 leading-tight">Floor 4 · Oostvleugel</div>
                         </div>
                       </div>
                       <div className="text-[10px] font-medium text-gray-400">9:42</div>
@@ -237,6 +242,34 @@ export default function LandingAurora() {
                       </div>
                       <div className="text-[10px] font-semibold text-primary-700">Live</div>
                     </div>
+                    <div className="mt-3 rounded-xl bg-white border border-gray-100 p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="text-[11px] font-semibold text-gray-900">Your floor · last 24h</div>
+                        <div className="text-[10px] text-gray-500">22.8 – 23.6°C</div>
+                      </div>
+                      <svg viewBox="0 0 200 40" className="w-full h-8" aria-hidden="true">
+                        <defs>
+                          <linearGradient id="occ-trend" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <polyline
+                          className="text-primary-600"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          points="0,28 20,24 40,26 60,20 80,22 100,18 120,16 140,20 160,14 180,12 200,10"
+                        />
+                        <polygon
+                          className="text-primary-600"
+                          fill="url(#occ-trend)"
+                          points="0,28 20,24 40,26 60,20 80,22 100,18 120,16 140,20 160,14 180,12 200,10 200,40 0,40"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
                 {/* Floating "vote received" pill */}
@@ -264,7 +297,7 @@ export default function LandingAurora() {
       </section>
 
       {/* Rich dashboard mock */}
-      <section className="relative -mt-8 pb-20">
+      <section className="relative pt-4 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -308,10 +341,14 @@ export default function LandingAurora() {
               <div className="col-span-12 sm:col-span-11 p-5 md:p-6 space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Ocean House · Overview</div>
+                    <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">De Rotterdam · Wilhelminakade 179</div>
                     <div className="text-lg md:text-xl font-bold tracking-tight text-gray-900">Comfort dashboard</div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[11px] font-medium inline-flex items-center gap-1.5">
+                      <span aria-hidden>🌤</span>
+                      7°C · Rotterdam
+                    </div>
                     <div className="px-2.5 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-700 inline-flex items-center gap-1">
                       All buildings
                       <span className="text-gray-400">▾</span>
@@ -421,7 +458,7 @@ export default function LandingAurora() {
                     <ul className="space-y-3 text-xs">
                       <li className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">Floor 4 · East wing</div>
+                          <div className="font-medium text-gray-900 truncate">Floor 4 · Oostvleugel</div>
                           <div className="text-[10px] text-gray-500">14 votes · 18m ago</div>
                         </div>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-semibold shrink-0">Warm</span>
@@ -435,11 +472,80 @@ export default function LandingAurora() {
                       </li>
                       <li className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">Floor 7 · Lab 3</div>
+                          <div className="font-medium text-gray-900 truncate">Floor 7 · Laboratorium 3</div>
                           <div className="text-[10px] text-gray-500">21 votes · 47m ago</div>
                         </div>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 font-semibold shrink-0">Warm</span>
                       </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-4 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-semibold text-gray-900">Occupancy</div>
+                      <div className="text-[10px] font-medium text-gray-500">Nu in gebouw</div>
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <div className="text-xl font-bold tracking-tight text-gray-900 tabular-nums">412</div>
+                      <div className="text-[11px] text-gray-500">/ 640</div>
+                      <div className="ml-auto text-[11px] font-medium text-primary-700">64%</div>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full bg-primary-500" style={{ width: '64%' }} />
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-1.5 text-[10px]">
+                      {[
+                        { l: 'V2', v: 82 },
+                        { l: 'V4', v: 71 },
+                        { l: 'V7', v: 43 },
+                      ].map((f) => (
+                        <div key={f.l} className="rounded-md bg-gray-50 px-2 py-1 flex items-center justify-between">
+                          <span className="font-medium text-gray-600">{f.l}</span>
+                          <span className="font-semibold text-gray-900 tabular-nums">{f.v}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-4 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-semibold text-gray-900">Energy today</div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">−8%</span>
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <div className="text-xl font-bold tracking-tight text-gray-900 tabular-nums">142</div>
+                      <div className="text-[11px] text-gray-500">kWh · HVAC</div>
+                    </div>
+                    <svg viewBox="0 0 120 32" className="w-full h-8 mt-2" aria-hidden="true">
+                      <polyline
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        className="text-emerald-500"
+                        points="0,22 15,18 30,20 45,14 60,16 75,10 90,12 105,8 120,6"
+                      />
+                    </svg>
+                    <div className="mt-1 text-[10px] text-gray-500">vs yesterday · baseline from BMS</div>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-4 rounded-xl border border-gray-100 p-4 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-semibold text-gray-900">HVAC setpoints</div>
+                      <div className="text-[10px] font-medium text-primary-700">Edit →</div>
+                    </div>
+                    <ul className="space-y-2 text-[11px]">
+                      {[
+                        { z: 'Zone 4-Oost', t: '22.5°C', tone: 'text-orange-600' },
+                        { z: 'Zone 2-Atrium', t: '21.0°C', tone: 'text-blue-600' },
+                        { z: 'Zone 7-Lab', t: '22.0°C', tone: 'text-gray-700' },
+                      ].map((s) => (
+                        <li key={s.z} className="flex items-center justify-between gap-2">
+                          <span className="text-gray-600 truncate">{s.z}</span>
+                          <span className={`font-semibold tabular-nums ${s.tone}`}>{s.t}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 </div>
@@ -461,7 +567,7 @@ export default function LandingAurora() {
                         <Vote className="h-3 w-3 text-primary-700" aria-hidden="true" />
                       </div>
                       <div>
-                        <div className="text-gray-900 font-medium">+2 vote · Floor 4 · East wing</div>
+                        <div className="text-gray-900 font-medium">+2 vote · Floor 4 · Oostvleugel</div>
                         <div className="text-gray-500">Thermal · 2m ago</div>
                       </div>
                     </li>
@@ -471,7 +577,7 @@ export default function LandingAurora() {
                       </div>
                       <div>
                         <div className="text-gray-900 font-medium">Setpoint lowered 0.5°C</div>
-                        <div className="text-gray-500">HVAC · Zone 4E · 3m ago</div>
+                        <div className="text-gray-500">HVAC · Zone 4-Oost · 3m ago</div>
                       </div>
                     </li>
                     <li className="flex items-start gap-2">
