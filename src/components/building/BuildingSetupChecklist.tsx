@@ -8,10 +8,10 @@ interface Props {
 }
 
 const ITEMS = [
-  { key: 'hasLocations', label: 'Location Hierarchy', desc: 'Floors and rooms defined', tab: 'locations', icon: MapPin },
-  { key: 'hasEndpoints', label: 'Telemetry Endpoints', desc: 'Data sources configured', tab: 'endpoints', icon: Plug },
-  { key: 'hasDashboard', label: 'Dashboard Layout', desc: 'SDUI dashboard configured', tab: 'dashboard-config', icon: LayoutDashboard },
-  { key: 'hasVoteForm', label: 'Vote Form', desc: 'Comfort vote form set up', tab: 'vote-config', icon: ClipboardList },
+  { key: 'hasLocations', label: 'Zones', desc: 'Add floors and rooms', tab: 'locations', icon: MapPin },
+  { key: 'hasEndpoints', label: 'Telemetry', desc: 'Connect a data source', tab: 'endpoints', icon: Plug },
+  { key: 'hasDashboard', label: 'Dashboard layout', desc: 'Tune what occupants see', tab: 'dashboard-config', icon: LayoutDashboard },
+  { key: 'hasVoteForm', label: 'Vote form', desc: 'Tune comfort prompts', tab: 'vote-config', icon: ClipboardList },
 ] as const;
 
 export default function BuildingSetupChecklist({ buildingId, onNavigateTab }: Props) {

@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Building2,
   BarChart3,
   Bell,
@@ -8,36 +7,32 @@ import {
   PanelsTopLeft,
   FileQuestion,
   UserCircle,
+  LineChart,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import ConsoleShell, { type NavGroup } from './ConsoleShell';
 
 const nav: NavGroup[] = [
   {
-    label: 'Workspace',
+    label: 'Main',
     items: [
       { to: '/fm', icon: Activity, label: 'Dashboard', end: true },
-      { to: '/fm/building-analytics', icon: LayoutDashboard, label: 'Building Analytics' },
-    ],
-  },
-  {
-    label: 'Manage',
-    items: [
       { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
     ],
   },
   {
-    label: 'Analytics',
+    label: 'Insights',
     items: [
+      { to: '/fm/building-analytics', icon: LineChart, label: 'Building Analytics' },
       { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
     ],
   },
   {
-    label: 'Configuration',
+    label: 'Settings',
     items: [
+      { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
       { to: '/fm/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
       { to: '/fm/vote-config', icon: FileQuestion, label: 'Vote Form' },
-      { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
     ],
   },
 ];

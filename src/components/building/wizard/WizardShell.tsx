@@ -2,14 +2,7 @@ import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react';
 import Stepper from '../../common/Stepper';
 import { useBuildingWizardStore } from '../../../store/buildingWizardStore';
 
-const STEP_LABELS = [
-  'Building Info',
-  'Locations',
-  'Connector',
-  'Endpoints',
-  'Metrics',
-  'Finish',
-];
+const STEP_LABELS = ['Building', 'Zones', 'Connect', 'Review'];
 
 interface Props {
   children: React.ReactNode;
@@ -56,12 +49,12 @@ export default function WizardShell({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">New Building Setup</h2>
+        <h2 className="text-2xl font-bold text-gray-900">New building</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Step {currentStep + 1} of {STEP_LABELS.length}
+          Step {currentStep + 1} of {STEP_LABELS.length} — {STEP_LABELS[currentStep]}
         </p>
       </div>
 
@@ -73,7 +66,7 @@ export default function WizardShell({
       />
 
       {/* Step content */}
-      <div className="bg-white rounded-xl border p-6 min-h-[400px]">
+      <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
         {children}
       </div>
 
@@ -104,10 +97,10 @@ export default function WizardShell({
             className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
             {isSubmitting ? (
-              'Saving...'
+              'Saving…'
             ) : (
               <>
-                {nextLabel || (isLast ? 'Launch Building' : 'Next')}
+                {nextLabel || (isLast ? 'Launch' : 'Next')}
                 {!isLast && <ArrowRight className="h-4 w-4" />}
               </>
             )}

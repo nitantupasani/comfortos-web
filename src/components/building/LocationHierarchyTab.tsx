@@ -247,8 +247,8 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Location Hierarchy</h3>
-          <p className="text-sm text-gray-500">Define the physical structure: wings, floors, rooms, and placements</p>
+          <h3 className="text-lg font-semibold text-gray-900">Zones</h3>
+          <p className="text-sm text-gray-500">Floors, rooms, and sensor placements inside the building.</p>
         </div>
         {tree.length === 0 && (
           <button

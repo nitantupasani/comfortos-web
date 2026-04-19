@@ -1,14 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Building2,
-  Users,
   BarChart3,
-  ShieldCheck,
   Activity,
   PanelsTopLeft,
   FileQuestion,
   Eye,
+  Users,
+  LineChart,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { UserRole } from '../../types';
@@ -29,27 +28,23 @@ const ROLE_ENTRY_PATHS: Record<UserRole, string> = {
 
 const nav: NavGroup[] = [
   {
-    label: 'Workspace',
+    label: 'Main',
     items: [
       { to: '/admin', icon: Activity, label: 'Dashboard', end: true },
-      { to: '/admin/building-analytics', icon: LayoutDashboard, label: 'Building Analytics' },
-    ],
-  },
-  {
-    label: 'Manage',
-    items: [
       { to: '/admin/buildings', icon: Building2, label: 'Buildings' },
-      { to: '/admin/tenants', icon: Users, label: 'Tenants' },
-      { to: '/admin/fm-approvals', icon: ShieldCheck, label: 'FM Approvals' },
     ],
   },
   {
-    label: 'Analytics',
-    items: [{ to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' }],
+    label: 'Insights',
+    items: [
+      { to: '/admin/building-analytics', icon: LineChart, label: 'Building Analytics' },
+      { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
+    ],
   },
   {
-    label: 'Configuration',
+    label: 'Settings',
     items: [
+      { to: '/admin/tenants', icon: Users, label: 'Team & Access' },
       { to: '/admin/dashboard-config', icon: PanelsTopLeft, label: 'Dashboard Layout' },
       { to: '/admin/vote-config', icon: FileQuestion, label: 'Vote Form' },
     ],

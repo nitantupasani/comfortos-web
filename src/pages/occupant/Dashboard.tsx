@@ -160,8 +160,11 @@ export default function Dashboard() {
               All Buildings
             </div>
             {buildings.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/75 px-4 py-8 text-center text-sm text-slate-400">
-                No buildings available
+              <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/75 px-5 py-8 text-center">
+                <div className="text-sm font-medium text-slate-600">No buildings yet</div>
+                <p className="mt-1 text-xs text-slate-400 leading-5">
+                  Ask your facility manager to grant you access to a building. Once you're added, it will appear here.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">

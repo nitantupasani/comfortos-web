@@ -12,9 +12,9 @@ type TabKey = 'overview' | 'locations' | 'endpoints' | 'config';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
-  { key: 'locations', label: 'Location Hierarchy' },
-  { key: 'endpoints', label: 'Telemetry Endpoints' },
-  { key: 'config', label: 'Metric Config' },
+  { key: 'locations', label: 'Zones' },
+  { key: 'endpoints', label: 'Telemetry' },
+  { key: 'config', label: 'Metrics' },
 ];
 
 interface Props {

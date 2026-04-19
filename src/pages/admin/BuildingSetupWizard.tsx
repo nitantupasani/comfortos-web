@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { CheckCircle2, ArrowRight, Plus } from 'lucide-react';
 import { useBuildingWizardStore } from '../../store/buildingWizardStore';
 import { buildingsApi } from '../../api/buildings';
 import { locationsApi, type LocationCreate } from '../../api/locations';
@@ -9,7 +10,6 @@ import WizardShell from '../../components/building/wizard/WizardShell';
 import Step0_BuildingInfo from '../../components/building/wizard/Step0_BuildingInfo';
 import Step1_LocationHierarchy from '../../components/building/wizard/Step1_LocationHierarchy';
 import Step2_Connector from '../../components/building/wizard/Step2_Connector';
-import Step3_Metrics from '../../components/building/wizard/Step3_Metrics';
 import Step4_Finish from '../../components/building/wizard/Step4_Finish';
 import type { SduiNode } from '../../types';
 
@@ -29,7 +29,8 @@ function getDashboardTemplate(template: 'default' | 'minimal' | 'full', metrics:
 
   if (template === 'minimal') {
     return {
-      type: 'column', crossAxisAlignment: 'stretch',
+      type: 'column',
+      crossAxisAlignment: 'stretch',
       children: [
         { type: 'grid', columns: Math.min(metricTiles.length, 3), spacing: 10, children: metricTiles },
       ],
@@ -38,7 +39,8 @@ function getDashboardTemplate(template: 'default' | 'minimal' | 'full', metrics:
 
   if (template === 'full') {
     return {
-      type: 'column', crossAxisAlignment: 'stretch',
+      type: 'column',
+      crossAxisAlignment: 'stretch',
       children: [
         { type: 'weather_badge', temp: '--', unit: '°C', label: 'Outside', icon: 'wb_sunny' },
         { type: 'spacer', height: 8 },
@@ -52,20 +54,32 @@ function getDashboardTemplate(template: 'default' | 'minimal' | 'full', metrics:
           data: [],
         })),
         { type: 'spacer', height: 8 },
-        { type: 'alert_banner', icon: 'info', color: 'blue', title: 'Building Active', subtitle: 'Telemetry data will appear once sensors report.' },
+        {
+          type: 'alert_banner',
+          icon: 'info',
+          color: 'blue',
+          title: 'Building Active',
+          subtitle: 'Telemetry data will appear once sensors report.',
+        },
       ],
     };
   }
 
-  // default
   return {
-    type: 'column', crossAxisAlignment: 'stretch',
+    type: 'column',
+    crossAxisAlignment: 'stretch',
     children: [
       { type: 'weather_badge', temp: '--', unit: '°C', label: 'Outside', icon: 'wb_sunny' },
       { type: 'spacer', height: 8 },
       { type: 'grid', columns: Math.min(metricTiles.length, 3), spacing: 10, children: metricTiles },
       { type: 'spacer', height: 16 },
-      { type: 'alert_banner', icon: 'info', color: 'blue', title: 'Welcome to ComfortOS', subtitle: 'Select your location and cast a comfort vote to help improve this space.' },
+      {
+        type: 'alert_banner',
+        icon: 'info',
+        color: 'blue',
+        title: 'Welcome to ComfortOS',
+        subtitle: 'Select your location and cast a comfort vote to help improve this space.',
+      },
     ],
   };
 }
@@ -75,6 +89,7 @@ export default function BuildingSetupWizard() {
   const store = useBuildingWizardStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [launched, setLaunched] = useState<{ id: string; name: string } | null>(null);
 
   const handleNext = async (): Promise<boolean> => {
     setError(null);
@@ -82,12 +97,12 @@ export default function BuildingSetupWizard() {
     try {
       switch (store.currentStep) {
         case 0: {
-          // Validate & create building
+          // Create building
           if (!store.buildingForm.name.trim() || !store.buildingForm.address.trim()) {
             setError('Name and address are required');
             return false;
           }
-          if (store.createdBuildingId) return true; // already created
+          if (store.createdBuildingId) return true;
           setIsSubmitting(true);
           const building = await buildingsApi.create({
             name: store.buildingForm.name.trim(),
@@ -103,11 +118,10 @@ export default function BuildingSetupWizard() {
         }
 
         case 1: {
-          // Create locations in batch
-          if (!store.createdBuildingId || store.floors.length === 0) return true; // skip if no floors
+          // Create zones
+          if (!store.createdBuildingId || store.floors.length === 0) return true;
           setIsSubmitting(true);
 
-          // First create building root node
           const buildingRoot = await locationsApi.create({
             buildingId: store.createdBuildingId,
             type: 'building',
@@ -115,7 +129,6 @@ export default function BuildingSetupWizard() {
             code: 'ROOT',
           });
 
-          // Then create floors and rooms
           for (const floor of store.floors) {
             const floorNode = await locationsApi.create({
               buildingId: store.createdBuildingId,
@@ -142,10 +155,10 @@ export default function BuildingSetupWizard() {
         }
 
         case 2: {
-          // Create telemetry endpoint if API-based connector
+          // Create telemetry endpoint if API
           const ct = store.connector.connectionType;
           if ((ct === 'bms_api' || ct === 'iot_platform') && store.createdBuildingId) {
-            if (!store.connector.endpointUrl.trim()) return true; // skip if no URL
+            if (!store.connector.endpointUrl.trim()) return true;
             setIsSubmitting(true);
 
             const authConfig: Record<string, string> = { type: store.connector.authType };
@@ -178,35 +191,26 @@ export default function BuildingSetupWizard() {
         }
 
         case 3: {
-          // Save metric configs
+          // Review & launch — apply metrics config + dashboard template
           if (!store.createdBuildingId) return true;
           setIsSubmitting(true);
-          const enabledMetrics = Object.entries(store.metricsEnabled);
-          for (const [metricType, isEnabled] of enabledMetrics) {
+
+          // Persist metric enablement (defaults from store are all-true)
+          const enabledPairs = Object.entries(store.metricsEnabled);
+          for (const [metricType, isEnabled] of enabledPairs) {
             await telemetryConfigApi.upsert(store.createdBuildingId, {
               buildingId: store.createdBuildingId,
               metricType,
               isEnabled,
             });
           }
-          setIsSubmitting(false);
-          return true;
-        }
 
-        case 4: {
-          // Apply dashboard template and finish
-          if (!store.createdBuildingId) return true;
-          setIsSubmitting(true);
-          const enabledMetrics = Object.entries(store.metricsEnabled)
-            .filter(([, v]) => v)
-            .map(([k]) => k);
+          const enabledMetrics = enabledPairs.filter(([, v]) => v).map(([k]) => k);
           const dashboardLayout = getDashboardTemplate(store.dashboardTemplate, enabledMetrics);
           await buildingsApi.updateConfig(store.createdBuildingId, { dashboardLayout });
-          setIsSubmitting(false);
 
-          // Reset and navigate
-          store.reset();
-          navigate('/admin/buildings');
+          setIsSubmitting(false);
+          setLaunched({ id: store.createdBuildingId, name: store.buildingForm.name.trim() });
           return true;
         }
 
@@ -227,15 +231,47 @@ export default function BuildingSetupWizard() {
     }
   };
 
+  // Success screen after launch
+  if (launched) {
+    return (
+      <div className="max-w-xl mx-auto mt-8 rounded-2xl border border-gray-200 bg-white p-8 text-center">
+        <div className="mx-auto w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+          <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+        </div>
+        <h2 className="mt-4 text-xl font-semibold text-gray-900">{launched.name} is live</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Telemetry starts flowing on the next poll cycle. Occupants can sign in and cast comfort votes now.
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Link
+            to={`/admin/buildings?id=${launched.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-medium transition-colors shadow-sm"
+          >
+            Go to building <ArrowRight className="h-4 w-4" />
+          </Link>
+          <button
+            onClick={() => {
+              store.reset();
+              setLaunched(null);
+              navigate('/admin/buildings/new');
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 text-sm font-medium transition-colors"
+          >
+            <Plus className="h-4 w-4" /> Add another
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const stepComponents = [
     <Step0_BuildingInfo key={0} />,
     <Step1_LocationHierarchy key={1} />,
     <Step2_Connector key={2} />,
-    <Step3_Metrics key={3} />,
-    <Step4_Finish key={4} />,
+    <Step4_Finish key={3} />,
   ];
 
-  const canSkip = store.currentStep > 0 && store.currentStep < 4;
+  const canSkip = store.currentStep > 0 && store.currentStep < 3;
   const nextDisabled =
     store.currentStep === 0 &&
     (!store.buildingForm.name.trim() || !store.buildingForm.address.trim());
@@ -243,7 +279,7 @@ export default function BuildingSetupWizard() {
   return (
     <div>
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
+        <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg max-w-3xl mx-auto">
           {error}
         </div>
       )}
@@ -253,7 +289,7 @@ export default function BuildingSetupWizard() {
         canSkip={canSkip}
         nextDisabled={nextDisabled}
         isSubmitting={isSubmitting}
-        nextLabel={store.currentStep === 4 ? 'Launch Building' : undefined}
+        nextLabel={store.currentStep === 3 ? 'Launch' : undefined}
       >
         {stepComponents[store.currentStep]}
       </WizardShell>

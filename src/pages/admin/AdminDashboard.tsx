@@ -2,21 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Building2,
-  Users,
   ShieldCheck,
   Activity,
   ArrowRight,
   Plus,
-  FileQuestion,
-  PanelsTopLeft,
   Thermometer,
-  BarChart3,
+  CheckCircle2,
+  Circle,
+  MapPin,
+  Radio,
 } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import { tenantsApi } from '../../api/tenants';
 import { fmRequestsApi, type FMRequestResponse } from '../../api/fmRequests';
 import type { Building, Tenant, BuildingComfortData } from '../../types';
-import { PageHeader, KpiCard, SectionCard, StatusBadge, EmptyState } from '../../components/common/ui';
+import { PageHeader, KpiCard, SectionCard, StatusBadge } from '../../components/common/ui';
 
 export default function AdminDashboard() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -67,259 +67,247 @@ export default function AdminDashboard() {
     return vals.reduce((a, b) => a + b, 0) / vals.length;
   }, [comforts]);
 
+  const isEmpty = !loading && buildings.length === 0;
+
+  // First-use hero: no buildings yet
+  if (isEmpty) {
+    return (
+      <>
+        <PageHeader
+          title="Welcome to ComfortOS"
+          description="Set up your first building to start collecting comfort signal."
+        />
+        <GetStartedHero />
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader
-        title="Admin Dashboard"
-        description="Platform health, building performance, and pending operational tasks at a glance."
+        title="Dashboard"
+        description="Comfort signal and setup status across your estate."
         actions={
-          <>
-            <Link
-              to="/admin/buildings/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
-            >
-              <Plus className="h-4 w-4" /> Add Building
-            </Link>
-            <Link
-              to="/admin/analytics"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-3.5 py-2 text-sm font-medium transition-colors"
-            >
-              <BarChart3 className="h-4 w-4" /> Analytics
-            </Link>
-          </>
+          <Link
+            to="/admin/buildings/new"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" /> Add Building
+          </Link>
         }
       />
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI row — trimmed from 4 → 3, dropped "Tenants" (secondary) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
           tone="primary"
           icon={<Building2 className="h-5 w-5" />}
           label="Buildings"
           value={loading ? '—' : buildings.length}
-          hint={buildings.length ? `${buildings.filter((b) => !b.requiresAccessPermission).length} open` : undefined}
-          loading={loading}
-        />
-        <KpiCard
-          tone="violet"
-          icon={<Users className="h-5 w-5" />}
-          label="Tenants"
-          value={loading ? '—' : tenants.length}
-          loading={loading}
-        />
-        <KpiCard
-          tone="amber"
-          icon={<ShieldCheck className="h-5 w-5" />}
-          label="Pending FM Approvals"
-          value={loading ? '—' : pendingRequests.length}
-          hint={pendingRequests.length ? 'action needed' : 'all clear'}
-          onClick={pendingRequests.length ? () => (window.location.href = '/admin/fm-approvals') : undefined}
           loading={loading}
         />
         <KpiCard
           tone="emerald"
+          icon={<Thermometer className="h-5 w-5" />}
+          label="Avg Comfort"
+          value={loading ? '—' : avgComfort != null ? avgComfort.toFixed(1) : '—'}
+          hint={avgComfort != null ? '/ 10' : 'no data yet'}
+          loading={loading}
+        />
+        <KpiCard
+          tone="violet"
           icon={<Activity className="h-5 w-5" />}
           label="Total Votes"
           value={loading ? '—' : totalVotes.toLocaleString()}
-          hint={avgComfort != null ? `avg ${avgComfort.toFixed(1)}/10` : undefined}
           loading={loading}
         />
       </div>
 
-      {/* Two-col area */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
-        {/* Pending approvals */}
-        <SectionCard
-          className="xl:col-span-1"
-          icon={<ShieldCheck className="h-4 w-4" />}
-          title="Pending FM Approvals"
-          description={pendingRequests.length ? `${pendingRequests.length} awaiting review` : 'No pending requests'}
-          action={
-            pendingRequests.length > 0 && (
-              <Link
-                to="/admin/fm-approvals"
-                className="text-xs font-medium text-primary-700 hover:text-primary-800 inline-flex items-center gap-1"
-              >
-                Review all <ArrowRight className="h-3 w-3" />
-              </Link>
-            )
-          }
-          padding="none"
-        >
-          {pendingRequests.length === 0 ? (
-            <EmptyState
-              icon={<ShieldCheck className="h-5 w-5" />}
-              title="Nothing pending"
-              description="New facility-manager requests will appear here."
-            />
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {pendingRequests.slice(0, 5).map((r) => (
-                <li key={r.id} className="px-5 py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold flex items-center justify-center shrink-0">
-                    {r.userName?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">{r.userName || r.userEmail}</div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {r.buildingName} · {r.roleRequested.replace(/_/g, ' ')}
-                    </div>
-                  </div>
-                  <StatusBadge tone="warning" dot>
-                    Pending
-                  </StatusBadge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+      {/* Pending approvals alert — only when there are any */}
+      {pendingRequests.length > 0 && (
+        <div className="mt-4">
+          <Link
+            to="/admin/fm-approvals"
+            className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 hover:bg-amber-100 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-amber-900">
+                {pendingRequests.length} facility-manager request{pendingRequests.length > 1 ? 's' : ''} awaiting review
+              </div>
+              <div className="text-xs text-amber-700">Approve access so FMs can manage buildings.</div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-amber-600" />
+          </Link>
+        </div>
+      )}
 
-        {/* Building health */}
+      {/* Buildings grid — primary section */}
+      <div className="mt-5">
         <SectionCard
-          className="xl:col-span-2"
-          icon={<Thermometer className="h-4 w-4" />}
-          title="Building health"
-          description="Comfort signal across the estate"
+          icon={<Building2 className="h-4 w-4" />}
+          title="Buildings"
+          description="Setup status and live comfort per building"
           action={
             <Link
               to="/admin/buildings"
               className="text-xs font-medium text-primary-700 hover:text-primary-800 inline-flex items-center gap-1"
             >
-              Manage buildings <ArrowRight className="h-3 w-3" />
+              Manage all <ArrowRight className="h-3 w-3" />
             </Link>
           }
           padding="none"
         >
-          {buildings.length === 0 ? (
-            <EmptyState
-              icon={<Building2 className="h-5 w-5" />}
-              title="No buildings yet"
-              description="Set up your first building to start collecting comfort signal."
-              action={
-                <Link
-                  to="/admin/buildings/new"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 text-xs font-medium"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Add building
-                </Link>
-              }
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-[11px] uppercase tracking-wider">
-                  <tr>
-                    <th className="px-5 py-2.5 text-left font-medium">Building</th>
-                    <th className="px-5 py-2.5 text-left font-medium">City</th>
-                    <th className="px-5 py-2.5 text-right font-medium">Comfort</th>
-                    <th className="px-5 py-2.5 text-right font-medium">Votes</th>
-                    <th className="px-5 py-2.5 text-right font-medium">Access</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {buildings.slice(0, 8).map((b) => {
-                    const c = comforts.get(b.id);
-                    const score = c?.overallScore;
-                    const tone =
-                      score == null
-                        ? 'neutral'
-                        : score >= 7
-                          ? 'success'
-                          : score >= 5
-                            ? 'warning'
-                            : 'danger';
-                    return (
-                      <tr key={b.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-medium text-gray-900">{b.name}</td>
-                        <td className="px-5 py-3 text-gray-500">{b.city || '—'}</td>
-                        <td className="px-5 py-3 text-right tabular-nums">
-                          {score != null ? (
-                            <StatusBadge tone={tone} dot>
-                              {score.toFixed(1)}
-                            </StatusBadge>
-                          ) : (
-                            <span className="text-xs text-gray-400">no data</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3 text-right text-gray-600 tabular-nums">{c?.totalVotes ?? 0}</td>
-                        <td className="px-5 py-3 text-right">
-                          <StatusBadge tone={b.requiresAccessPermission ? 'warning' : 'success'}>
-                            {b.requiresAccessPermission ? 'Restricted' : 'Open'}
-                          </StatusBadge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* Quick actions */}
-      <div className="mt-5">
-        <SectionCard
-          title="Quick actions"
-          description="Common operational tasks"
-          padding="md"
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <QuickAction
-              to="/admin/buildings/new"
-              icon={<Building2 className="h-4 w-4" />}
-              label="Add building"
-              hint="Run the setup wizard"
-            />
-            <QuickAction
-              to="/admin/tenants"
-              icon={<Users className="h-4 w-4" />}
-              label="Invite tenant"
-              hint="Assign building access"
-            />
-            <QuickAction
-              to="/admin/dashboard-config"
-              icon={<PanelsTopLeft className="h-4 w-4" />}
-              label="Edit dashboard"
-              hint="Customize occupant view"
-            />
-            <QuickAction
-              to="/admin/vote-config"
-              icon={<FileQuestion className="h-4 w-4" />}
-              label="Edit vote form"
-              hint="Tune comfort prompts"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+            {buildings.slice(0, 9).map((b) => (
+              <BuildingCard
+                key={b.id}
+                building={b}
+                comfort={comforts.get(b.id)}
+              />
+            ))}
+            <AddBuildingCard />
           </div>
         </SectionCard>
       </div>
+
+      {/* Silent debug: keep tenants count out of the way */}
+      {tenants.length > 0 && (
+        <div className="mt-3 text-right text-xs text-gray-400">
+          {tenants.length} tenant{tenants.length !== 1 ? 's' : ''} configured
+        </div>
+      )}
     </>
   );
 }
 
-function QuickAction({
-  to,
-  icon,
-  label,
-  hint,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  hint: string;
-}) {
+function GetStartedHero() {
+  const steps = [
+    {
+      n: 1,
+      icon: <Building2 className="h-5 w-5" />,
+      title: 'Add your first building',
+      body: 'Name, address, and access rules.',
+      cta: 'Start setup',
+      to: '/admin/buildings/new',
+      ready: true,
+    },
+    {
+      n: 2,
+      icon: <MapPin className="h-5 w-5" />,
+      title: 'Define zones',
+      body: 'Floors and rooms inside the building.',
+      ready: false,
+    },
+    {
+      n: 3,
+      icon: <Radio className="h-5 w-5" />,
+      title: 'Connect telemetry',
+      body: 'Link your BMS or sensor API.',
+      ready: false,
+    },
+    {
+      n: 4,
+      icon: <Thermometer className="h-5 w-5" />,
+      title: 'Verify data is flowing',
+      body: 'See live readings on the dashboard.',
+      ready: false,
+    },
+  ];
+
+  return (
+    <div className="mt-2">
+      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-br from-primary-50 via-white to-white">
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary-700">Get started</div>
+          <div className="mt-1 text-lg font-semibold text-gray-900">
+            4 steps to your first live building
+          </div>
+          <div className="mt-1 text-sm text-gray-500">
+            Most teams finish in under 10 minutes. You can skip steps and come back later.
+          </div>
+        </div>
+
+        <ol className="divide-y divide-gray-100">
+          {steps.map((s) => (
+            <li key={s.n} className="flex items-center gap-4 px-6 py-4">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                s.ready
+                  ? 'bg-primary-100 text-primary-700'
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+                {s.ready ? <Circle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4 opacity-30" />}
+              </div>
+              <div className="shrink-0 text-gray-400">{s.icon}</div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-medium ${s.ready ? 'text-gray-900' : 'text-gray-500'}`}>
+                  Step {s.n} — {s.title}
+                </div>
+                <div className="text-xs text-gray-500">{s.body}</div>
+              </div>
+              {s.ready && s.cta && s.to && (
+                <Link
+                  to={s.to}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
+                >
+                  {s.cta} <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
+              {!s.ready && (
+                <span className="text-xs text-gray-400">Locked</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+function BuildingCard({ building, comfort }: { building: Building; comfort?: BuildingComfortData }) {
+  const score = comfort?.overallScore;
+  const tone =
+    score == null ? 'neutral' : score >= 7 ? 'success' : score >= 5 ? 'warning' : 'danger';
+  const hasVotes = (comfort?.totalVotes ?? 0) > 0;
+
   return (
     <Link
-      to={to}
-      className="group flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50/30 transition-colors"
+      to={`/admin/buildings?id=${building.id}`}
+      className="group block rounded-xl border border-gray-200 p-4 hover:border-primary-300 hover:shadow-sm transition-all bg-white"
     >
-      <div className="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-100">
-        {icon}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900 truncate">{building.name}</div>
+          <div className="text-xs text-gray-500 truncate">{building.city || '\u00a0'}</div>
+        </div>
+        {score != null ? (
+          <StatusBadge tone={tone} dot>
+            {score.toFixed(1)}
+          </StatusBadge>
+        ) : (
+          <StatusBadge tone="neutral">No data</StatusBadge>
+        )}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-gray-900">{label}</div>
-        <div className="text-xs text-gray-500 truncate">{hint}</div>
+      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+        <span>{hasVotes ? `${comfort!.totalVotes} votes` : 'Awaiting votes'}</span>
+        <StatusBadge tone={building.requiresAccessPermission ? 'warning' : 'success'}>
+          {building.requiresAccessPermission ? 'Restricted' : 'Open'}
+        </StatusBadge>
       </div>
-      <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+    </Link>
+  );
+}
+
+function AddBuildingCard() {
+  return (
+    <Link
+      to="/admin/buildings/new"
+      className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-primary-300 hover:text-primary-600 hover:bg-primary-50/30 transition-colors min-h-[104px] gap-1"
+    >
+      <Plus className="h-5 w-5" />
+      <span className="text-sm font-medium">Add building</span>
     </Link>
   );
 }

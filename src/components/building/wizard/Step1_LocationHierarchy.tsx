@@ -86,9 +86,9 @@ export default function Step1_LocationHierarchy() {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Location Hierarchy</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Zones</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Define floors and rooms. You can auto-generate or add manually.
+          Add floors and rooms. Use Quick Setup for repeating layouts, or build it by hand.
         </p>
       </div>
 

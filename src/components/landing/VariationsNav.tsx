@@ -1,22 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
-type Variation =
-  | 'aurora'
-  | 'bento'
-  | 'kinetic'
-  | 'editorial'
-  | 'midnight'
-  | 'cove'
-  | 'original';
+type Variation = 'aurora' | 'bento' | 'kinetic' | 'editorial' | 'midnight' | 'cove';
 
 const variations: { key: Variation; label: string; to: string }[] = [
-  { key: 'original', label: 'Original', to: '/landing-original' },
-  { key: 'aurora', label: 'V1 · Aurora', to: '/v1' },
-  { key: 'bento', label: 'V2 · Signal', to: '/v2' },
-  { key: 'kinetic', label: 'V3 · Velocity', to: '/v3' },
-  { key: 'editorial', label: 'V4 · Editorial', to: '/v4' },
-  { key: 'midnight', label: 'V5 · Midnight', to: '/v5' },
-  { key: 'cove', label: 'V6 · Cove', to: '/v6' },
+  { key: 'aurora', label: 'V1 · Aurora', to: '/landing/v1' },
+  { key: 'bento', label: 'V2 · Signal', to: '/landing/v2' },
+  { key: 'kinetic', label: 'V3 · Velocity', to: '/landing/v3' },
+  { key: 'editorial', label: 'V4 · Editorial', to: '/landing/v4' },
+  { key: 'midnight', label: 'V5 · Midnight', to: '/landing/v5' },
+  { key: 'cove', label: 'V6 · Cove', to: '/landing/v6' },
 ];
 
 export default function VariationsNav({
@@ -26,6 +18,12 @@ export default function VariationsNav({
   active: Variation;
   theme?: 'light' | 'dark';
 }) {
+  const { pathname } = useLocation();
+
+  // Only show the variant toggle when reviewing variants under /landing/*.
+  // On the public root, keep the landing page clean.
+  if (!pathname.startsWith('/landing/')) return null;
+
   const isDark = theme === 'dark';
   return (
     <div
@@ -53,16 +51,14 @@ export default function VariationsNav({
                     ? isDark
                       ? '#10B981'
                       : '#2d6b4d'
-                    : isDark
-                    ? 'transparent'
                     : 'transparent',
                   color: isActive
                     ? isDark
                       ? '#0a0a0a'
                       : '#ffffff'
                     : isDark
-                    ? '#a1a1aa'
-                    : '#475569',
+                      ? '#a1a1aa'
+                      : '#475569',
                 }}
               >
                 {v.label}

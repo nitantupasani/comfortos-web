@@ -6,9 +6,9 @@ export default function Step0_BuildingInfo() {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Building Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Building</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Enter the basic details for the new building
+          Where is this building? We'll use this to group zones and tag telemetry.
         </p>
       </div>
 
@@ -48,7 +48,7 @@ export default function Step0_BuildingInfo() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Latitude</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Latitude <span className="text-gray-400 font-normal">(optional)</span></label>
             <input
               type="number"
               step="any"
@@ -59,7 +59,7 @@ export default function Step0_BuildingInfo() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Longitude</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Longitude <span className="text-gray-400 font-normal">(optional)</span></label>
             <input
               type="number"
               step="any"
@@ -71,14 +71,17 @@ export default function Step0_BuildingInfo() {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+        <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none pt-1">
           <input
             type="checkbox"
             checked={buildingForm.requiresAccessPermission ?? false}
             onChange={(e) => setBuildingForm({ requiresAccessPermission: e.target.checked })}
-            className="rounded"
+            className="rounded mt-0.5"
           />
-          Requires access permission (restricted building)
+          <span>
+            Restricted building
+            <span className="block text-xs text-gray-500">Occupants need approval before they can view or vote.</span>
+          </span>
         </label>
       </div>
     </div>

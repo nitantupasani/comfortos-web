@@ -69,14 +69,13 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
 
-      {/* Landing variations (always accessible for review) */}
-      <Route path="/landing-original" element={<LandingAurora />} />
-      <Route path="/v1" element={<LandingAurora />} />
-      <Route path="/v2" element={<LandingBento />} />
-      <Route path="/v3" element={<LandingKinetic />} />
-      <Route path="/v4" element={<LandingEditorial />} />
-      <Route path="/v5" element={<LandingMidnight />} />
-      <Route path="/v6" element={<LandingCove />} />
+      {/* Landing variants — internal review only, kept under /landing prefix */}
+      <Route path="/landing/v1" element={<LandingAurora />} />
+      <Route path="/landing/v2" element={<LandingBento />} />
+      <Route path="/landing/v3" element={<LandingKinetic />} />
+      <Route path="/landing/v4" element={<LandingEditorial />} />
+      <Route path="/landing/v5" element={<LandingMidnight />} />
+      <Route path="/landing/v6" element={<LandingCove />} />
 
       {/* Root: landing for logged-out, role dashboard for logged-in */}
       <Route
