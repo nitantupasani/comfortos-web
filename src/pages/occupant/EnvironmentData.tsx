@@ -3,14 +3,14 @@ import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import { MapPin, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { telemetryApi, type TelemetryQueryResponse } from '../../api/telemetry';
 
 /* ── Constants ──────────────────────────────────────────── */
 
 const TIME_RANGES = [
-  { label: 'Last 2 hours', hours: 2, granularity: 'raw' as const },
+  { label: 'Last 6 hours', hours: 6, granularity: 'raw' as const },
   { label: 'Last 24 hours', hours: 24, granularity: 'hourly' as const },
 ];
 
@@ -240,9 +240,17 @@ export default function EnvironmentData() {
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="_display" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} unit="°" />
+              <YAxis tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={[16, 28]} ticks={[16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]} unit="°" />
+              {/* Integer gridlines */}
+              {Array.from({ length: 13 }, (_, i) => 16 + i).map((v) => (
+                <ReferenceLine key={`int-${v}`} y={v} stroke="#e2e8f0" strokeWidth={1} />
+              ))}
+              {/* Half-degree gridlines (dashed, subtler) */}
+              {Array.from({ length: 12 }, (_, i) => 16.5 + i).map((v) => (
+                <ReferenceLine key={`half-${v}`} y={v} stroke="#f1f5f9" strokeDasharray="4 4" strokeWidth={1} />
+              ))}
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, padding: '8px 12px' }}
                 labelStyle={{ fontWeight: 600, marginBottom: 4 }}
