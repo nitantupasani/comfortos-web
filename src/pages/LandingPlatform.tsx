@@ -11,6 +11,7 @@ import {
   Cpu,
   FileJson,
   Gauge,
+  MessageSquare,
   LayoutDashboard,
   LogIn,
   MapPin,
@@ -157,6 +158,7 @@ export default function LandingPlatform() {
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-7 text-[13px] text-gray-600">
+            <a href="#mission" className="hover:text-gray-900 transition">Mission</a>
             <a href="#platform" className="hover:text-gray-900 transition">Platform</a>
             <a href="#solutions" className="hover:text-gray-900 transition">Solutions</a>
             <a href="#research" className="hover:text-gray-900 transition">Research</a>
@@ -210,19 +212,19 @@ export default function LandingPlatform() {
                 variants={fadeUp}
                 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900"
               >
-                The occupant layer for{' '}
-                <span className="text-teal-600">smart buildings.</span>
+                Buildings that listen.{' '}
+                <span className="text-teal-600">Occupants that know.</span>
               </motion.h1>
 
               <motion.p
                 variants={fadeUp}
                 className="mt-6 text-[17px] md:text-lg text-gray-600 leading-relaxed text-justify max-w-[58ch]"
               >
-                ComfortOS captures real-time thermal comfort signal from the people
-                using a building, ingests live telemetry from vendor APIs over HTTPS,
-                and turns both into the analytics and configuration surfaces facility
-                managers actually open. Built for research pilots and occupant-centric
-                operation.
+                ComfortOS is the two-way communication layer for smart buildings.
+                Occupants tell the building how they feel — the building tells them
+                what it knows. Over a network of connected buildings, this mutual
+                dialogue turns comfort into something that adapts to people, not
+                just sensors.
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-2.5">
@@ -348,13 +350,13 @@ export default function LandingPlatform() {
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500"
                 style={{ fontFamily: MONO }}
               >
-                · what ships today
+                · the two-way loop
               </div>
               <span
                 className="text-[11px] text-gray-500"
                 style={{ fontFamily: MONO }}
               >
-                3 surfaces · one data model
+                listen · understand · inform
               </span>
             </div>
 
@@ -545,8 +547,73 @@ export default function LandingPlatform() {
         </div>
       </section>
 
+      {/* Mission */}
+      <section id="mission" className="border-b border-gray-200/70 bg-gray-50/40">
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-24">
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <motion.div variants={fadeUp}>
+              <div
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 mb-2"
+                style={{ fontFamily: MONO }}
+              >
+                · our mission
+              </div>
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">
+                A network of buildings that have conversations with their people.
+              </h2>
+              <p className="mt-4 text-[15px] text-gray-600 leading-relaxed text-justify mx-auto max-w-2xl">
+                Buildings today are one-way systems — they regulate, but they don't listen.
+                ComfortOS exists to change that. We create a two-way communication channel
+                between buildings and their occupants: people share how they feel, and the
+                building shares what it knows. When this dialogue scales across a network
+                of smart buildings, comfort stops being a setting and becomes a conversation.
+              </p>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-12 grid md:grid-cols-3 gap-6 text-left">
+              <div className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
+                  <Users className="h-4 w-4 text-teal-700" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-gray-900">Occupants speak</h3>
+                <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
+                  Low-friction voting gives every person a direct channel to tell the building
+                  how they feel — no helpdesk, no complaint form.
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
+                  <MessageSquare className="h-4 w-4 text-teal-700" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-gray-900">Buildings respond</h3>
+                <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
+                  Live telemetry, zone conditions, and comfort trends flow back to occupants —
+                  so they know they've been heard and can see the bigger picture.
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
+                  <Network className="h-4 w-4 text-teal-700" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-gray-900">Networks learn</h3>
+                <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
+                  Connected buildings share patterns across sites — what works in one building
+                  informs the next. The network gets smarter with every conversation.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Why occupants vote — floor snapshot */}
-      <section className="border-b border-gray-200/70 bg-gray-50/40">
+      <section className="border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 py-20 md:py-24 grid lg:grid-cols-12 gap-10 items-center">
           <motion.div
             variants={fadeUp}
@@ -559,16 +626,16 @@ export default function LandingPlatform() {
               className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 mb-2"
               style={{ fontFamily: MONO }}
             >
-              · why occupants participate
+              · the building talks back
             </div>
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 max-w-xl">
-              You're not the only one feeling it.
+              You spoke up. Here's what the building sees.
             </h2>
             <p className="mt-3 text-[13.5px] text-gray-600 max-w-xl leading-relaxed text-justify">
-              Every vote rolls up into a live picture of the floor. Occupants
-              see how their own comfort compares to the room around them —
-              comfort becomes a shared project, not a private gripe, and FMs
-              act on signals instead of anecdotes.
+              Every vote rolls up into a live picture of the floor that the
+              building shares back. Occupants see how their comfort compares
+              to the room around them — the building listens, then responds
+              with context. FMs act on signals instead of anecdotes.
             </p>
           </motion.div>
 
