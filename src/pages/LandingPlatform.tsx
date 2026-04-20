@@ -565,7 +565,7 @@ export default function LandingPlatform() {
                 · our mission
               </div>
               <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">
-                A network of buildings that have conversations with their people.
+                A network of buildings that communicate with their people.
               </h2>
               <p className="mt-4 text-[15px] text-gray-600 leading-relaxed text-justify mx-auto max-w-2xl">
                 Most buildings regulate. Few listen. None talk back.
