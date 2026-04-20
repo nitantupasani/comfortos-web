@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  Brain,
   Building2,
   CalendarDays,
   CloudSun,
@@ -19,8 +20,10 @@ import {
   MapPin,
   Network,
   Radio,
+  Scale,
   Server,
   Sliders,
+  Sun,
   Thermometer,
   TrendingDown,
   Users,
@@ -28,27 +31,9 @@ import {
 } from 'lucide-react';
 
 const CALENDLY_URL = 'https://calendly.com/nitantupasani/30min';
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 const MONO =
   "'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
-
-const trendData = [
-  { t: 'Mon', warm: 18, cold: 12 },
-  { t: 'Tue', warm: 22, cold: 14 },
-  { t: 'Wed', warm: 31, cold: 9 },
-  { t: 'Thu', warm: 27, cold: 11 },
-  { t: 'Fri', warm: 19, cold: 16 },
-  { t: 'Sat', warm: 8, cold: 6 },
-  { t: 'Sun', warm: 6, cold: 5 },
-];
 
 const roadmap = [
   {
@@ -145,6 +130,59 @@ export default function LandingPlatform() {
   };
   const stagger: Variants = { show: { transition: { staggerChildren: 0.03 } } };
 
+  const FlowBeam = ({
+    direction,
+    tone,
+    strong = false,
+    className = '',
+  }: {
+    direction: 'left' | 'right' | 'both';
+    tone: 'teal' | 'amber';
+    delay?: number;
+    strong?: boolean;
+    className?: string;
+  }) => {
+    const color = tone === 'teal' ? '#0d9488' : '#f59e0b';
+    const isBoth = direction === 'both';
+    const reverse = direction === 'left';
+    const Chev = ({ side }: { side: 'left' | 'right' }) => (
+      <div
+        className="absolute top-1/2 -translate-y-1/2 flex items-center"
+        style={side === 'left' ? { left: 2 } : { right: 2 }}
+      >
+        <svg width="11" height="11" viewBox="0 0 10 10" style={{ transform: side === 'left' ? 'rotate(180deg)' : 'none' }}>
+          <path
+            d="M1 1 L6 5 L1 9"
+            stroke={color}
+            strokeWidth="1.8"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={strong ? 1 : 0.9}
+          />
+        </svg>
+      </div>
+    );
+    return (
+      <div
+        aria-hidden
+        className={`relative hidden lg:flex items-center justify-center min-h-[44px] ${className}`}
+      >
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-full h-[2px] rounded-full"
+          style={{
+            background: isBoth
+              ? `linear-gradient(to right, ${color}00, ${color}66 25%, ${color}88 50%, ${color}66 75%, ${color}00)`
+              : `linear-gradient(${reverse ? 'to left' : 'to right'}, ${color}00, ${color}55 30%, ${color}66 50%, ${color}55 70%, ${color}00)`,
+            opacity: strong ? 0.95 : 0.65,
+          }}
+        />
+        {(isBoth || direction === 'right') && <Chev side="right" />}
+        {(isBoth || direction === 'left') && <Chev side="left" />}
+      </div>
+    );
+  };
+
   return (
     <div
       className="min-h-screen bg-white text-gray-900 antialiased"
@@ -221,10 +259,10 @@ export default function LandingPlatform() {
             >
               <motion.h1
                 variants={fadeUp}
-                className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900"
+                className="text-4xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05] text-gray-900"
               >
-                Buildings that listen.{' '}
-                <span className="text-teal-600">Occupants that know.</span>
+                Buildings that listen.<br />
+                <span className="text-teal-600">Occupants that understand.</span>
               </motion.h1>
 
               <motion.p
@@ -349,7 +387,7 @@ export default function LandingPlatform() {
             </motion.div>
           </div>
 
-          {/* What ships today: Capture → Analyze → Configure */}
+          {/* Two-way communication: occupants ↔ brain ↔ building */}
           <motion.div
             variants={stagger}
             initial="hidden"
@@ -357,50 +395,43 @@ export default function LandingPlatform() {
             viewport={{ once: true, margin: '-60px' }}
             className="mt-16"
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <div
                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500"
                 style={{ fontFamily: MONO }}
               >
-                · the two-way loop
+                · two-way communication
               </div>
               <span
                 className="text-[11px] text-gray-500"
                 style={{ fontFamily: MONO }}
               >
-                listen · understand · inform · optimize
+                occupants · comfortOS · building
               </span>
             </div>
 
-            <div className="grid lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-4 items-stretch">
-              {/* Capture */}
-              <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500"
-                      style={{ fontFamily: MONO }}
-                    >
-                      01 · Capture
-                    </span>
-                  </div>
-                  <Radio className="h-3.5 w-3.5 text-gray-400" />
+            <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_32px_2.6fr_32px_0.9fr] gap-y-3 items-start">
+
+              {/* ==================== LOOP A · occupants teach (row 1) ==================== */}
+
+              {/* 01 · Vote */}
+              <motion.div
+                variants={fadeUp}
+                className="lg:col-start-1 lg:row-start-1 rounded-lg border border-gray-200 bg-white overflow-hidden"
+              >
+                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-teal-50/40 flex items-center gap-1.5">
+                  <Radio className="h-3 w-3 text-teal-600" />
+                  <span className="text-[10.5px] font-semibold text-gray-800">Vote</span>
+                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>how you feel</span>
                 </div>
-                <div className="p-4">
-                  <div className="text-[11px] text-gray-500 mb-3" style={{ fontFamily: MONO }}>
-                    occupant · /vote
-                  </div>
-                  <div className="text-[12.5px] font-medium text-gray-900 mb-3">
-                    Thermal comfort, Room 402
-                  </div>
-                  <div className="flex justify-between gap-1">
+                <div className="p-2">
+                  <div className="flex justify-between gap-0.5">
                     {['−3', '−2', '−1', '0', '+1', '+2', '+3'].map((v, i) => (
                       <div
                         key={v}
-                        className={`flex-1 rounded-md text-[10.5px] font-semibold py-1.5 text-center tabular-nums border ${
+                        className={`flex-1 rounded text-[8.5px] font-semibold py-0.5 text-center tabular-nums border ${
                           i === 5
-                            ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                            ? 'bg-teal-600 text-white border-teal-600'
                             : 'bg-white border-gray-200 text-gray-600'
                         }`}
                         style={{ fontFamily: MONO }}
@@ -409,199 +440,444 @@ export default function LandingPlatform() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-2 flex justify-between text-[10px] text-gray-400 px-0.5">
-                    <span>Cold</span>
-                    <span>Neutral</span>
-                    <span>Hot</span>
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-[11px] font-medium text-gray-700 mb-2">
-                      What are you wearing?
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[
-                        { label: 'Light', hint: 'T-shirt', on: false },
-                        { label: 'Medium', hint: 'Shirt', on: false },
-                        { label: 'Warm', hint: 'Sweater', on: true },
-                        { label: 'Heavy', hint: 'Jacket', on: false },
-                      ].map((c) => (
-                        <div
-                          key={c.label}
-                          className={`rounded-md border px-1.5 py-1.5 text-center ${
-                            c.on
-                              ? 'bg-teal-600 text-white border-teal-600'
-                              : 'bg-white text-gray-700 border-gray-200'
-                          }`}
-                        >
-                          <div className="text-[11px] font-semibold leading-tight">{c.label}</div>
-                          <div className={`text-[9.5px] leading-tight mt-0.5 whitespace-nowrap ${c.on ? 'text-teal-50' : 'text-gray-400'}`}>
-                            {c.hint}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-teal-50 text-teal-700 border border-teal-100 px-1.5 py-0.5 text-[9px] font-semibold">
+                    <Thermometer className="h-2.5 w-2.5" />
+                    Warm · Sweater
                   </div>
                 </div>
               </motion.div>
 
-              <div className="hidden lg:flex items-center justify-center text-gray-300">
-                <ArrowRight className="h-5 w-5" />
-              </div>
+              <FlowBeam direction="both" tone="teal" strong className="lg:col-start-2 lg:row-start-1" />
 
-              {/* Analyze */}
-              <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500"
-                      style={{ fontFamily: MONO }}
-                    >
-                      02 · Analyze
-                    </span>
-                  </div>
-                  <Activity className="h-3.5 w-3.5 text-gray-400" />
-                </div>
-                <div className="p-4">
-                  <div className="text-[11px] text-gray-500 mb-1" style={{ fontFamily: MONO }}>
-                    FM · /comfort
-                  </div>
-                  <div className="text-[12.5px] font-medium text-gray-900 mb-3">
-                    Zone comfort, last 7 days
-                  </div>
-                  <div className="h-[96px] -mx-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={trendData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
-                        <defs>
-                          <linearGradient id="warmFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f97316" stopOpacity={0.25} />
-                            <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="coldFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#2563eb" stopOpacity={0.22} />
-                            <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <XAxis
-                          dataKey="t"
-                          tick={{ fontSize: 9, fill: '#9ca3af', fontFamily: MONO }}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis hide />
-                        <Tooltip
-                          contentStyle={{
-                            fontSize: 11,
-                            fontFamily: MONO,
-                            borderRadius: 6,
-                            border: '1px solid #e5e7eb',
-                          }}
-                        />
-                        <Area type="monotone" dataKey="warm" stroke="#f97316" strokeWidth={1.5} fill="url(#warmFill)" />
-                        <Area type="monotone" dataKey="cold" stroke="#2563eb" strokeWidth={1.5} fill="url(#coldFill)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-2 flex items-center gap-3 text-[10.5px] text-gray-600">
-                    <span className="inline-flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-orange-500" /> warm votes
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-blue-600" /> cold votes
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
+              <FlowBeam direction="both" tone="amber" strong className="lg:col-start-4 lg:row-start-1" />
 
-              <div className="hidden lg:flex items-center justify-center text-gray-300">
-                <ArrowRight className="h-5 w-5" />
-              </div>
-
-              {/* Configure */}
-              <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500"
-                      style={{ fontFamily: MONO }}
-                    >
-                      03 · Configure
-                    </span>
-                  </div>
-                  <FileJson className="h-3.5 w-3.5 text-gray-400" />
+              <motion.div
+                variants={fadeUp}
+                className="lg:col-start-5 lg:row-start-1 rounded-lg border border-gray-200 bg-white overflow-hidden"
+              >
+                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-amber-50/40 flex items-center gap-1.5">
+                  <Building2 className="h-3 w-3 text-amber-600" />
+                  <span className="text-[10.5px] font-semibold text-gray-800">Sense</span>
+                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>what building knows</span>
                 </div>
-                <div className="p-4">
-                  <div className="text-[11px] text-gray-500 mb-3" style={{ fontFamily: MONO }}>
-                    admin · /vote-config
-                  </div>
-                  <pre
-                    className="text-[11px] leading-relaxed bg-gray-50 rounded border border-gray-100 p-3 overflow-x-auto text-gray-800"
-                    style={{ fontFamily: MONO }}
-                  >
-{`{
-  "surface": "vote_form",
-  "scale": "pmv_7pt",
-  "fields": [
-    "thermal",
-    "clothing",
-    "activity"
-  ]
-}`}
-                  </pre>
-                  <div className="mt-3 text-[11px] text-gray-600">
-                    Ship the same schema to every occupant and FM. No app release needed.
-                  </div>
-                </div>
-              </motion.div>
-
-              <div className="hidden lg:flex items-center justify-center text-gray-300">
-                <ArrowRight className="h-5 w-5" />
-              </div>
-
-              {/* Optimize */}
-              <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500"
-                      style={{ fontFamily: MONO }}
-                    >
-                      04 · Optimize
-                    </span>
-                  </div>
-                  <Leaf className="h-3.5 w-3.5 text-gray-400" />
-                </div>
-                <div className="p-4">
-                  <div className="text-[11px] text-gray-500 mb-3" style={{ fontFamily: MONO }}>
-                    engine · /setpoint
-                  </div>
-                  <div className="space-y-2">
+                <div className="p-2">
+                  <div className="grid grid-cols-6 gap-0.5 mb-1">
                     {[
-                      { label: 'Comfort votes', value: '+0.6 avg (slightly warm)', icon: '🗳' },
-                      { label: 'Outside weather', value: '14°C · overcast', icon: '🌤' },
-                      { label: 'Building physics', value: 'high thermal mass · south facade', icon: '🏗' },
-                    ].map((r) => (
-                      <div key={r.label} className="flex items-center gap-2 rounded-md bg-gray-50 border border-gray-100 px-2.5 py-1.5">
-                        <span className="text-[12px]">{r.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] text-gray-500">{r.label}</div>
-                          <div className="text-[11px] font-semibold text-gray-800 truncate" style={{ fontFamily: MONO }}>{r.value}</div>
-                        </div>
-                      </div>
+                      'rgba(13,148,136,0.25)', 'rgba(13,148,136,0.35)', 'rgba(245,158,11,0.40)',
+                      'rgba(245,158,11,0.55)', 'rgba(245,158,11,0.65)', 'rgba(251,146,60,0.65)',
+                    ].map((bg, i) => (
+                      <div key={i} className="h-2.5 rounded-sm" style={{ backgroundColor: bg }} />
                     ))}
                   </div>
-                  <div className="mt-3 rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-2 flex items-center gap-2">
-                    <TrendingDown className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
-                    <div>
-                      <div className="text-[11px] font-semibold text-emerald-800">Setpoint: 22.5°C → 21.8°C</div>
-                      <div className="text-[10px] text-emerald-700">est. −12% HVAC energy · comfort maintained</div>
-                    </div>
+                  <div className="text-[9px] text-orange-700 font-semibold" style={{ fontFamily: MONO }}>
+                    south gain · high
                   </div>
                 </div>
               </motion.div>
+
+              {/* ==================== BRAIN · ComfortOS center (spans 2 rows, col 3) ==================== */}
+              <motion.div
+                variants={fadeUp}
+                className="lg:col-start-3 lg:row-start-1 lg:row-span-2 relative rounded-xl border border-gray-200 bg-gradient-to-br from-white via-teal-50/30 to-amber-50/30 overflow-hidden"
+              >
+                {!reduce && (
+                  <motion.div
+                    aria-hidden
+                    className="absolute -inset-6 rounded-[2rem] pointer-events-none z-0"
+                    style={{
+                      background:
+                        'conic-gradient(from 0deg, rgba(13,148,136,0.22), rgba(245,158,11,0.22), rgba(13,148,136,0.22))',
+                      filter: 'blur(22px)',
+                    }}
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                  />
+                )}
+
+                <div className="relative z-10 flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-white/70 backdrop-blur-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500" />
+                    </span>
+                    <span
+                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-600"
+                      style={{ fontFamily: MONO }}
+                    >
+                      ComfortOS engine · always learning
+                    </span>
+                  </div>
+                  <Brain className="h-3.5 w-3.5 text-teal-600" />
+                </div>
+
+                <div className="relative z-10 p-3 flex flex-col gap-2.5">
+
+                  {/* Neural core hero */}
+                  <div className="relative rounded-md border border-gray-200 bg-white/80 backdrop-blur-sm overflow-hidden">
+                    <div className="px-3 py-1.5 border-b border-gray-100/80 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Brain className="h-3 w-3 text-teal-700" />
+                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>neural_core</span>
+                      </div>
+                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>live · converging</span>
+                    </div>
+
+                    <div className="relative h-[200px]">
+                      {!reduce && (
+                        <motion.div
+                          aria-hidden
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            background:
+                              'radial-gradient(circle at 50% 50%, rgba(13,148,136,0.22), rgba(245,158,11,0.16) 40%, transparent 70%)',
+                          }}
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                      )}
+
+                      <svg viewBox="0 0 240 200" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                          <linearGradient id="tealFade" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#0d9488" stopOpacity="0.25" />
+                            <stop offset="70%" stopColor="#0d9488" stopOpacity="0.95" />
+                            <stop offset="100%" stopColor="#0d9488" stopOpacity="1" />
+                          </linearGradient>
+                          <linearGradient id="amberFade" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity="1" />
+                            <stop offset="30%" stopColor="#f59e0b" stopOpacity="0.95" />
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.25" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Teal arc: occupants → brain */}
+                        <motion.path
+                          d="M 16 100 Q 60 30, 120 100"
+                          stroke="url(#tealFade)"
+                          strokeWidth="2.6"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeDasharray="5 7"
+                          animate={reduce ? undefined : { strokeDashoffset: [0, -24] }}
+                          transition={{ duration: 1.3, repeat: Infinity, ease: 'linear' }}
+                        />
+                        <path d="M 112 96 L 120 100 L 112 104 Z" fill="#0d9488" />
+
+                        {/* Amber arc: brain → building */}
+                        <motion.path
+                          d="M 120 100 Q 180 170, 224 100"
+                          stroke="url(#amberFade)"
+                          strokeWidth="2.6"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeDasharray="5 7"
+                          animate={reduce ? undefined : { strokeDashoffset: [0, -24] }}
+                          transition={{ duration: 1.3, repeat: Infinity, ease: 'linear', delay: 0.15 }}
+                        />
+                        <path d="M 220 96 L 228 100 L 220 104 Z" fill="#f59e0b" />
+
+                        <circle cx="16" cy="100" r="4" fill="#fff" stroke="#0d9488" strokeWidth="1.8" />
+                        {!reduce && (
+                          <motion.circle
+                            cx="16" cy="100" r="4"
+                            fill="none" stroke="#0d9488" strokeWidth="1.3"
+                            animate={{ r: [4, 11], opacity: [0.9, 0] }}
+                            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                          />
+                        )}
+
+                        <circle cx="224" cy="100" r="4" fill="#fff" stroke="#f59e0b" strokeWidth="1.8" />
+                        {!reduce && (
+                          <motion.circle
+                            cx="224" cy="100" r="4"
+                            fill="none" stroke="#f59e0b" strokeWidth="1.3"
+                            animate={{ r: [4, 11], opacity: [0.9, 0] }}
+                            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut', delay: 0.9 }}
+                          />
+                        )}
+                      </svg>
+
+                      {/* endpoint labels */}
+                      <div className="absolute left-2 top-1.5 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-teal-700" style={{ fontFamily: MONO }}>occupants</span>
+                      </div>
+                      <div className="absolute right-2 bottom-1.5 flex items-center gap-1">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-700" style={{ fontFamily: MONO }}>building</span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      </div>
+
+                      {/* central brain core */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="relative">
+                          {!reduce && (
+                            <>
+                              <motion.div
+                                aria-hidden
+                                className="absolute inset-0 rounded-full border-2 border-teal-400/70"
+                                animate={{ scale: [1, 1.95], opacity: [0.75, 0] }}
+                                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
+                              />
+                              <motion.div
+                                aria-hidden
+                                className="absolute inset-0 rounded-full border-2 border-amber-400/70"
+                                animate={{ scale: [1, 1.95], opacity: [0.75, 0] }}
+                                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut', delay: 1.1 }}
+                              />
+                            </>
+                          )}
+                          <motion.div
+                            className="relative w-20 h-20 rounded-full bg-gradient-to-br from-teal-600 via-teal-500 to-amber-500 flex items-center justify-center"
+                            style={{ boxShadow: '0 10px 28px -4px rgba(13,148,136,0.5), 0 4px 12px rgba(245,158,11,0.35)' }}
+                            animate={reduce ? undefined : { scale: [1, 1.04, 1] }}
+                            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                          >
+                            <Brain className="h-10 w-10 text-white" strokeWidth={1.8} />
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-3 py-1.5 border-t border-gray-100/80 text-[10px] text-gray-500">
+                      votes + telemetry converge into one live model.
+                    </div>
+                  </div>
+
+                  {/* mini panel 1: comfort_model */}
+                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-3 w-3 text-teal-600" />
+                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>comfort_model</span>
+                      </div>
+                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>v7</span>
+                    </div>
+                    <svg viewBox="0 0 120 24" className="w-full h-6 block" preserveAspectRatio="none">
+                      <path d="M2 18 Q 20 12, 40 14 T 78 8 T 118 4" stroke="#0d9488" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+                      {[
+                        { cx: 20, cy: 12 },
+                        { cx: 56, cy: 11 },
+                        { cx: 90, cy: 7 },
+                        { cx: 112, cy: 5 },
+                      ].map((p, i) => (
+                        <motion.circle
+                          key={i}
+                          cx={p.cx}
+                          cy={p.cy}
+                          r={1.8}
+                          fill="#0d9488"
+                          animate={reduce ? undefined : { opacity: [0.2, 1, 0.2], r: [1.4, 2.4, 1.4] }}
+                          transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.35 }}
+                        />
+                      ))}
+                    </svg>
+                    <div className="text-[10px] text-gray-500 mt-1">personal PMV offsets. updated per vote.</div>
+                  </div>
+
+                  {/* mini panel 2: physics_model with sun arc */}
+                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Sun className="h-3 w-3 text-amber-600" />
+                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>physics_model</span>
+                      </div>
+                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>v3</span>
+                    </div>
+                    <div className="relative h-9 rounded bg-gradient-to-r from-blue-50 via-amber-50 to-orange-50 overflow-hidden">
+                      {!reduce && (
+                        <motion.div
+                          aria-hidden
+                          className="absolute top-1 h-3 w-3 rounded-full bg-amber-400"
+                          style={{ boxShadow: '0 0 10px rgba(245,158,11,0.9)', translateX: '-50%' }}
+                          initial={{ left: '4%' }}
+                          animate={{ left: ['4%', '96%'] }}
+                          transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
+                        />
+                      )}
+                      <div className="absolute inset-x-1 bottom-1 grid grid-cols-8 gap-0.5 h-2.5">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="rounded-sm"
+                            style={{
+                              backgroundColor:
+                                i < 3
+                                  ? 'rgba(13,148,136,0.45)'
+                                  : i < 5
+                                  ? 'rgba(245,158,11,0.45)'
+                                  : 'rgba(251,146,60,0.55)',
+                            }}
+                            animate={reduce ? undefined : { opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1.5">thermal mass, solar gain, infiltration.</div>
+                  </div>
+
+                  {/* mini panel 3: policy */}
+                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Scale className="h-3 w-3 text-gray-600" />
+                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>policy</span>
+                      </div>
+                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>nightly</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div>
+                        <div className="flex justify-between text-[9.5px] text-gray-500 mb-0.5" style={{ fontFamily: MONO }}>
+                          <span>comfort band</span><span>21 to 24 °C</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full bg-teal-500 origin-left"
+                            style={{ width: '68%' }}
+                            animate={reduce ? undefined : { scaleX: [0.95, 1.04, 0.95] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[9.5px] text-gray-500 mb-0.5" style={{ fontFamily: MONO }}>
+                          <span>energy budget</span><span>optimize</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full bg-amber-500 origin-left"
+                            style={{ width: '52%' }}
+                            animate={reduce ? undefined : { scaleX: [0.95, 1.04, 0.95] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-2">comfort band plus energy budget. rebalanced nightly.</div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* ==================== Row 2: You adapt (left, occupant) ==================== */}
+
+              <motion.div
+                variants={fadeUp}
+                className="lg:col-start-1 lg:row-start-2 rounded-lg border border-gray-200 bg-white overflow-hidden"
+              >
+                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-teal-50/40 flex items-center gap-1.5">
+                  <Users className="h-3 w-3 text-teal-600" />
+                  <span className="text-[10.5px] font-semibold text-gray-800">Adapt</span>
+                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>small choices</span>
+                </div>
+                <div className="p-2 space-y-1">
+                  {[
+                    { icon: MapPin, title: 'Pick NW-12 desk' },
+                    { icon: Thermometer, title: 'Dress light today' },
+                  ].map((opt) => (
+                    <div
+                      key={opt.title}
+                      className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-1.5 py-1"
+                    >
+                      <div className="w-4 h-4 rounded bg-teal-50 flex items-center justify-center shrink-0">
+                        <opt.icon className="h-2.5 w-2.5 text-teal-700" />
+                      </div>
+                      <div className="text-[9.5px] font-semibold text-gray-900 truncate">{opt.title}</div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              <FlowBeam direction="both" tone="teal" strong className="lg:col-start-2 lg:row-start-2" />
+
+              <FlowBeam direction="both" tone="amber" strong className="lg:col-start-4 lg:row-start-2" />
+
+              <motion.div
+                variants={fadeUp}
+                className="lg:col-start-5 lg:row-start-2 rounded-lg border border-gray-200 bg-white overflow-hidden"
+              >
+                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-amber-50/40 flex items-center gap-1.5">
+                  <CloudSun className="h-3 w-3 text-amber-600" />
+                  <span className="text-[10.5px] font-semibold text-gray-800">Forecast</span>
+                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>24h drift</span>
+                </div>
+                <div className="p-2">
+                  <div className="relative h-6 rounded bg-gradient-to-r from-slate-100 via-amber-50 to-orange-100 overflow-hidden mb-1">
+                    <div
+                      aria-hidden
+                      className="absolute top-0.5 h-2 w-2 rounded-full bg-amber-400"
+                      style={{ boxShadow: '0 0 8px rgba(245,158,11,0.9)', left: '62%', transform: 'translateX(-50%)' }}
+                    />
+                    <div
+                      className="absolute inset-x-1 bottom-0.5 flex justify-between text-[7.5px] text-gray-500 px-0.5"
+                      style={{ fontFamily: MONO }}
+                    >
+                      <span>06</span><span>12</span><span>18</span>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-orange-700 font-semibold" style={{ fontFamily: MONO }}>
+                    south +2°C @ 13:00
+                  </div>
+                </div>
+              </motion.div>
+
             </div>
+
+            {/* ==================== Outcome bar ==================== */}
+            <motion.div
+              variants={fadeUp}
+              className="mt-5 rounded-xl border border-gray-200 bg-gradient-to-r from-emerald-50/70 via-white to-teal-50/70 p-5"
+            >
+              <div className="grid md:grid-cols-3 gap-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-md bg-emerald-100 flex items-center justify-center shrink-0">
+                    <TrendingDown className="h-4 w-4 text-emerald-700" />
+                  </div>
+                  <div>
+                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">HVAC energy</div>
+                    <div className="text-[13.5px] font-semibold text-gray-900 mt-0.5 leading-snug">
+                      projected 15 to 30% reduction
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      once comfort and physics models drive setpoints.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-md bg-teal-100 flex items-center justify-center shrink-0">
+                    <Leaf className="h-4 w-4 text-teal-700" />
+                  </div>
+                  <div>
+                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">CO₂ emissions</div>
+                    <div className="text-[13.5px] font-semibold text-gray-900 mt-0.5 leading-snug">
+                      proportional reduction
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      scales with local grid mix and gas share.
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-md bg-amber-100 flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 text-amber-700" />
+                  </div>
+                  <div>
+                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-gray-500">Occupant comfort</div>
+                    <div className="text-[13.5px] font-semibold text-gray-900 mt-0.5 leading-snug">
+                      higher, with fewer surprise complaints
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      people arrive prepared, not reacting.
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                className="mt-4 pt-3 border-t border-gray-200/70 text-[10.5px] text-gray-500 leading-relaxed"
+                style={{ fontFamily: MONO }}
+              >
+                ranges informed by IEA EBC Annex 79 · ASHRAE 55 adaptive comfort · Brains4Buildings consortium targets. site-specific outcomes reported from pilots.
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -637,7 +913,7 @@ export default function LandingPlatform() {
               </p>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-12 grid md:grid-cols-2 gap-6 text-left">
+            <motion.div variants={fadeUp} className="mt-12 grid md:grid-cols-3 gap-6 text-left">
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
                   <Users className="h-4 w-4 text-teal-700" />
@@ -646,16 +922,6 @@ export default function LandingPlatform() {
                 <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
                   Low-friction voting gives every person a direct channel to tell the building
                   how they feel. No helpdesk. No complaint form. Just one tap.
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-5">
-                <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
-                  <MessageSquare className="h-4 w-4 text-teal-700" />
-                </div>
-                <h3 className="text-[14px] font-semibold text-gray-900">Buildings respond</h3>
-                <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
-                  Live telemetry, zone conditions, and comfort trends flow back to occupants.
-                  They see their input reflected. They see the bigger picture.
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -680,117 +946,6 @@ export default function LandingPlatform() {
                 </p>
               </div>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Why occupants vote: floor snapshot */}
-      <section className="border-b border-gray-200/70">
-        <div className="max-w-7xl mx-auto px-6 py-20 md:py-24 grid lg:grid-cols-12 gap-10 items-center">
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            className="lg:col-span-5"
-          >
-            <div
-              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 mb-2"
-              style={{ fontFamily: MONO }}
-            >
-              · the building talks back
-            </div>
-            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 max-w-xl">
-              You spoke up. Here's what the building sees.
-            </h2>
-            <p className="mt-3 text-[13.5px] text-gray-600 max-w-xl leading-relaxed text-justify">
-              Every vote rolls up into a live picture of the floor. The
-              building shares it back. Occupants see how their comfort compares
-              to the room around them. The building listens, then responds
-              with context. FMs act on signals instead of anecdotes.
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            className="lg:col-span-7"
-          >
-            <div className="rounded-xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm max-w-md mx-auto lg:ml-auto lg:mr-0">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-gray-500 mb-3" style={{ fontFamily: MONO }}>
-                <span>Floor 4 · right now</span>
-                <span className="inline-flex items-center gap-1 text-teal-700 font-semibold">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500" />
-                  </span>
-                  Live
-                </span>
-              </div>
-
-              <div className="flex h-7 w-full overflow-hidden rounded-full border border-gray-100">
-                <motion.div
-                  initial={{ width: 0 }}
-                  whileInView={{ width: '18%' }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="bg-blue-400 flex items-center justify-center text-[10px] font-semibold text-white tabular-nums"
-                >
-                  18%
-                </motion.div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  whileInView={{ width: '45%' }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.9, delay: 0.1, ease: 'easeOut' }}
-                  className="bg-teal-500 flex items-center justify-center text-[10px] font-semibold text-white tabular-nums"
-                >
-                  45%
-                </motion.div>
-                <motion.div
-                  initial={{ width: 0 }}
-                  whileInView={{ width: '37%' }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.85, delay: 0.2, ease: 'easeOut' }}
-                  className="bg-orange-400 flex items-center justify-center text-[10px] font-semibold text-white tabular-nums"
-                >
-                  37%
-                </motion.div>
-              </div>
-              <div className="mt-2 flex justify-between text-[10.5px] uppercase tracking-[0.12em] text-gray-500" style={{ fontFamily: MONO }}>
-                <span>Cold</span>
-                <span>Neutral</span>
-                <span>Warm</span>
-              </div>
-
-              <div className="mt-5 flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {[
-                    { n: 'NU', bg: 'bg-teal-600', fg: 'text-white' },
-                    { n: 'AR', bg: 'bg-orange-100', fg: 'text-orange-800' },
-                    { n: 'JL', bg: 'bg-blue-100', fg: 'text-blue-800' },
-                    { n: 'MK', bg: 'bg-rose-100', fg: 'text-rose-800' },
-                    { n: 'SS', bg: 'bg-amber-100', fg: 'text-amber-800' },
-                  ].map((a) => (
-                    <div
-                      key={a.n}
-                      className={`h-7 w-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-semibold tabular-nums ${a.bg} ${a.fg}`}
-                    >
-                      {a.n}
-                    </div>
-                  ))}
-                  <div className="h-7 px-2 rounded-full border-2 border-white bg-gray-100 text-gray-700 flex items-center text-[10px] font-semibold tabular-nums">
-                    +9
-                  </div>
-                </div>
-                <div className="text-[12px] text-gray-600 leading-tight">
-                  <span className="font-semibold text-gray-900">14 others</span>{' '}
-                  voted the same as you today.
-                </div>
-              </div>
-            </div>
           </motion.div>
         </div>
       </section>
