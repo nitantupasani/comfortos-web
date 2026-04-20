@@ -9,6 +9,7 @@ import {
   Brain,
   Building2,
   CalendarDays,
+  ChevronRight,
   CloudSun,
   Cpu,
   FileJson,
@@ -20,10 +21,8 @@ import {
   MapPin,
   Network,
   Radio,
-  Scale,
   Server,
   Sliders,
-  Sun,
   Thermometer,
   TrendingDown,
   Users,
@@ -129,59 +128,6 @@ export default function LandingPlatform() {
     show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
   };
   const stagger: Variants = { show: { transition: { staggerChildren: 0.03 } } };
-
-  const FlowBeam = ({
-    direction,
-    tone,
-    strong = false,
-    className = '',
-  }: {
-    direction: 'left' | 'right' | 'both';
-    tone: 'teal' | 'amber';
-    delay?: number;
-    strong?: boolean;
-    className?: string;
-  }) => {
-    const color = tone === 'teal' ? '#0d9488' : '#f59e0b';
-    const isBoth = direction === 'both';
-    const reverse = direction === 'left';
-    const Chev = ({ side }: { side: 'left' | 'right' }) => (
-      <div
-        className="absolute top-1/2 -translate-y-1/2 flex items-center"
-        style={side === 'left' ? { left: 2 } : { right: 2 }}
-      >
-        <svg width="11" height="11" viewBox="0 0 10 10" style={{ transform: side === 'left' ? 'rotate(180deg)' : 'none' }}>
-          <path
-            d="M1 1 L6 5 L1 9"
-            stroke={color}
-            strokeWidth="1.8"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={strong ? 1 : 0.9}
-          />
-        </svg>
-      </div>
-    );
-    return (
-      <div
-        aria-hidden
-        className={`relative hidden lg:flex items-center justify-center min-h-[44px] ${className}`}
-      >
-        <div
-          className="absolute top-1/2 -translate-y-1/2 w-full h-[2px] rounded-full"
-          style={{
-            background: isBoth
-              ? `linear-gradient(to right, ${color}00, ${color}66 25%, ${color}88 50%, ${color}66 75%, ${color}00)`
-              : `linear-gradient(${reverse ? 'to left' : 'to right'}, ${color}00, ${color}55 30%, ${color}66 50%, ${color}55 70%, ${color}00)`,
-            opacity: strong ? 0.95 : 0.65,
-          }}
-        />
-        {(isBoth || direction === 'right') && <Chev side="right" />}
-        {(isBoth || direction === 'left') && <Chev side="left" />}
-      </div>
-    );
-  };
 
   return (
     <div
@@ -410,21 +356,30 @@ export default function LandingPlatform() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_32px_2.6fr_32px_0.9fr] gap-y-3 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.85fr_2.2fr_0.85fr_1fr] gap-3 items-center">
 
-              {/* ==================== LOOP A · occupants teach (row 1) ==================== */}
-
-              {/* 01 · Vote */}
+              {/* ==================== OCCUPANTS column (left) ==================== */}
               <motion.div
                 variants={fadeUp}
-                className="lg:col-start-1 lg:row-start-1 rounded-lg border border-gray-200 bg-white overflow-hidden"
+                className="rounded-xl border border-gray-200 bg-gradient-to-br from-teal-50/50 to-white p-4 flex flex-col gap-3 lg:min-h-[300px]"
               >
-                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-teal-50/40 flex items-center gap-1.5">
-                  <Radio className="h-3 w-3 text-teal-600" />
-                  <span className="text-[10.5px] font-semibold text-gray-800">Vote</span>
-                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>how you feel</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-md bg-teal-600 text-white flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">Occupants</div>
+                    <div className="text-[9.5px] text-gray-500" style={{ fontFamily: MONO }}>each person · the group</div>
+                  </div>
                 </div>
-                <div className="p-2">
+
+                <div className="flex-1 flex flex-col justify-evenly gap-3">
+                {/* what they send */}
+                <div className="rounded-md border border-gray-200 bg-white p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Radio className="h-3 w-3 text-teal-600" />
+                    <span className="text-[9px] uppercase tracking-wider text-gray-600 font-semibold" style={{ fontFamily: MONO }}>vote · how you feel</span>
+                  </div>
                   <div className="flex justify-between gap-0.5">
                     {['−3', '−2', '−1', '0', '+1', '+2', '+3'].map((v, i) => (
                       <div
@@ -445,40 +400,59 @@ export default function LandingPlatform() {
                     Warm · Sweater
                   </div>
                 </div>
-              </motion.div>
 
-              <FlowBeam direction="both" tone="teal" strong className="lg:col-start-2 lg:row-start-1" />
-
-              <FlowBeam direction="both" tone="amber" strong className="lg:col-start-4 lg:row-start-1" />
-
-              <motion.div
-                variants={fadeUp}
-                className="lg:col-start-5 lg:row-start-1 rounded-lg border border-gray-200 bg-white overflow-hidden"
-              >
-                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-amber-50/40 flex items-center gap-1.5">
-                  <Building2 className="h-3 w-3 text-amber-600" />
-                  <span className="text-[10.5px] font-semibold text-gray-800">Sense</span>
-                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>what building knows</span>
+                {/* what they receive back */}
+                <div className="rounded-md border border-teal-200 bg-teal-50/60 p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <MessageSquare className="h-3 w-3 text-teal-700" />
+                    <span className="text-[9px] uppercase tracking-wider text-teal-700 font-semibold" style={{ fontFamily: MONO }}>just for you</span>
+                  </div>
+                  <div className="text-[10.5px] text-gray-800 leading-snug">
+                    Dress light today. Try desk NW-12 — runs cooler at noon.
+                  </div>
                 </div>
-                <div className="p-2">
-                  <div className="grid grid-cols-6 gap-0.5 mb-1">
-                    {[
-                      'rgba(13,148,136,0.25)', 'rgba(13,148,136,0.35)', 'rgba(245,158,11,0.40)',
-                      'rgba(245,158,11,0.55)', 'rgba(245,158,11,0.65)', 'rgba(251,146,60,0.65)',
-                    ].map((bg, i) => (
-                      <div key={i} className="h-2.5 rounded-sm" style={{ backgroundColor: bg }} />
-                    ))}
-                  </div>
-                  <div className="text-[9px] text-orange-700 font-semibold" style={{ fontFamily: MONO }}>
-                    south gain · high
-                  </div>
                 </div>
               </motion.div>
 
-              {/* ==================== BRAIN · ComfortOS center (spans 2 rows, col 3) ==================== */}
+              {/* ==================== ARROWS · occupants ↔ brain ==================== */}
+              <div className="hidden lg:flex flex-col justify-center gap-10 px-1">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-teal-700" style={{ fontFamily: MONO }}>
+                    comfort feedback
+                  </div>
+                  <div className="relative w-full flex items-center">
+                    <div
+                      className="flex-1 h-px rounded-full"
+                      style={{ backgroundColor: 'rgba(13,148,136,0.85)' }}
+                    />
+                    <ChevronRight className="h-3 w-3 text-teal-600 -ml-1 shrink-0" strokeWidth={2} />
+                  </div>
+                  <div className="text-[8.5px] text-gray-500 text-center" style={{ fontFamily: MONO }}>
+                    vote · clothing · location
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-teal-700" style={{ fontFamily: MONO }}>
+                    personalized nudge
+                  </div>
+                  <div className="relative w-full flex items-center">
+                    <ChevronRight className="h-3 w-3 text-teal-600 -mr-1 shrink-0 rotate-180" strokeWidth={2} />
+                    <div
+                      className="flex-1 h-px rounded-full"
+                      style={{ backgroundColor: 'rgba(13,148,136,0.85)' }}
+                    />
+                  </div>
+                  <div className="text-[8.5px] text-gray-500 text-center" style={{ fontFamily: MONO }}>
+                    adapt tip · alert · explanation
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== BRAIN · ComfortOS center (translator infrastructure) ==================== */}
               <motion.div
                 variants={fadeUp}
-                className="lg:col-start-3 lg:row-start-1 lg:row-span-2 relative rounded-xl border border-gray-200 bg-gradient-to-br from-white via-teal-50/30 to-amber-50/30 overflow-hidden"
+                className="relative rounded-xl border border-gray-200 bg-gradient-to-br from-white via-teal-50/30 to-amber-50/30 overflow-hidden flex flex-col lg:min-h-[428px]"
               >
                 {!reduce && (
                   <motion.div
@@ -494,329 +468,201 @@ export default function LandingPlatform() {
                   />
                 )}
 
-                <div className="relative z-10 flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-white/70 backdrop-blur-sm">
+                <div className="relative z-10 flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-white/70 backdrop-blur-sm">
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75 animate-ping" />
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500" />
                     </span>
-                    <span
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-600"
-                      style={{ fontFamily: MONO }}
-                    >
-                      ComfortOS engine · always learning
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-700" style={{ fontFamily: MONO }}>
+                      ComfortOS engine · translator infrastructure
                     </span>
                   </div>
                   <Brain className="h-3.5 w-3.5 text-teal-600" />
                 </div>
 
-                <div className="relative z-10 p-3 flex flex-col gap-2.5">
+                <div className="relative z-10 p-4 flex flex-col gap-3 flex-1">
 
-                  {/* Neural core hero */}
-                  <div className="relative rounded-md border border-gray-200 bg-white/80 backdrop-blur-sm overflow-hidden">
-                    <div className="px-3 py-1.5 border-b border-gray-100/80 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Brain className="h-3 w-3 text-teal-700" />
-                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>neural_core</span>
-                      </div>
-                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>live · converging</span>
-                    </div>
-
-                    <div className="relative h-[200px]">
+                  {/* central brain core + label */}
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
                       {!reduce && (
-                        <motion.div
-                          aria-hidden
-                          className="absolute inset-0 pointer-events-none"
-                          style={{
-                            background:
-                              'radial-gradient(circle at 50% 50%, rgba(13,148,136,0.22), rgba(245,158,11,0.16) 40%, transparent 70%)',
-                          }}
-                          animate={{ opacity: [0.5, 1, 0.5] }}
-                          transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
-                        />
+                        <>
+                          <motion.div
+                            aria-hidden
+                            className="absolute inset-0 rounded-full border-2 border-teal-400/70"
+                            animate={{ scale: [1, 1.85], opacity: [0.7, 0] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+                          />
+                          <motion.div
+                            aria-hidden
+                            className="absolute inset-0 rounded-full border-2 border-amber-400/70"
+                            animate={{ scale: [1, 1.85], opacity: [0.7, 0] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut', delay: 1.2 }}
+                          />
+                        </>
                       )}
-
-                      <svg viewBox="0 0 240 200" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-                        <defs>
-                          <linearGradient id="tealFade" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#0d9488" stopOpacity="0.25" />
-                            <stop offset="70%" stopColor="#0d9488" stopOpacity="0.95" />
-                            <stop offset="100%" stopColor="#0d9488" stopOpacity="1" />
-                          </linearGradient>
-                          <linearGradient id="amberFade" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#f59e0b" stopOpacity="1" />
-                            <stop offset="30%" stopColor="#f59e0b" stopOpacity="0.95" />
-                            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.25" />
-                          </linearGradient>
-                        </defs>
-
-                        {/* Teal arc: occupants → brain */}
-                        <motion.path
-                          d="M 16 100 Q 60 30, 120 100"
-                          stroke="url(#tealFade)"
-                          strokeWidth="2.6"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeDasharray="5 7"
-                          animate={reduce ? undefined : { strokeDashoffset: [0, -24] }}
-                          transition={{ duration: 1.3, repeat: Infinity, ease: 'linear' }}
-                        />
-                        <path d="M 112 96 L 120 100 L 112 104 Z" fill="#0d9488" />
-
-                        {/* Amber arc: brain → building */}
-                        <motion.path
-                          d="M 120 100 Q 180 170, 224 100"
-                          stroke="url(#amberFade)"
-                          strokeWidth="2.6"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeDasharray="5 7"
-                          animate={reduce ? undefined : { strokeDashoffset: [0, -24] }}
-                          transition={{ duration: 1.3, repeat: Infinity, ease: 'linear', delay: 0.15 }}
-                        />
-                        <path d="M 220 96 L 228 100 L 220 104 Z" fill="#f59e0b" />
-
-                        <circle cx="16" cy="100" r="4" fill="#fff" stroke="#0d9488" strokeWidth="1.8" />
-                        {!reduce && (
-                          <motion.circle
-                            cx="16" cy="100" r="4"
-                            fill="none" stroke="#0d9488" strokeWidth="1.3"
-                            animate={{ r: [4, 11], opacity: [0.9, 0] }}
-                            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-                          />
-                        )}
-
-                        <circle cx="224" cy="100" r="4" fill="#fff" stroke="#f59e0b" strokeWidth="1.8" />
-                        {!reduce && (
-                          <motion.circle
-                            cx="224" cy="100" r="4"
-                            fill="none" stroke="#f59e0b" strokeWidth="1.3"
-                            animate={{ r: [4, 11], opacity: [0.9, 0] }}
-                            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut', delay: 0.9 }}
-                          />
-                        )}
-                      </svg>
-
-                      {/* endpoint labels */}
-                      <div className="absolute left-2 top-1.5 flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-                        <span className="text-[9px] font-semibold uppercase tracking-wider text-teal-700" style={{ fontFamily: MONO }}>occupants</span>
-                      </div>
-                      <div className="absolute right-2 bottom-1.5 flex items-center gap-1">
-                        <span className="text-[9px] font-semibold uppercase tracking-wider text-amber-700" style={{ fontFamily: MONO }}>building</span>
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      </div>
-
-                      {/* central brain core */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="relative">
-                          {!reduce && (
-                            <>
-                              <motion.div
-                                aria-hidden
-                                className="absolute inset-0 rounded-full border-2 border-teal-400/70"
-                                animate={{ scale: [1, 1.95], opacity: [0.75, 0] }}
-                                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
-                              />
-                              <motion.div
-                                aria-hidden
-                                className="absolute inset-0 rounded-full border-2 border-amber-400/70"
-                                animate={{ scale: [1, 1.95], opacity: [0.75, 0] }}
-                                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut', delay: 1.1 }}
-                              />
-                            </>
-                          )}
-                          <motion.div
-                            className="relative w-20 h-20 rounded-full bg-gradient-to-br from-teal-600 via-teal-500 to-amber-500 flex items-center justify-center"
-                            style={{ boxShadow: '0 10px 28px -4px rgba(13,148,136,0.5), 0 4px 12px rgba(245,158,11,0.35)' }}
-                            animate={reduce ? undefined : { scale: [1, 1.04, 1] }}
-                            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-                          >
-                            <Brain className="h-10 w-10 text-white" strokeWidth={1.8} />
-                          </motion.div>
-                        </div>
-                      </div>
+                      <motion.div
+                        className="relative w-28 h-28 rounded-full bg-gradient-to-br from-teal-600 via-teal-500 to-amber-500 flex items-center justify-center"
+                        style={{ boxShadow: '0 14px 32px -6px rgba(13,148,136,0.55), 0 6px 14px rgba(245,158,11,0.4)' }}
+                        animate={reduce ? undefined : { scale: [1, 1.04, 1] }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <Brain className="h-14 w-14 text-white" strokeWidth={1.8} />
+                      </motion.div>
                     </div>
-
-                    <div className="px-3 py-1.5 border-t border-gray-100/80 text-[10px] text-gray-500">
-                      votes + telemetry converge into one live model.
+                    <div className="text-center">
+                      <div className="text-[14px] font-semibold text-gray-900 leading-tight">ComfortOS Brain</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5" style={{ fontFamily: MONO }}>
+                        translates between people &amp; hardware
+                      </div>
                     </div>
                   </div>
 
-                  {/* mini panel 1: comfort_model */}
-                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-3 w-3 text-teal-600" />
-                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>comfort_model</span>
+                  {/* 2x2 flow grid: the 4 distinct processes */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* ← IN from occupants */}
+                    <div className="rounded-md border border-teal-200 bg-white/85 backdrop-blur-sm p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <ArrowRight className="h-3 w-3 text-teal-600 shrink-0" />
+                        <span className="text-[9.5px] font-semibold uppercase tracking-wider text-teal-700" style={{ fontFamily: MONO }}>
+                          from occupants
+                        </span>
                       </div>
-                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>v7</span>
+                      <div className="text-[10px] text-gray-700 leading-snug">
+                        ingest votes <span className="font-bold text-gray-500">·</span> update each person's comfort model <span className="font-bold text-gray-500">·</span> aggregate the group
+                      </div>
                     </div>
-                    <svg viewBox="0 0 120 24" className="w-full h-6 block" preserveAspectRatio="none">
-                      <path d="M2 18 Q 20 12, 40 14 T 78 8 T 118 4" stroke="#0d9488" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-                      {[
-                        { cx: 20, cy: 12 },
-                        { cx: 56, cy: 11 },
-                        { cx: 90, cy: 7 },
-                        { cx: 112, cy: 5 },
-                      ].map((p, i) => (
-                        <motion.circle
-                          key={i}
-                          cx={p.cx}
-                          cy={p.cy}
-                          r={1.8}
-                          fill="#0d9488"
-                          animate={reduce ? undefined : { opacity: [0.2, 1, 0.2], r: [1.4, 2.4, 1.4] }}
-                          transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.35 }}
-                        />
-                      ))}
-                    </svg>
-                    <div className="text-[10px] text-gray-500 mt-1">personal PMV offsets. updated per vote.</div>
+
+                    {/* ← IN from building */}
+                    <div className="rounded-md border border-amber-200 bg-white/85 backdrop-blur-sm p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700" style={{ fontFamily: MONO }}>
+                          from building
+                        </span>
+                        <ArrowRight className="h-3 w-3 text-amber-600 rotate-180 shrink-0" />
+                      </div>
+                      <div className="text-[10px] text-gray-700 leading-snug">
+                        ingest BMS telemetry + weather <span className="font-bold text-gray-500">·</span> map to live building state
+                      </div>
+                    </div>
+
+                    {/* → OUT to occupants */}
+                    <div className="rounded-md border border-teal-300 bg-teal-50/60 backdrop-blur-sm p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <ArrowRight className="h-3 w-3 text-teal-700 rotate-180 shrink-0" />
+                        <span className="text-[9.5px] font-semibold uppercase tracking-wider text-teal-800" style={{ fontFamily: MONO }}>
+                          to occupants
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-700 leading-snug">
+                        emit personalized messages <span className="font-bold text-gray-500">·</span> explain why <span className="font-bold text-gray-500">·</span> suggest small adapts
+                      </div>
+                    </div>
+
+                    {/* → OUT to building */}
+                    <div className="rounded-md border border-amber-300 bg-amber-50/60 backdrop-blur-sm p-2.5">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-800" style={{ fontFamily: MONO }}>
+                          to building
+                        </span>
+                        <ArrowRight className="h-3 w-3 text-amber-700 shrink-0" />
+                      </div>
+                      <div className="text-[10px] text-gray-700 leading-snug">
+                        emit setpoints + policy <span className="font-bold text-gray-500">·</span> comfort band vs. energy budget, rebalanced
+                      </div>
+                    </div>
                   </div>
 
-                  {/* mini panel 2: physics_model with sun arc */}
-                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Sun className="h-3 w-3 text-amber-600" />
-                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>physics_model</span>
-                      </div>
-                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>v3</span>
+                  {/* infrastructure bar */}
+                  <div className="mt-auto rounded-md border border-dashed border-gray-300 bg-white/60 backdrop-blur-sm px-3 py-2 flex items-center gap-2">
+                    <Cpu className="h-3.5 w-3.5 text-gray-600 shrink-0" />
+                    <div className="text-[9.5px] text-gray-600 leading-snug" style={{ fontFamily: MONO }}>
+                      infrastructure · connectors · auth · SDUI · push · audit
                     </div>
-                    <div className="relative h-9 rounded bg-gradient-to-r from-blue-50 via-amber-50 to-orange-50 overflow-hidden">
-                      {!reduce && (
-                        <motion.div
-                          aria-hidden
-                          className="absolute top-1 h-3 w-3 rounded-full bg-amber-400"
-                          style={{ boxShadow: '0 0 10px rgba(245,158,11,0.9)', translateX: '-50%' }}
-                          initial={{ left: '4%' }}
-                          animate={{ left: ['4%', '96%'] }}
-                          transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
-                        />
-                      )}
-                      <div className="absolute inset-x-1 bottom-1 grid grid-cols-8 gap-0.5 h-2.5">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                          <motion.div
-                            key={i}
-                            className="rounded-sm"
-                            style={{
-                              backgroundColor:
-                                i < 3
-                                  ? 'rgba(13,148,136,0.45)'
-                                  : i < 5
-                                  ? 'rgba(245,158,11,0.45)'
-                                  : 'rgba(251,146,60,0.55)',
-                            }}
-                            animate={reduce ? undefined : { opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 3, repeat: Infinity, delay: i * 0.2 }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-gray-500 mt-1.5">thermal mass, solar gain, infiltration.</div>
-                  </div>
-
-                  {/* mini panel 3: policy */}
-                  <div className="rounded-md border border-gray-200 bg-white/85 backdrop-blur-sm p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Scale className="h-3 w-3 text-gray-600" />
-                        <span className="text-[10px] font-semibold text-gray-700" style={{ fontFamily: MONO }}>policy</span>
-                      </div>
-                      <span className="text-[9.5px] text-gray-400" style={{ fontFamily: MONO }}>nightly</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      <div>
-                        <div className="flex justify-between text-[9.5px] text-gray-500 mb-0.5" style={{ fontFamily: MONO }}>
-                          <span>comfort band</span><span>21 to 24 °C</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                          <motion.div
-                            className="h-full rounded-full bg-teal-500 origin-left"
-                            style={{ width: '68%' }}
-                            animate={reduce ? undefined : { scaleX: [0.95, 1.04, 0.95] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[9.5px] text-gray-500 mb-0.5" style={{ fontFamily: MONO }}>
-                          <span>energy budget</span><span>optimize</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                          <motion.div
-                            className="h-full rounded-full bg-amber-500 origin-left"
-                            style={{ width: '52%' }}
-                            animate={reduce ? undefined : { scaleX: [0.95, 1.04, 0.95] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-gray-500 mt-2">comfort band plus energy budget. rebalanced nightly.</div>
+                    <Network className="h-3.5 w-3.5 text-gray-500 ml-auto shrink-0" />
                   </div>
                 </div>
               </motion.div>
 
-              {/* ==================== Row 2: You adapt (left, occupant) ==================== */}
-
-              <motion.div
-                variants={fadeUp}
-                className="lg:col-start-1 lg:row-start-2 rounded-lg border border-gray-200 bg-white overflow-hidden"
-              >
-                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-teal-50/40 flex items-center gap-1.5">
-                  <Users className="h-3 w-3 text-teal-600" />
-                  <span className="text-[10.5px] font-semibold text-gray-800">Adapt</span>
-                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>small choices</span>
-                </div>
-                <div className="p-2 space-y-1">
-                  {[
-                    { icon: MapPin, title: 'Pick NW-12 desk' },
-                    { icon: Thermometer, title: 'Dress light today' },
-                  ].map((opt) => (
+              {/* ==================== ARROWS · brain ↔ building ==================== */}
+              <div className="hidden lg:flex flex-col justify-center gap-10 px-1">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700" style={{ fontFamily: MONO }}>
+                    BMS telemetry
+                  </div>
+                  <div className="relative w-full flex items-center">
+                    <ChevronRight className="h-3 w-3 text-amber-600 -mr-1 shrink-0 rotate-180" strokeWidth={2} />
                     <div
-                      key={opt.title}
-                      className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-1.5 py-1"
-                    >
-                      <div className="w-4 h-4 rounded bg-teal-50 flex items-center justify-center shrink-0">
-                        <opt.icon className="h-2.5 w-2.5 text-teal-700" />
-                      </div>
-                      <div className="text-[9.5px] font-semibold text-gray-900 truncate">{opt.title}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <FlowBeam direction="both" tone="teal" strong className="lg:col-start-2 lg:row-start-2" />
-
-              <FlowBeam direction="both" tone="amber" strong className="lg:col-start-4 lg:row-start-2" />
-
-              <motion.div
-                variants={fadeUp}
-                className="lg:col-start-5 lg:row-start-2 rounded-lg border border-gray-200 bg-white overflow-hidden"
-              >
-                <div className="px-2.5 py-1.5 border-b border-gray-100 bg-amber-50/40 flex items-center gap-1.5">
-                  <CloudSun className="h-3 w-3 text-amber-600" />
-                  <span className="text-[10.5px] font-semibold text-gray-800">Forecast</span>
-                  <span className="text-[9px] text-gray-500 ml-auto" style={{ fontFamily: MONO }}>24h drift</span>
-                </div>
-                <div className="p-2">
-                  <div className="relative h-6 rounded bg-gradient-to-r from-slate-100 via-amber-50 to-orange-100 overflow-hidden mb-1">
-                    <div
-                      aria-hidden
-                      className="absolute top-0.5 h-2 w-2 rounded-full bg-amber-400"
-                      style={{ boxShadow: '0 0 8px rgba(245,158,11,0.9)', left: '62%', transform: 'translateX(-50%)' }}
+                      className="flex-1 h-px rounded-full"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.85)' }}
                     />
+                  </div>
+                  <div className="text-[8.5px] text-gray-500 text-center" style={{ fontFamily: MONO }}>
+                    temp · CO₂ · HVAC · occupancy
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700" style={{ fontFamily: MONO }}>
+                    setpoints + policy
+                  </div>
+                  <div className="relative w-full flex items-center">
                     <div
-                      className="absolute inset-x-1 bottom-0.5 flex justify-between text-[7.5px] text-gray-500 px-0.5"
-                      style={{ fontFamily: MONO }}
-                    >
-                      <span>06</span><span>12</span><span>18</span>
-                    </div>
+                      className="flex-1 h-px rounded-full"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.85)' }}
+                    />
+                    <ChevronRight className="h-3 w-3 text-amber-600 -ml-1 shrink-0" strokeWidth={2} />
+                  </div>
+                  <div className="text-[8.5px] text-gray-500 text-center" style={{ fontFamily: MONO }}>
+                    comfort band · energy budget
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== BUILDING column (right) ==================== */}
+              <motion.div
+                variants={fadeUp}
+                className="rounded-xl border border-gray-200 bg-gradient-to-br from-amber-50/50 to-white p-4 flex flex-col gap-3 lg:min-h-[300px]"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-md bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-[12.5px] font-semibold text-gray-900 leading-tight">Building</div>
+                    <div className="text-[9.5px] text-gray-500" style={{ fontFamily: MONO }}>BMS · sensors · weather</div>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col justify-evenly gap-3">
+                <div className="rounded-md border border-gray-200 bg-white p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Activity className="h-3 w-3 text-amber-600" />
+                    <span className="text-[9px] uppercase tracking-wider text-gray-600 font-semibold" style={{ fontFamily: MONO }}>live telemetry</span>
+                  </div>
+                  <div className="grid grid-cols-6 gap-0.5 mb-1.5">
+                    {[
+                      'rgba(13,148,136,0.25)', 'rgba(13,148,136,0.35)', 'rgba(245,158,11,0.40)',
+                      'rgba(245,158,11,0.55)', 'rgba(245,158,11,0.65)', 'rgba(251,146,60,0.65)',
+                    ].map((bg, i) => (
+                      <div key={i} className="h-2.5 rounded-sm" style={{ backgroundColor: bg }} />
+                    ))}
                   </div>
                   <div className="text-[9px] text-orange-700 font-semibold" style={{ fontFamily: MONO }}>
-                    south +2°C @ 13:00
+                    south gain · high
                   </div>
+                </div>
+
+                <div className="rounded-md border border-amber-200 bg-amber-50/60 p-2">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Sliders className="h-3 w-3 text-amber-700" />
+                    <span className="text-[9px] uppercase tracking-wider text-amber-700 font-semibold" style={{ fontFamily: MONO }}>setpoint applied</span>
+                  </div>
+                  <div className="text-[10.5px] text-gray-800 leading-snug">
+                    Zone 4-NW · band 21–24&nbsp;°C · pre-cool 12:30
+                  </div>
+                </div>
                 </div>
               </motion.div>
 
