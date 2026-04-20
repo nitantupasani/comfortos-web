@@ -220,11 +220,11 @@ export default function LandingPlatform() {
                 variants={fadeUp}
                 className="mt-6 text-[17px] md:text-lg text-gray-600 leading-relaxed text-justify max-w-[58ch]"
               >
-                ComfortOS is the two-way communication layer for smart buildings.
-                Occupants tell the building how they feel — the building tells them
-                what it knows. Over a network of connected buildings, this mutual
-                dialogue turns comfort into something that adapts to people, not
-                just sensors.
+                ComfortOS is the mutual communication layer for smart buildings.
+                Occupants share how they feel. The building shares what it knows.
+                Across a network of connected buildings, this ongoing dialogue
+                turns comfort into something that adapts to people, not just
+                sensors.
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-2.5">
@@ -568,11 +568,11 @@ export default function LandingPlatform() {
                 A network of buildings that have conversations with their people.
               </h2>
               <p className="mt-4 text-[15px] text-gray-600 leading-relaxed text-justify mx-auto max-w-2xl">
-                Buildings today are one-way systems — they regulate, but they don't listen.
-                ComfortOS exists to change that. We create a two-way communication channel
-                between buildings and their occupants: people share how they feel, and the
-                building shares what it knows. When this dialogue scales across a network
-                of smart buildings, comfort stops being a setting and becomes a conversation.
+                Most buildings regulate. Few listen. None talk back.
+                ComfortOS closes that loop. People share how they feel and the
+                building shares what it knows. When this dialogue scales across a
+                network of smart buildings, comfort stops being a setting and
+                becomes a conversation.
               </p>
             </motion.div>
 
@@ -584,7 +584,7 @@ export default function LandingPlatform() {
                 <h3 className="text-[14px] font-semibold text-gray-900">Occupants speak</h3>
                 <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
                   Low-friction voting gives every person a direct channel to tell the building
-                  how they feel — no helpdesk, no complaint form.
+                  how they feel. No helpdesk. No complaint form. Just one tap.
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -593,8 +593,8 @@ export default function LandingPlatform() {
                 </div>
                 <h3 className="text-[14px] font-semibold text-gray-900">Buildings respond</h3>
                 <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
-                  Live telemetry, zone conditions, and comfort trends flow back to occupants —
-                  so they know they've been heard and can see the bigger picture.
+                  Live telemetry, zone conditions, and comfort trends flow back to occupants.
+                  They see their input reflected. They see the bigger picture.
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -603,8 +603,8 @@ export default function LandingPlatform() {
                 </div>
                 <h3 className="text-[14px] font-semibold text-gray-900">Networks learn</h3>
                 <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
-                  Connected buildings share patterns across sites — what works in one building
-                  informs the next. The network gets smarter with every conversation.
+                  Connected buildings share patterns across sites. What works in one
+                  building informs the next. The network gets smarter with every conversation.
                 </p>
               </div>
             </motion.div>
@@ -632,9 +632,9 @@ export default function LandingPlatform() {
               You spoke up. Here's what the building sees.
             </h2>
             <p className="mt-3 text-[13.5px] text-gray-600 max-w-xl leading-relaxed text-justify">
-              Every vote rolls up into a live picture of the floor that the
-              building shares back. Occupants see how their comfort compares
-              to the room around them — the building listens, then responds
+              Every vote rolls up into a live picture of the floor. The
+              building shares it back. Occupants see how their comfort compares
+              to the room around them. The building listens, then responds
               with context. FMs act on signals instead of anecdotes.
             </p>
           </motion.div>
