@@ -84,11 +84,11 @@ export default function TopNavShell({
             onClick={() => navigate('/')}
             className="flex items-center gap-2.5 shrink-0"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[13px]">
               C
             </div>
-            <span className="font-semibold text-gray-900 tracking-tight hidden sm:inline">ComfortOS</span>
-            <span className="text-[10px] font-semibold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline">
+            <span className="font-semibold text-gray-900 tracking-tight hidden sm:inline text-[15px]">ComfortOS</span>
+            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200 rounded uppercase tracking-wider hidden sm:inline">
               {roleLabel}
             </span>
           </button>
@@ -208,7 +208,7 @@ export default function TopNavShell({
           <aside className="relative ml-auto w-72 bg-white h-full flex flex-col shadow-xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-bold text-sm">
+                <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[13px]">
                   C
                 </div>
                 <span className="font-semibold text-gray-900">ComfortOS</span>

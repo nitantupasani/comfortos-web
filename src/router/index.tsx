@@ -11,6 +11,7 @@ import FMLayout from '../components/layout/FMLayout';
 // Pages
 import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
+import LandingPlatform from '../pages/LandingPlatform';
 import LandingAurora from '../pages/LandingAurora';
 import LandingBento from '../pages/LandingBento';
 import LandingKinetic from '../pages/LandingKinetic';
@@ -80,7 +81,7 @@ export default function AppRouter() {
       {/* Root: landing for logged-out, role dashboard for logged-in */}
       <Route
         path="/"
-        element={user ? <Navigate to={roleRedirect()} replace /> : <LandingAurora />}
+        element={user ? <Navigate to={roleRedirect()} replace /> : <LandingPlatform />}
       />
 
       {/* ─── Occupant routes (mobile-like) ─── */}

@@ -104,13 +104,13 @@ export default function ConsoleShell({ roleLabel, workspaceLabel, nav, sidebarFo
 
   const renderBrand = (isCollapsed = false) => (
     <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} px-5 py-4 border-b border-gray-200`}>
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+      <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[13px] shrink-0">
         C
       </div>
       {!isCollapsed && (
         <>
-          <span className="font-semibold text-gray-900 tracking-tight">ComfortOS</span>
-          <span className="ml-auto text-[10px] font-semibold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full uppercase tracking-wider">
+          <span className="font-semibold text-gray-900 tracking-tight text-[15px]">ComfortOS</span>
+          <span className="ml-auto px-1.5 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200 rounded uppercase tracking-wider">
             {roleLabel}
           </span>
         </>
@@ -181,11 +181,11 @@ export default function ConsoleShell({ roleLabel, workspaceLabel, nav, sidebarFo
           <aside className="relative w-72 bg-white h-full flex flex-col shadow-xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-bold text-sm">
+                <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center font-bold text-[13px]">
                   C
                 </div>
-                <span className="font-semibold text-gray-900">ComfortOS</span>
-                <span className="text-[10px] font-semibold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full uppercase">
+                <span className="font-semibold text-gray-900 text-[15px]">ComfortOS</span>
+                <span className="px-1.5 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200 rounded uppercase tracking-wider">
                   {roleLabel}
                 </span>
               </div>
