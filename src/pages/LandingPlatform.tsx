@@ -8,9 +8,11 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  CloudSun,
   Cpu,
   FileJson,
   Gauge,
+  Leaf,
   MessageSquare,
   LayoutDashboard,
   LogIn,
@@ -20,6 +22,7 @@ import {
   Server,
   Sliders,
   Thermometer,
+  TrendingDown,
   Users,
   Zap,
 } from 'lucide-react';
@@ -72,7 +75,9 @@ const roadmap = [
     phase: 'Roadmap · partner pilots',
     items: [
       'On-prem gateway · BACnet / Modbus → HTTPS egress',
-      'Setpoint recommendation engine (advisory)',
+      'Weather-aware setpoint optimization · comfort + energy co-objective',
+      'Building physics model inference · thermal mass · solar gain',
+      'Energy baseline tracking · per-zone HVAC savings attribution',
       'Policy-bounded write-back with audit trail',
     ],
   },
@@ -111,6 +116,12 @@ const researchPillars = [
     title: 'Feedback tied to a visible outcome',
     body:
       'Votes roll up to a zone, a floor, a building — and a person sees their signal reflected back. That visibility is what sustains participation over weeks, not days.',
+  },
+  {
+    icon: CloudSun,
+    title: 'Energy savings from the same data',
+    body:
+      'Comfort votes, outside weather conditions, and implicit building physics together reveal when HVAC is over-conditioning. Data-driven setpoint strategies reduce energy consumption while maintaining the comfort occupants actually report.',
   },
 ];
 
@@ -222,9 +233,10 @@ export default function LandingPlatform() {
               >
                 ComfortOS is the mutual communication layer for smart buildings.
                 Occupants share how they feel. The building shares what it knows.
-                Across a network of connected buildings, this ongoing dialogue
-                turns comfort into something that adapts to people, not just
-                sensors.
+                That same dialogue — combined with outside weather, building
+                physics, and live telemetry — drives HVAC strategies that cut
+                energy waste while keeping people comfortable. Across a network
+                of connected buildings, comfort and efficiency improve together.
               </motion.p>
 
               <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-2.5">
@@ -356,11 +368,11 @@ export default function LandingPlatform() {
                 className="text-[11px] text-gray-500"
                 style={{ fontFamily: MONO }}
               >
-                listen · understand · inform
+                listen · understand · inform · optimize
               </span>
             </div>
 
-            <div className="grid lg:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 items-stretch">
+            <div className="grid lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] gap-4 items-stretch">
               {/* Capture */}
               <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
@@ -542,6 +554,53 @@ export default function LandingPlatform() {
                   </div>
                 </div>
               </motion.div>
+
+              <div className="hidden lg:flex items-center justify-center text-gray-300">
+                <ArrowRight className="h-5 w-5" />
+              </div>
+
+              {/* Optimize */}
+              <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50/60">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span
+                      className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500"
+                      style={{ fontFamily: MONO }}
+                    >
+                      04 · Optimize
+                    </span>
+                  </div>
+                  <Leaf className="h-3.5 w-3.5 text-gray-400" />
+                </div>
+                <div className="p-4">
+                  <div className="text-[11px] text-gray-500 mb-3" style={{ fontFamily: MONO }}>
+                    engine · /setpoint
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Comfort votes', value: '+0.6 avg (slightly warm)', icon: '🗳' },
+                      { label: 'Outside weather', value: '14°C · overcast', icon: '🌤' },
+                      { label: 'Building physics', value: 'high thermal mass · south facade', icon: '🏗' },
+                    ].map((r) => (
+                      <div key={r.label} className="flex items-center gap-2 rounded-md bg-gray-50 border border-gray-100 px-2.5 py-1.5">
+                        <span className="text-[12px]">{r.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] text-gray-500">{r.label}</div>
+                          <div className="text-[11px] font-semibold text-gray-800 truncate" style={{ fontFamily: MONO }}>{r.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-2 flex items-center gap-2">
+                    <TrendingDown className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+                    <div>
+                      <div className="text-[11px] font-semibold text-emerald-800">Setpoint: 22.5°C → 21.8°C</div>
+                      <div className="text-[10px] text-emerald-700">est. −12% HVAC energy · comfort maintained</div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
@@ -565,18 +624,20 @@ export default function LandingPlatform() {
                 · our mission
               </div>
               <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900">
-                A network of buildings that communicate with their people.
+                A network of buildings that balance comfort and energy.
               </h2>
               <p className="mt-4 text-[15px] text-gray-600 leading-relaxed text-justify mx-auto max-w-2xl">
-                Most buildings regulate. Few listen. None talk back.
-                ComfortOS closes that loop. People share how they feel and the
-                building shares what it knows. When this dialogue scales across a
-                network of smart buildings, comfort stops being a setting and
-                becomes a conversation.
+                Most buildings regulate blindly. Few listen. None optimize for both
+                the people inside and the energy they consume.
+                ComfortOS closes that loop. People share how they feel, the
+                building shares what it knows, and together with weather data and
+                building physics, the platform finds HVAC strategies that maintain
+                comfort while cutting energy waste. When this dialogue scales
+                across a network of smart buildings, every building gets smarter.
               </p>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-12 grid md:grid-cols-3 gap-6 text-left">
+            <motion.div variants={fadeUp} className="mt-12 grid md:grid-cols-2 gap-6 text-left">
               <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
                   <Users className="h-4 w-4 text-teal-700" />
@@ -598,13 +659,24 @@ export default function LandingPlatform() {
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="w-9 h-9 rounded-md bg-emerald-50 flex items-center justify-center mb-3">
+                  <Leaf className="h-4 w-4 text-emerald-700" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-gray-900">Operations optimize</h3>
+                <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
+                  Comfort votes meet outside weather and implicit building physics. The platform
+                  uses this combined data to drive HVAC strategies that save energy without
+                  sacrificing the comfort people just voted for.
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-5">
                 <div className="w-9 h-9 rounded-md bg-teal-50 flex items-center justify-center mb-3">
                   <Network className="h-4 w-4 text-teal-700" />
                 </div>
                 <h3 className="text-[14px] font-semibold text-gray-900">Networks learn</h3>
                 <p className="mt-1.5 text-[13px] text-gray-600 leading-relaxed">
-                  Connected buildings share patterns across sites. What works in one
-                  building informs the next. The network gets smarter with every conversation.
+                  Connected buildings share comfort and energy patterns across sites. What works
+                  in one building informs the next. The network gets smarter with every conversation.
                 </p>
               </div>
             </motion.div>
@@ -1445,7 +1517,7 @@ export default function LandingPlatform() {
             <div className="w-5 h-5 rounded bg-teal-600 text-white flex items-center justify-center">
               <Cpu className="h-3 w-3" />
             </div>
-            <span>ComfortOS · occupant-centric control</span>
+            <span>ComfortOS · comfort meets efficiency</span>
           </div>
           <div
             className="flex items-center gap-4"
