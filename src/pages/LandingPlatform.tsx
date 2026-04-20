@@ -97,7 +97,7 @@ const researchPillars = [
     icon: Users,
     title: 'Occupant voice is first-class',
     body:
-      "Buildings optimize for what they can measure. Adding a low-friction channel for subjective comfort makes occupants a direct input — not a complaint backlog.",
+      "Buildings optimize for what they can measure. Adding a low-friction channel for subjective comfort makes occupants a direct input, not a complaint backlog.",
   },
   {
     icon: BarChart3,
@@ -109,13 +109,13 @@ const researchPillars = [
     icon: Sliders,
     title: 'Configuration without code',
     body:
-      'Pilot buildings vary — schema, scale, and surfaces ship from the server so each tenant can tune forms and dashboards without a release.',
+      'Pilot buildings vary. Schema, scale, and surfaces ship from the server so each tenant can tune forms and dashboards without a release.',
   },
   {
     icon: MapPin,
     title: 'Feedback tied to a visible outcome',
     body:
-      'Votes roll up to a zone, a floor, a building — and a person sees their signal reflected back. That visibility is what sustains participation over weeks, not days.',
+      'Votes roll up to a zone, a floor, a building, and a person sees their signal reflected back. That visibility is what sustains participation over weeks, not days.',
   },
   {
     icon: CloudSun,
@@ -233,8 +233,8 @@ export default function LandingPlatform() {
               >
                 ComfortOS is the mutual communication layer for smart buildings.
                 Occupants share how they feel. The building shares what it knows.
-                That same dialogue — combined with outside weather, building
-                physics, and live telemetry — drives HVAC strategies that cut
+                That same dialogue, combined with outside weather, building
+                physics, and live telemetry, drives HVAC strategies that cut
                 energy waste while keeping people comfortable. Across a network
                 of connected buildings, comfort and efficiency improve together.
               </motion.p>
@@ -294,7 +294,7 @@ export default function LandingPlatform() {
                       <div className="text-[10px] font-medium text-gray-400" style={{ fontFamily: MONO }}>9:42</div>
                     </div>
                     <div className="text-sm font-semibold text-gray-900 mb-1">How's the comfort right now?</div>
-                    <div className="text-[11px] text-gray-500 mb-4">Tap your feeling — it's anonymous.</div>
+                    <div className="text-[11px] text-gray-500 mb-4">Tap your feeling. It's anonymous.</div>
                     <div className="flex justify-between gap-1 mb-2">
                       {['-3', '-2', '-1', '0', '+1', '+2', '+3'].map((v, i) => (
                         <div
@@ -392,7 +392,7 @@ export default function LandingPlatform() {
                     occupant · /vote
                   </div>
                   <div className="text-[12.5px] font-medium text-gray-900 mb-3">
-                    Thermal comfort — Room 402
+                    Thermal comfort, Room 402
                   </div>
                   <div className="flex justify-between gap-1">
                     {['−3', '−2', '−1', '0', '+1', '+2', '+3'].map((v, i) => (
@@ -467,7 +467,7 @@ export default function LandingPlatform() {
                     FM · /comfort
                   </div>
                   <div className="text-[12.5px] font-medium text-gray-900 mb-3">
-                    Zone comfort — last 7 days
+                    Zone comfort, last 7 days
                   </div>
                   <div className="h-[96px] -mx-2">
                     <ResponsiveContainer width="100%" height="100%">
@@ -550,7 +550,7 @@ export default function LandingPlatform() {
 }`}
                   </pre>
                   <div className="mt-3 text-[11px] text-gray-600">
-                    Ship the same schema to every occupant and FM — no app release.
+                    Ship the same schema to every occupant and FM. No app release needed.
                   </div>
                 </div>
               </motion.div>
@@ -684,7 +684,7 @@ export default function LandingPlatform() {
         </div>
       </section>
 
-      {/* Why occupants vote — floor snapshot */}
+      {/* Why occupants vote: floor snapshot */}
       <section className="border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 py-20 md:py-24 grid lg:grid-cols-12 gap-10 items-center">
           <motion.div
@@ -811,7 +811,7 @@ export default function LandingPlatform() {
             <p className="mt-4 text-gray-600 text-[15px] leading-relaxed text-justify">
               Every vote rolls up to a zone, a floor, and a building. FMs see which
               spaces are trending cold or warm, who is voting, and how comfort shifts
-              across the day — before anyone opens a complaint.
+              across the day, before anyone opens a complaint.
             </p>
             <ul className="mt-6 space-y-3 text-[13.5px] text-gray-700">
               {[
@@ -984,7 +984,7 @@ export default function LandingPlatform() {
               </h2>
               <p className="mt-4 text-gray-600 text-[15px] leading-relaxed text-justify">
                 Dashboards, vote forms, and zone layouts are rendered from JSON
-                contracts shipped by the server. Change the schema once — every
+                contracts shipped by the server. Change the schema once and every
                 occupant and FM sees the new surface on their next session.
               </p>
               <ul className="mt-6 space-y-3 text-[13.5px] text-gray-700">
@@ -1148,7 +1148,7 @@ export default function LandingPlatform() {
             </div>
             <p className="text-[13px] text-gray-500 max-w-md">
               ComfortOS is built out of a PhD research program on occupant-centric
-              control. Every surface exists for a reason — no dashboards for their
+              control. Every surface exists for a reason, not dashboards for their
               own sake.
             </p>
           </div>
@@ -1197,7 +1197,7 @@ export default function LandingPlatform() {
                     >
                       Brains4Buildings
                     </a>{' '}
-                    consortium — pilot data co-developed with two member
+                    consortium. Pilot data co-developed with two member
                     buildings.
                   </div>
                 </div>
@@ -1233,7 +1233,7 @@ export default function LandingPlatform() {
                 normalizes telemetry with JSON-path mapping, and auto-disables after
                 consecutive failures. Buildings that speak BACnet or Modbus only
                 reach us through their vendor cloud API or a thin on-prem gateway
-                that egresses over HTTPS — we do not punch holes into your LAN.
+                that egresses over HTTPS. We do not punch holes into your LAN.
               </p>
             </div>
             <a
@@ -1342,7 +1342,7 @@ export default function LandingPlatform() {
               </ul>
               <p className="mt-3 text-[11.5px] text-gray-500 leading-relaxed text-justify">
                 Two consortium buildings ingested as historical batches via the
-                push API — sourced from the building owner's vendor cloud, not from
+                push API, sourced from the building owner's vendor cloud, not from
                 BACnet directly. Same ingestion path used for live pilots.
               </p>
             </div>
@@ -1484,7 +1484,7 @@ export default function LandingPlatform() {
               </h2>
               <p className="mt-2 text-gray-600 text-[14.5px] max-w-xl text-justify">
                 We are bringing on a small number of pilot sites this year. 30-minute
-                intro call — we map your building, agree on a scope, and get
+                intro call. We map your building, agree on a scope, and get
                 occupants voting within a few weeks.
               </p>
             </div>
