@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import LandingAiChat from '../components/common/LandingAiChat';
 import {
   Activity,
   ArrowRight,
@@ -1215,6 +1216,108 @@ export default function LandingPlatform() {
         </div>
       </section>
 
+      {/* Meet Vos — the ComfortOS AI fox */}
+      <section id="vos" className="border-b border-gray-200/70">
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-24">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+            <div>
+              <div
+                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500 mb-2"
+                style={{ fontFamily: MONO }}
+              >
+                · meet the ai
+              </div>
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-gray-900 max-w-2xl">
+                Meet Vos. Your building, with a voice.
+              </h2>
+            </div>
+            <p className="text-[13px] text-gray-500 max-w-md">
+              Vos (Dutch for fox) is the ComfortOS companion that lets
+              occupants chat with their building directly. Once logged in,
+              Vos speaks as the building itself — reading live data,
+              explaining the why, and logging issues through conversation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 border-t border-l border-gray-200">
+            {[
+              {
+                icon: MessageSquare,
+                title: 'Chat with the building',
+                body:
+                  'Every building speaks in the first person through Vos. Ask how it is, and it answers using its own sensors.',
+              },
+              {
+                icon: Brain,
+                title: 'The why behind the numbers',
+                body:
+                  'Vos pulls temperature trends, recent complaints, and your own votes before replying. No generic chatbot lines.',
+              },
+              {
+                icon: Activity,
+                title: 'Log issues by conversation',
+                body:
+                  'No forms. Tell Vos you are cold; it proposes a complaint, waits for your yes, and files it on your behalf.',
+              },
+              {
+                icon: Users,
+                title: 'Remembers you, not everyone',
+                body:
+                  'Vos can reference your own comfort votes so the reply feels personal, not a building-wide broadcast.',
+              },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="border-r border-b border-gray-200 p-6 bg-white"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <f.icon className="h-4 w-4 text-gray-500" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                    ai capability
+                  </span>
+                </div>
+                <h3 className="text-[16px] font-semibold tracking-tight text-gray-900">
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-[13.5px] text-gray-600 leading-relaxed text-justify">
+                  {f.body}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 rounded-xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-start md:items-center gap-3">
+                <div className="w-9 h-9 rounded-md bg-teal-600 text-white flex items-center justify-center shrink-0">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+                <div>
+                  <div
+                    className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-gray-500"
+                    style={{ fontFamily: MONO }}
+                  >
+                    · try it on this page
+                  </div>
+                  <div className="mt-1 text-[13px] text-gray-700 leading-relaxed">
+                    Tap the fox in the corner to ask Vos about ComfortOS. The
+                    public chat only answers questions about the platform —
+                    live building data is reserved for signed-in users.
+                  </div>
+                </div>
+              </div>
+              <div
+                className="text-[11px] text-gray-500 md:text-right"
+                style={{ fontFamily: MONO }}
+              >
+                powered by Gemini
+                <span className="block text-gray-400">Dutch for fox · inspired by Van den Vos Reynaerde</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Connectivity Layer */}
       <section id="roadmap" className="border-b border-gray-200/70 bg-gray-50/40">
         <div className="max-w-7xl mx-auto px-6 py-20 md:py-24">
@@ -1530,6 +1633,8 @@ export default function LandingPlatform() {
           </div>
         </div>
       </footer>
+
+      <LandingAiChat />
     </div>
   );
 }

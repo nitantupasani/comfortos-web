@@ -17,4 +17,8 @@ export const aiApi = {
       messages,
       ...(buildingId ? { buildingId } : {}),
     }),
+
+  /** Marketing-only chat for the public landing page. No auth, no tools. */
+  publicChat: (messages: AiChatMessage[]) =>
+    api.post<AiChatResponse>('/ai/chat/public', { messages }),
 };
