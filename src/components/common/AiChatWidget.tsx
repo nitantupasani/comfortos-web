@@ -39,7 +39,7 @@ export default function AiChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 right-6 z-[1000] flex flex-col items-end gap-3">
       {isOpen && (
         <section className="w-[min(92vw,22rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
           <header className="flex items-center justify-between bg-teal-700 px-4 py-3 text-white">
@@ -95,7 +95,7 @@ export default function AiChatWidget() {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-teal-600 shadow-xl transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-200"
+        className="h-16 w-16 overflow-hidden rounded-full border border-gray-200 bg-white shadow-xl transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-200"
         aria-label={isOpen ? 'Close AI chat' : 'Open AI chat'}
       >
         <img src="/fox.png" alt="AI bot" className="h-full w-full object-contain p-1.5" />
