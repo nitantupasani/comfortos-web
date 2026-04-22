@@ -291,8 +291,6 @@ function renderNode(node: SduiNode): React.ReactNode {
           timeRanges={node.timeRanges as { label: string; hours: number; granularity: 'raw' | 'hourly' | 'daily' }[] | undefined}
           groupBy={node.groupBy as 'room' | 'floor' | 'wing' | undefined}
           height={node.height as number | undefined}
-          showReadings={node.showReadings as boolean | undefined}
-          detailLink={node.detailLink as string | undefined}
         />
       );
 

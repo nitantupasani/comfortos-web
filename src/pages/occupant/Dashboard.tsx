@@ -26,8 +26,6 @@ import type { SduiNode, WeatherData, Building } from '../../types';
  *   unit         "°C", "ppm", "%", "dBA"
  *   groupBy      "room" | "floor" | "wing"
  *   height       Chart height in px (default 240)
- *   showReadings true/false — show location grid below chart
- *   detailLink   Route to navigate on "Details" tap
  *   timeRanges   [{ label, hours, granularity }]
  */
 const DEFAULT_DASHBOARD: SduiNode = {
@@ -43,8 +41,6 @@ const DEFAULT_DASHBOARD: SduiNode = {
       unit: '°C',
       groupBy: 'room',
       height: 240,
-      showReadings: true,
-      detailLink: '/environment',
       timeRanges: [
         { label: 'Last 6 hours', hours: 6, granularity: 'raw' },
         { label: 'Last 24 hours', hours: 24, granularity: 'hourly' },

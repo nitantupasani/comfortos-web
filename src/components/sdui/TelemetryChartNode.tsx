@@ -1,13 +1,11 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
-import { Loader2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import { telemetryApi, type TelemetryQueryResponse } from '../../api/telemetry';
-import { locationsApi, type LocationNode } from '../../api/locations';
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -50,16 +48,6 @@ function cleanLabel(label: string): string {
   return label.replace(/^0\s*\/\s*/, '');
 }
 
-function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
 /** User-friendly error message */
 function friendlyError(err: unknown): string {
   if (err instanceof Error) {
@@ -83,8 +71,6 @@ export interface TelemetryChartNodeProps {
   timeRanges?: TimeRange[];
   groupBy?: 'room' | 'floor' | 'wing';
   height?: number;
-  showReadings?: boolean;
-  detailLink?: string;
 }
 
 /* ── Component ──────────────────────────────────────────── */
@@ -99,14 +85,11 @@ export default function TelemetryChartNode({
   timeRanges,
   groupBy: _groupByProp = 'room',
   height = 240,
-  showReadings = true,
-  detailLink = '/environment',
 }: TelemetryChartNodeProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
   const userRoom = usePresenceStore((s) => s.room);
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
-  const navigate = useNavigate();
 
   const ranges = timeRanges ?? DEFAULT_RANGES;
   const [rangeIdx, setRangeIdx] = useState(0);
@@ -115,7 +98,6 @@ export default function TelemetryChartNode({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TelemetryQueryResponse | null>(null);
-  const [locations, setLocations] = useState<LocationNode[]>([]);
   const [retryCount, setRetryCount] = useState(0);
 
   const range = ranges[rangeIdx];
@@ -130,33 +112,17 @@ export default function TelemetryChartNode({
     try {
       const now = new Date();
       const from = new Date(now.getTime() - r.hours * 60 * 60 * 1000);
-
-      // Fetch telemetry and locations independently — one failing shouldn't block the other
-      const [seriesResult, locsResult] = await Promise.allSettled([
-        telemetryApi.series(buildingId, {
-          metricType,
-          dateFrom: toISOCompat(from),
-          dateTo: toISOCompat(now),
-          granularity: r.granularity,
-          groupBy: effectiveGroupBy,
-          locationId: effectiveLocationId,
-        }),
-        locationsApi.list(buildingId, 'room'),
-      ]);
-
-      if (seriesResult.status === 'fulfilled') {
-        setData(seriesResult.value);
-        setError(null);
-      } else {
-        setData(null);
-        setError(friendlyError(seriesResult.reason));
-      }
-
-      if (locsResult.status === 'fulfilled') {
-        setLocations(locsResult.value);
-      }
-      // locations failure is non-critical — just keep existing list
+      const series = await telemetryApi.series(buildingId, {
+        metricType,
+        dateFrom: toISOCompat(from),
+        dateTo: toISOCompat(now),
+        granularity: r.granularity,
+        groupBy: effectiveGroupBy,
+        locationId: effectiveLocationId,
+      });
+      setData(series);
     } catch (err) {
+      setData(null);
       setError(friendlyError(err));
     } finally {
       setLoading(false);
@@ -208,42 +174,6 @@ export default function TelemetryChartNode({
 
     return { chartData: sorted, seriesKeys: data.series.map((_, i) => `s${i}`), seriesLabels: labels, hourTicks: hours, halfHourTicks: halves };
   }, [data]);
-
-  // Latest values per location
-  const latestValues = useMemo(() => {
-    if (!data) return [];
-    const locationNames = new Map<string, string>();
-    for (const loc of locations) {
-      locationNames.set(loc.id, loc.name);
-      if (loc.code) locationNames.set(loc.code, loc.name);
-    }
-    return data.series.map((s, idx) => {
-      const lastPt = s.points.length > 0 ? s.points[s.points.length - 1] : null;
-      const label =
-        (s.label && locationNames.get(s.label)) ||
-        cleanLabel(s.locationName || s.label);
-      return {
-        key: `s${idx}`,
-        label,
-        value: lastPt ? lastPt.value : null,
-        recordedAt: lastPt?.recordedAt ?? null,
-        color: SERIES_COLORS[idx % SERIES_COLORS.length],
-      };
-    });
-  }, [data, locations]);
-
-  // Locations with no data
-  const noDataLocations = useMemo(() => {
-    if (!data || locations.length === 0) return [];
-    const coveredCodes = new Set<string>();
-    for (const s of data.series) {
-      if (s.label) coveredCodes.add(s.label);
-      for (const z of s.zones) coveredCodes.add(z);
-    }
-    return locations.filter(
-      (loc) => !coveredCodes.has(loc.code ?? '') && !coveredCodes.has(loc.name) && !coveredCodes.has(loc.id)
-    );
-  }, [data, locations]);
 
   if (!activeBuilding) return null;
 
@@ -388,66 +318,6 @@ export default function TelemetryChartNode({
         )}
       </div>
 
-      {/* Readings grid */}
-      {showReadings && !loading && latestValues.length > 0 && (
-        <>
-          <div className="flex items-center justify-between px-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              All Locations
-            </span>
-            {detailLink && (
-              <button
-                onClick={() => navigate(detailLink)}
-                className="flex items-center gap-0.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-              >
-                Details
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {latestValues.map((loc) => {
-              const tempColor =
-                loc.value === null ? 'text-slate-300' :
-                loc.value < 18 ? 'text-blue-600' :
-                loc.value > 26 ? 'text-red-500' :
-                'text-emerald-600';
-              return (
-                <div key={loc.key} className="rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: loc.color }} />
-                    <span className="text-[11px] font-medium text-slate-500 truncate">{loc.label}</span>
-                  </div>
-                  <div className={`text-lg font-bold tabular-nums mt-0.5 ${tempColor}`}>
-                    {loc.value !== null ? loc.value.toFixed(1) : '--'}
-                    <span className="text-[10px] font-normal text-slate-400">{unit}</span>
-                  </div>
-                  {loc.recordedAt && (
-                    <div className="text-[9px] text-slate-300">{formatTimeAgo(loc.recordedAt)}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Locations with no data */}
-          {noDataLocations.length > 0 && (
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-300 mb-1.5 px-1">
-                No recent data
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {noDataLocations.map((loc) => (
-                  <div key={loc.id} className="rounded-2xl border border-dashed border-slate-200 bg-white/60 px-3 py-2.5">
-                    <div className="text-[11px] font-medium text-slate-400 truncate">{loc.name}</div>
-                    <div className="text-lg font-bold text-slate-200">--<span className="text-[10px] font-normal">{unit}</span></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
