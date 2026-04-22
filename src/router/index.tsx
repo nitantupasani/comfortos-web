@@ -29,6 +29,7 @@ import HistoryPage from '../pages/occupant/History';
 import SettingsPage from '../pages/occupant/Settings';
 import EnvironmentData from '../pages/occupant/EnvironmentData';
 import RequestFMRole from '../pages/occupant/RequestFMRole';
+import Complaints from '../pages/occupant/Complaints';
 
 // Admin
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -112,6 +113,7 @@ export default function AppRouter() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/environment" element={<EnvironmentData />} />
+        <Route path="/complaints" element={<Complaints />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/request-fm" element={<RequestFMRole />} />

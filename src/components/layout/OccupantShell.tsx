@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Thermometer, History, Settings, Building2, ArrowLeftRight, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Thermometer, MessageSquare, History, Settings, Building2, ArrowLeftRight, ChevronDown } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import BuildingQuickSwitch from '../occupant/BuildingQuickSwitch';
@@ -9,6 +9,7 @@ import type { Building } from '../../types';
 const tabs = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/environment', icon: Thermometer, label: 'Temp' },
+  { to: '/complaints', icon: MessageSquare, label: 'Complaints' },
   { to: '/history', icon: History, label: 'History' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
@@ -86,13 +87,13 @@ export default function OccupantShell({ children, showNav = false }: OccupantShe
 
         {showNav && (
           <nav className="border-t border-gray-200 bg-white/95 px-3 py-3 backdrop-blur">
-            <div className="flex items-center justify-around gap-2 rounded-xl bg-gray-50 px-2 py-2">
+            <div className="flex items-center justify-around gap-1 rounded-xl bg-gray-50 px-1.5 py-2">
               {tabs.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
                   to={to}
                   className={({ isActive }) =>
-                    `flex min-w-[88px] flex-col items-center gap-1 rounded-lg px-3 py-2 text-[11px] font-medium transition-all ${
+                    `flex flex-1 min-w-0 flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-medium transition-all ${
                       isActive
                         ? 'bg-white text-teal-700 shadow-sm border border-gray-200'
                         : 'text-gray-500 hover:text-gray-700'
@@ -100,7 +101,7 @@ export default function OccupantShell({ children, showNav = false }: OccupantShe
                   }
                 >
                   <Icon className="h-5 w-5" />
-                  {label}
+                  <span className="truncate max-w-full">{label}</span>
                 </NavLink>
               ))}
             </div>
