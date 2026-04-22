@@ -26,13 +26,69 @@ const BUBBLE_MARGIN_X = 24;  // right-6
 const BUBBLE_MARGIN_Y = 96;  // bottom-24
 const DRAG_MOVE_THRESHOLD_PX = 6;
 
-const welcomeFor = (buildingName: string | undefined): ChatMessage => ({
-  id: 'welcome',
-  role: 'bot',
-  text: buildingName
-    ? `Hi, I'm ${buildingName}. Ask me how I'm doing, what people have been saying, or if something is bothering you right now.`
-    : 'Hi! Pick a building from the dashboard and I can tell you how it is feeling, what is trending, and log issues for you.',
-});
+// Vos — Dutch for "fox" (and the name of the legendary fox from Van den Vos
+// Reynaerde). The icon is a fox, and the platform's roots are Dutch; Vos is
+// the ComfortOS guide that each building speaks through.
+const BOT_NAME = 'Vos';
+
+type TimeHook = { greeting: string; hook: string };
+
+const timeHook = (hour: number): TimeHook => {
+  if (hour < 5) {
+    return {
+      greeting: 'Stil, het is nacht',
+      hook: "I'm running on a whisper — vents low, lights off. What has you up at this hour?",
+    };
+  }
+  if (hour < 9) {
+    return {
+      greeting: 'Goedemorgen',
+      hook: 'We are both just waking up. Want a quick read on how the building feels?',
+    };
+  }
+  if (hour < 12) {
+    return {
+      greeting: 'Morning',
+      hook: "The day is finding its rhythm. Ask me how we're holding up.",
+    };
+  }
+  if (hour < 14) {
+    return {
+      greeting: 'Lunchtime',
+      hook: 'Midday lull in full effect. Perfect window for a quick check-in.',
+    };
+  }
+  if (hour < 17) {
+    return {
+      greeting: 'Afternoon',
+      hook: 'This is when I tend to run warmest. Curious what my sensors say?',
+    };
+  }
+  if (hour < 19) {
+    return {
+      greeting: 'Wrap-up time',
+      hook: 'Last stretch of the day. Anything you want to check before you head out?',
+    };
+  }
+  if (hour < 22) {
+    return {
+      greeting: 'Goedenavond',
+      hook: 'Things are quieting down. We are catching our breath — ask me anything.',
+    };
+  }
+  return {
+    greeting: 'Late-night check-in',
+    hook: 'Most have clocked out. I keep one ear open, though. What do you need?',
+  };
+};
+
+const welcomeFor = (buildingName: string | undefined, now: Date = new Date()): ChatMessage => {
+  const { greeting, hook } = timeHook(now.getHours());
+  const text = buildingName
+    ? `${greeting}! I'm ${BOT_NAME}, the fox looking after ${buildingName}. ${hook}`
+    : `${greeting}! I'm ${BOT_NAME}, your ComfortOS fox. Pick a building on the dashboard and I'll tell you how it's feeling. ${hook}`;
+  return { id: 'welcome', role: 'bot', text };
+};
 
 export default function AiChatWidget() {
   const user = useAuthStore((s) => s.user);
@@ -88,6 +144,18 @@ export default function AiChatWidget() {
     setMessages([welcomeFor(buildingName)]);
   }, [buildingId, buildingName]);
 
+  // When the user (re)opens the chat with nothing in it, regenerate the
+  // welcome so the greeting reflects the current time of day.
+  useEffect(() => {
+    if (!isOpen) return;
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === 'welcome') {
+        return [welcomeFor(buildingName)];
+      }
+      return prev;
+    });
+  }, [isOpen, buildingName]);
+
   const canSend = useMemo(
     () => input.trim().length > 0 && !isSending,
     [input, isSending],
@@ -134,8 +202,10 @@ export default function AiChatWidget() {
     }
   };
 
-  const headerTitle = buildingName ?? 'ComfortOS Assistant';
-  const headerSubtitle = buildingName ? 'speaking as your building' : 'Online';
+  const headerTitle = buildingName ?? BOT_NAME;
+  const headerSubtitle = buildingName
+    ? `with ${BOT_NAME}, your ComfortOS fox`
+    : 'your ComfortOS fox';
 
   const panelClass = isFullscreen
     ? 'fixed inset-0 z-[1100] flex flex-col bg-white'
