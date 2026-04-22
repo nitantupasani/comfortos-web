@@ -98,7 +98,7 @@ export default function AiChatWidget() {
         className="h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-teal-600 shadow-xl transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-200"
         aria-label={isOpen ? 'Close AI chat' : 'Open AI chat'}
       >
-        <img src="/fox.png" alt="AI bot" className="h-full w-full object-cover" />
+        <img src="/fox.png" alt="AI bot" className="h-full w-full object-contain p-1.5" />
       </button>
     </div>
   )
