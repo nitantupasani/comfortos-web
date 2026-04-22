@@ -12,6 +12,9 @@ interface AiChatResponse {
 }
 
 export const aiApi = {
-  chat: (messages: AiChatMessage[]) =>
-    api.post<AiChatResponse>('/ai/chat', { messages }),
+  chat: (messages: AiChatMessage[], buildingId?: string | null) =>
+    api.post<AiChatResponse>('/ai/chat', {
+      messages,
+      ...(buildingId ? { buildingId } : {}),
+    }),
 };
