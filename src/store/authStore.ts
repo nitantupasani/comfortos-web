@@ -83,6 +83,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try { await firebaseSignOut(); } catch { /* ignore */ }
     localStorage.removeItem('auth_token');
+    // Clear any cached chat-session pointers so the next login starts a
+    // fresh Vos conversation instead of reopening the previous user's.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('comfortos.chat.sessionId')) {
+        localStorage.removeItem(key);
+      }
+    }
     set({ user: null, token: null, viewAsRole: null });
   },
 
