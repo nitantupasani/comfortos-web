@@ -3,6 +3,7 @@ import { useAuthStore } from './store/authStore';
 import AppRouter from './router';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import ViewAsRoleBanner from './components/common/ViewAsRoleBanner';
+import AiChatWidget from './components/common/AiChatWidget';
 
 export default function App() {
   const { restoreSession, token, user, viewAsRole } = useAuthStore();
@@ -30,6 +31,7 @@ export default function App() {
     <div className={showBanner ? 'pt-9' : ''}>
       <ViewAsRoleBanner />
       <AppRouter />
+      <AiChatWidget />
     </div>
   );
 }

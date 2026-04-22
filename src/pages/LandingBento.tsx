@@ -280,7 +280,7 @@ export default function LandingBento() {
   });
   const [stepState, setStepState] = useState<0 | 1 | 2>(0);
   useEffect(() => {
-    return storyP.on('change', (v) => {
+    return storyP.on('change', (v: number) => {
       if (v < 0.33) setStepState(0);
       else if (v < 0.66) setStepState(1);
       else setStepState(2);
