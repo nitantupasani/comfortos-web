@@ -1,4 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { aiApi, AiChatMessage } from '../../api/ai';
+import { ApiError } from '../../api/client';
+import { useAuthStore } from '../../store/authStore';
 
 type ChatMessage = {
   id: string;
@@ -6,36 +9,63 @@ type ChatMessage = {
   text: string;
 };
 
-const STARTER_MESSAGES: ChatMessage[] = [
-  {
-    id: 'welcome',
-    role: 'bot',
-    text: 'Hi! I am your ComfortOS AI assistant. Ask me anything about your building or dashboard.',
-  },
-];
+const WELCOME: ChatMessage = {
+  id: 'welcome',
+  role: 'bot',
+  text: 'Hi! I am your ComfortOS AI assistant. Ask me anything about your building or dashboard.',
+};
 
 export default function AiChatWidget() {
+  const user = useAuthStore((s) => s.user);
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>(STARTER_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+  const [isSending, setIsSending] = useState(false);
 
-  const canSend = useMemo(() => input.trim().length > 0, [input]);
+  const canSend = useMemo(
+    () => input.trim().length > 0 && !isSending,
+    [input, isSending],
+  );
 
-  const handleSubmit = (event: FormEvent) => {
+  if (!user) return null;
+
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const text = input.trim();
-    if (!text) return;
+    if (!text || isSending) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: 'user', text },
-      {
-        id: crypto.randomUUID(),
-        role: 'bot',
-        text: 'Thanks for your message. Hook this widget to your backend AI endpoint to get live responses.',
-      },
-    ]);
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      text,
+    };
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setInput('');
+    setIsSending(true);
+
+    const history: AiChatMessage[] = nextMessages
+      .filter((m) => m.id !== 'welcome')
+      .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+
+    try {
+      const { reply } = await aiApi.chat(history);
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'bot', text: reply },
+      ]);
+    } catch (err) {
+      const detail =
+        err instanceof ApiError
+          ? err.message
+          : 'Something went wrong reaching the AI assistant.';
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: 'bot', text: `Sorry — ${detail}` },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -70,6 +100,11 @@ export default function AiChatWidget() {
                 {message.text}
               </div>
             ))}
+            {isSending && (
+              <div className="mr-auto max-w-[85%] rounded-xl bg-white px-3 py-2 text-sm italic text-gray-500 shadow-sm">
+                Thinking…
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="border-t border-gray-200 bg-white p-3">
@@ -78,6 +113,7 @@ export default function AiChatWidget() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ask the AI assistant..."
+                disabled={isSending}
                 className="input h-10"
               />
               <button
@@ -101,5 +137,5 @@ export default function AiChatWidget() {
         <img src="/fox.png" alt="AI bot" className="h-full w-full object-contain p-1.5" />
       </button>
     </div>
-  )
+  );
 }
