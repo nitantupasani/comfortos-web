@@ -250,12 +250,12 @@ export default function LandingPlatform() {
       <header className="sticky top-0 z-30 backdrop-blur bg-white/85 border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
-            <span className="relative inline-block h-9 w-9">
+            <span className="relative inline-flex h-12 w-12 items-center justify-center">
               <img
                 src="/fox.png"
                 alt=""
                 aria-hidden
-                className={`absolute inset-0 h-9 w-9 rounded-md object-cover transition-opacity duration-200 ${
+                className={`h-9 w-9 rounded-md object-cover transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-0' : 'opacity-100'
                 }`}
               />
@@ -263,7 +263,7 @@ export default function LandingPlatform() {
                 ref={foxVideoRef}
                 src="/video.mp4"
                 poster="/fox.png"
-                className={`absolute inset-0 h-9 w-9 rounded-md object-cover transition-opacity duration-200 ${
+                className={`absolute inset-0 h-12 w-12 rounded-md object-cover transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-100' : 'opacity-0'
                 }`}
                 muted
