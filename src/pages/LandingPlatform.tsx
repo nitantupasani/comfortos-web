@@ -189,7 +189,11 @@ export default function LandingPlatform() {
         try { v.load(); } catch { /* ignore */ }
       }
 
+      // Desktop: might auto-resume. iOS: will fail without a gesture,
+      // so we also re-arm the interaction fallback so the next tap or
+      // scroll-end on the page kicks playback off again.
       window.setTimeout(playNow, 100);
+      armInteractionListeners();
     };
     document.addEventListener('visibilitychange', onVisibilityOrShow);
     window.addEventListener('pageshow', onVisibilityOrShow);
@@ -200,26 +204,32 @@ export default function LandingPlatform() {
     // anywhere on the page unlocks playback. Only events that count
     // as user activation per the HTML spec are listed — scroll and
     // move events do not qualify and were intentionally removed.
-    const interactionEvents: Array<keyof WindowEventMap> = [
-      'pointerup',
-      'touchend',
-      'click',
-      'keydown',
-    ];
-    const onInteraction = () => {
+    const armInteractionListeners = () => {
       cleanupInteraction();
-      playFromGesture();
+      if (cancelled) return;
+      const interactionEvents: Array<keyof WindowEventMap> = [
+        'pointerup',
+        'touchend',
+        'click',
+        'keydown',
+      ];
+      const onInteraction = () => {
+        cleanupInteraction();
+        playFromGesture();
+      };
+      for (const evt of interactionEvents) {
+        // capture:true fires before React handlers, so the listener
+        // catches even taps on the video / anchor itself before they
+        // trigger navigation.
+        const opts: AddEventListenerOptions = { once: true, passive: true, capture: true };
+        window.addEventListener(evt, onInteraction, opts);
+        removeInteraction.push(() =>
+          window.removeEventListener(evt, onInteraction, opts),
+        );
+      }
     };
-    for (const evt of interactionEvents) {
-      // capture:true fires before React handlers, so the listener
-      // catches even taps on the video / anchor itself before they
-      // trigger navigation.
-      const opts: AddEventListenerOptions = { once: true, passive: true, capture: true };
-      window.addEventListener(evt, onInteraction, opts);
-      removeInteraction.push(() =>
-        window.removeEventListener(evt, onInteraction, opts),
-      );
-    }
+
+    armInteractionListeners();
 
     // Desktop-friendly immediate kick in case autoplay was blocked.
     playNow();
