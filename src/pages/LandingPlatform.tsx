@@ -243,6 +243,7 @@ export default function LandingPlatform() {
             <video
               ref={foxVideoRef}
               src="/video.mp4"
+              poster="/fox.png"
               className="w-12 h-12 object-cover rounded-md"
               muted
               playsInline
