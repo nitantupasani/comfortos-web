@@ -285,7 +285,6 @@ export default function LandingPlatform() {
                 }`}
                 autoPlay
                 muted
-                defaultMuted
                 playsInline
                 preload="auto"
                 controls={false}
