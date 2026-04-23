@@ -79,9 +79,14 @@ export default function AppRouter() {
       <Route path="/landing/v5" element={<LandingMidnight />} />
       <Route path="/landing/v6" element={<LandingCove />} />
 
-      {/* Root: landing for logged-out, role dashboard for logged-in */}
+      {/* Root: landing for logged-out, role dashboard for logged-in.
+          /en serves the English version of the landing page. */}
       <Route
         path="/"
+        element={user ? <Navigate to={roleRedirect()} replace /> : <LandingPlatform />}
+      />
+      <Route
+        path="/en"
         element={user ? <Navigate to={roleRedirect()} replace /> : <LandingPlatform />}
       />
 

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import LandingAiChat from '../components/common/LandingAiChat';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
-import { useLang } from '../i18n/landing';
+import { langFromPath, setLang, useLang } from '../i18n/landing';
 import {
   Activity,
   ArrowRight,
@@ -44,6 +44,13 @@ const MONO =
 export default function LandingPlatform() {
   const reduce = useReducedMotion();
   const { t } = useLang();
+  const location = useLocation();
+
+  // URL is the source of truth for the landing language.
+  // /en → English. Anything else → Dutch.
+  useEffect(() => {
+    setLang(langFromPath(location.pathname) ?? 'nl');
+  }, [location.pathname]);
 
   useEffect(() => {
     const id = 'comfortos-platform-fonts';
@@ -55,6 +62,45 @@ export default function LandingPlatform() {
       'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap';
     document.head.appendChild(link);
   }, []);
+
+  // Emit hreflang alternates + canonical so Google serves the right
+  // language to the right search region.
+  useEffect(() => {
+    const head = document.head;
+    const origin = window.location.origin;
+    const isEn = langFromPath(location.pathname) === 'en';
+
+    const setOrCreate = (rel: string, attrs: Record<string, string>) => {
+      const selector =
+        rel === 'alternate'
+          ? `link[rel="alternate"][hreflang="${attrs.hreflang}"]`
+          : `link[rel="${rel}"]`;
+      let el = head.querySelector<HTMLLinkElement>(selector);
+      if (!el) {
+        el = document.createElement('link');
+        el.rel = rel;
+        head.appendChild(el);
+      }
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'hreflang') el.setAttribute('hreflang', v);
+        else if (k === 'href') el.href = v;
+      }
+    };
+
+    setOrCreate('alternate', { hreflang: 'nl', href: `${origin}/` });
+    setOrCreate('alternate', { hreflang: 'en', href: `${origin}/en` });
+    setOrCreate('alternate', { hreflang: 'x-default', href: `${origin}/` });
+    setOrCreate('canonical', { href: `${origin}${isEn ? '/en' : '/'}` });
+
+    return () => {
+      // Remove on unmount so the tags do not leak into authenticated pages.
+      head
+        .querySelectorAll('link[rel="alternate"][hreflang], link[rel="canonical"]')
+        .forEach((el) => {
+          if ((el as HTMLLinkElement).href.includes(origin)) el.remove();
+        });
+    };
+  }, [location.pathname]);
 
   const fadeUp: Variants = {
     hidden: { opacity: 0, y: reduce ? 0 : 8 },

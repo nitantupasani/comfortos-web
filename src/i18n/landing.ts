@@ -17,8 +17,16 @@ export type Lang = 'nl' | 'en';
 const STORAGE_KEY = 'comfortos.landing.lang';
 const DEFAULT_LANG: Lang = 'nl';
 
+function langFromPath(pathname: string): Lang | null {
+  // /en, /en/, /en?... → English. Everything else defers to storage / default.
+  if (/^\/en(?:\/|$|\?|#)/.test(pathname)) return 'en';
+  return null;
+}
+
 function readInitial(): Lang {
   if (typeof window === 'undefined') return DEFAULT_LANG;
+  const fromPath = langFromPath(window.location.pathname);
+  if (fromPath) return fromPath;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === 'en' || stored === 'nl') return stored;
@@ -59,6 +67,8 @@ export function setLang(lang: Lang): void {
   }
   notify();
 }
+
+export { langFromPath };
 
 /** Pure lookup usable anywhere; callers in React should use useLang() to re-render. */
 export function t(nl: string, en: string): string {

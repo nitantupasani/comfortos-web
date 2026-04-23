@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Check, Globe } from 'lucide-react';
 import { useLang, type Lang } from '../../i18n/landing';
 
@@ -7,9 +8,13 @@ const OPTIONS: { code: Lang; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
 ];
 
-/** Small language dropdown, designed for the landing-page top bar. */
+const pathFor = (lang: Lang): string => (lang === 'en' ? '/en' : '/');
+
+/** Small language dropdown; navigates to / or /en so the URL reflects the choice. */
 export default function LanguageSwitcher() {
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -30,6 +35,15 @@ export default function LanguageSwitcher() {
   }, [open]);
 
   const current = OPTIONS.find((o) => o.code === lang) ?? OPTIONS[0];
+
+  const select = (code: Lang) => {
+    setOpen(false);
+    const target = pathFor(code);
+    // Preserve hash fragment so in-page anchors survive the switch.
+    const withHash = target + (location.hash || '');
+    if (location.pathname === target) return;
+    navigate(withHash, { replace: true });
+  };
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -59,10 +73,7 @@ export default function LanguageSwitcher() {
                   type="button"
                   role="option"
                   aria-selected={active}
-                  onClick={() => {
-                    setLang(o.code);
-                    setOpen(false);
-                  }}
+                  onClick={() => select(o.code)}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] transition ${
                     active
                       ? 'bg-teal-50 text-teal-800'
