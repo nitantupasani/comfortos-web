@@ -56,17 +56,18 @@ export default function LandingPlatform() {
 
   // Fox video playback.
   //
-  // Browsers only grant muted-autoplay to the <video> element's own
-  // autoPlay attribute; a programmatic play() from a setTimeout is often
-  // rejected by autoplay policy even when muted. So we let autoPlay run
-  // the first play, listen for the natural `ended` event, then schedule
-  // another play() 60s later (any subsequent play() inherits the media
-  // element's earlier autoplay grant and runs fine).
+  // Desktop browsers honour the <video autoPlay muted> attribute.
+  // Mobile (iOS Safari, Chrome Android under Low Power / Data Saver /
+  // after tab restore) can still refuse muted autoplay until a real
+  // user gesture lands. We install one-shot interaction listeners so
+  // the first touch, scroll, or click anywhere on the page kicks the
+  // video off. When autoplay succeeds, the `playing` event removes
+  // those listeners immediately.
   //
   // React has a long-standing quirk where the `muted` attribute on
-  // <video> can arrive on the DOM without also setting the
-  // HTMLMediaElement.muted property, which autoplay requires. We set it
-  // explicitly in JS below.
+  // <video> can arrive on the DOM without setting the
+  // HTMLMediaElement.muted property that autoplay policy checks. Set
+  // it explicitly in JS.
   useEffect(() => {
     const video = foxVideoRef.current;
     if (!video) return;
@@ -74,6 +75,14 @@ export default function LandingPlatform() {
 
     let cancelled = false;
     let replayTimer: number | undefined;
+    const removeInteraction: Array<() => void> = [];
+
+    const cleanupInteraction = () => {
+      while (removeInteraction.length) {
+        const fn = removeInteraction.pop();
+        try { fn?.(); } catch { /* ignore */ }
+      }
+    };
 
     const playNow = () => {
       const v = foxVideoRef.current;
@@ -89,7 +98,11 @@ export default function LandingPlatform() {
       }
     };
 
-    const onPlaying = () => setIsFoxPlaying(true);
+    const onPlaying = () => {
+      setIsFoxPlaying(true);
+      // Autoplay worked — no need to keep the interaction fallback.
+      cleanupInteraction();
+    };
     const onEnded = () => {
       setIsFoxPlaying(false);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
@@ -101,13 +114,34 @@ export default function LandingPlatform() {
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
 
-    // In case autoplay was blocked, kick it off ourselves. Muted plays
-    // from an effect are reliably allowed on all major browsers.
+    // Mobile fallback: first user gesture kicks the video off if
+    // autoplay was suppressed.
+    const interactionEvents: Array<keyof WindowEventMap> = [
+      'touchstart',
+      'pointerdown',
+      'click',
+      'scroll',
+      'keydown',
+    ];
+    const onInteraction = () => {
+      cleanupInteraction();
+      playNow();
+    };
+    for (const evt of interactionEvents) {
+      const opts: AddEventListenerOptions = { once: true, passive: true };
+      window.addEventListener(evt, onInteraction, opts);
+      removeInteraction.push(() =>
+        window.removeEventListener(evt, onInteraction, opts),
+      );
+    }
+
+    // Desktop-friendly immediate kick in case autoplay was blocked.
     playNow();
 
     return () => {
       cancelled = true;
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
+      cleanupInteraction();
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('pause', onPause);
