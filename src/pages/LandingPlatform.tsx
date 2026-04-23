@@ -272,17 +272,19 @@ export default function LandingPlatform() {
                 src="/fox.png"
                 alt=""
                 aria-hidden
-                className={`h-7 w-7 rounded-md object-cover transition-opacity duration-200 ${
+                className={`h-7 w-7 rounded-md object-contain object-top transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-0' : 'opacity-100'
                 }`}
+                style={{ transform: 'translateY(4px)' }}
               />
               <video
                 ref={foxVideoRef}
                 src="/video.mp4"
                 poster="/fox.png"
-                className={`absolute inset-0 h-12 w-12 rounded-md object-cover transition-opacity duration-200 ${
+                className={`absolute inset-0 h-12 w-12 rounded-md object-contain object-top transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-100' : 'opacity-0'
                 }`}
+                style={{ transform: 'translateY(4px)' }}
                 autoPlay
                 muted
                 playsInline
