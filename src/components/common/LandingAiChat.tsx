@@ -144,12 +144,13 @@ export default function LandingAiChat() {
     setInput('');
     setIsSending(true);
 
-    const history: AiChatMessage[] = nextMessages
-      .filter((m) => m.id !== 'welcome')
-      .map((m) => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.text,
-      }));
+    // Keep the welcome in the history so Vos sees its own opening
+    // offer. Without this, replies like 'yes' arrive context-free and
+    // the model loops on clarifying questions instead of delivering.
+    const history: AiChatMessage[] = nextMessages.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
 
     try {
       const { reply } = await aiApi.publicChat(history);

@@ -258,9 +258,13 @@ export default function AiChatWidget() {
     setInput('');
     setIsSending(true);
 
-    const history: AiChatMessage[] = nextMessages
-      .filter((m) => m.id !== 'welcome')
-      .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+    // Keep the welcome in the history so Gemini sees the offer it is
+    // replying to. Without this, a short 'yes' has no context and Vos
+    // mis-routes it (most commonly to the complaint flow).
+    const history: AiChatMessage[] = nextMessages.map((m) => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
 
     try {
       const { reply, sessionId: returnedSid } = await aiApi.chat(history, buildingId, sessionId);
