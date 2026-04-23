@@ -56,39 +56,68 @@ export default function LandingPlatform() {
 
   // Fox video playback: kick in 1s after mount, run once, then schedule
   // another play 60s after each end. isFoxPlaying drives a crossfade
-  // with the fox.png poster so the slot never goes blank — the clip
-  // ends on a white frame which would otherwise 'vanish' on white UI.
+  // with the fox.png image so the slot never goes blank — the clip ends
+  // on a white frame which would otherwise 'vanish' on the white UI.
+  //
+  // Runs fresh on every mount, including hard reloads on / and /en,
+  // since this effect has empty deps and LandingPlatform mounts from
+  // scratch on a page load.
   useEffect(() => {
     const video = foxVideoRef.current;
     if (!video) return;
+
     let startTimer: number | undefined;
     let replayTimer: number | undefined;
+    let cancelled = false;
 
-    const play = () => {
-      if (!foxVideoRef.current) return;
+    const tryPlay = async () => {
+      const v = foxVideoRef.current;
+      if (!v || cancelled) return;
       try {
-        foxVideoRef.current.currentTime = 0;
+        v.currentTime = 0;
       } catch {
-        /* ignore seek errors before metadata is loaded */
+        /* seek may fail before metadata loads */
       }
-      foxVideoRef.current.play().catch(() => {
-        /* autoplay can be blocked by the browser, ignore silently */
-      });
+      try {
+        await v.play();
+      } catch {
+        // Cold reload: the video may not be playable yet. Wait for the
+        // first canplay event and retry once.
+        if (cancelled) return;
+        const onCanPlay = () => {
+          v.removeEventListener('canplay', onCanPlay);
+          if (!cancelled) {
+            void v.play().catch(() => { /* give up silently */ });
+          }
+        };
+        v.addEventListener('canplay', onCanPlay);
+      }
     };
 
     const onPlaying = () => setIsFoxPlaying(true);
     const onEnded = () => {
       setIsFoxPlaying(false);
-      replayTimer = window.setTimeout(play, 60_000);
+      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
+      replayTimer = window.setTimeout(tryPlay, 60_000);
     };
     const onPause = () => setIsFoxPlaying(false);
 
-    startTimer = window.setTimeout(play, 1_000);
+    // Prime the element. Some browsers skip preload on back-forward
+    // cache restores and after reload under memory pressure — an
+    // explicit load() makes the first play() far more reliable.
+    try {
+      video.load();
+    } catch {
+      /* ignore */
+    }
+
+    startTimer = window.setTimeout(tryPlay, 1_000);
     video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
 
     return () => {
+      cancelled = true;
       if (startTimer !== undefined) window.clearTimeout(startTimer);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       video.removeEventListener('playing', onPlaying);
