@@ -46,6 +46,7 @@ export default function LandingPlatform() {
   const { t } = useLang();
   const location = useLocation();
   const foxVideoRef = useRef<HTMLVideoElement | null>(null);
+  const foxImageRef = useRef<HTMLImageElement | null>(null);
   const [isFoxPlaying, setIsFoxPlaying] = useState(false);
 
   // URL is the source of truth for the landing language.
@@ -122,25 +123,58 @@ export default function LandingPlatform() {
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       replayTimer = window.setTimeout(playNow, 30_000);
     };
-    const onPause = () => setIsFoxPlaying(false);
+    const onIdle = () => setIsFoxPlaying(false);
 
     video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
-    video.addEventListener('pause', onPause);
+    // pause / suspend / emptied / error all mean 'video is not showing
+    // its own frames right now', so the fox image overlay must come
+    // back. iOS fires some of these without pause() in between on
+    // backgrounding, which is what left the slot blank.
+    video.addEventListener('pause', onIdle);
+    video.addEventListener('suspend', onIdle);
+    video.addEventListener('emptied', onIdle);
+    video.addEventListener('error', onIdle);
 
-    // iOS sometimes drops the video frame when the tab is backgrounded
-    // and does not fire a pause event on return, which leaves the
-    // overlay hidden over an empty video and the slot looks blank.
-    // When the page becomes visible again, always reveal the fox
-    // image and attempt another play.
+    // iOS sometimes drops the video frame AND does not fire a pause
+    // event on tab restore, which leaves the overlay hidden over an
+    // empty video and the slot looks blank. It also sometimes
+    // invalidates the <img>'s decoded bitmap on bfcache restore.
+    // Whenever the page comes back to the foreground, we:
+    //   1. force the fox image to re-decode (trigger a reload via
+    //      setting the same src back),
+    //   2. reset isFoxPlaying so the overlay is revealed,
+    //   3. call video.load() to reset the element to its poster state,
+    //   4. schedule a playNow() a tick later so the poster has time
+    //      to render before we swap it for the video frame.
     const onVisibilityOrShow = () => {
-      if (document.visibilityState !== 'visible') return;
       if (cancelled) return;
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+
+      const img = foxImageRef.current;
+      if (img) {
+        try {
+          // Reassign the src to force iOS to redecode the cached image.
+          const src = img.getAttribute('src');
+          if (src) {
+            img.setAttribute('src', '');
+            img.setAttribute('src', src);
+          }
+        } catch { /* ignore */ }
+      }
+
       setIsFoxPlaying(false);
-      playNow();
+
+      const v = foxVideoRef.current;
+      if (v) {
+        try { v.load(); } catch { /* ignore */ }
+      }
+
+      window.setTimeout(playNow, 100);
     };
     document.addEventListener('visibilitychange', onVisibilityOrShow);
     window.addEventListener('pageshow', onVisibilityOrShow);
+    window.addEventListener('focus', onVisibilityOrShow);
 
     // Fallback for mobile (iOS Safari / iOS Chrome under Low Power,
     // Data Saver, or tab restore): first real user activation
@@ -177,9 +211,13 @@ export default function LandingPlatform() {
       cleanupInteraction();
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
-      video.removeEventListener('pause', onPause);
+      video.removeEventListener('pause', onIdle);
+      video.removeEventListener('suspend', onIdle);
+      video.removeEventListener('emptied', onIdle);
+      video.removeEventListener('error', onIdle);
       document.removeEventListener('visibilitychange', onVisibilityOrShow);
       window.removeEventListener('pageshow', onVisibilityOrShow);
+      window.removeEventListener('focus', onVisibilityOrShow);
     };
   }, []);
 
@@ -363,6 +401,7 @@ export default function LandingPlatform() {
                 }`}
               >
                 <img
+                  ref={foxImageRef}
                   src="/fox.png"
                   alt=""
                   aria-hidden
