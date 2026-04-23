@@ -98,9 +98,23 @@ export default function LandingPlatform() {
       }
     };
 
+    // Mobile-aware play: iOS refuses to start loading (and therefore
+    // refuses to play) until a user gesture happens. Inside the
+    // gesture, we force load() first and play() second so both run
+    // inside the activation.
+    const playFromGesture = () => {
+      const v = foxVideoRef.current;
+      if (!v || cancelled) return;
+      try { v.load(); } catch { /* ignore */ }
+      const p = v.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => { /* ignore */ });
+      }
+    };
+
     const onPlaying = () => {
       setIsFoxPlaying(true);
-      // Autoplay worked — no need to keep the interaction fallback.
+      // Autoplay / gesture unlock worked — drop the fallback listeners.
       cleanupInteraction();
     };
     const onEnded = () => {
@@ -114,21 +128,26 @@ export default function LandingPlatform() {
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
 
-    // Mobile fallback: first user gesture kicks the video off if
-    // autoplay was suppressed.
+    // Fallback for mobile (iOS Safari / iOS Chrome under Low Power,
+    // Data Saver, or tab restore): first real user activation
+    // anywhere on the page unlocks playback. Only events that count
+    // as user activation per the HTML spec are listed — scroll and
+    // move events do not qualify and were intentionally removed.
     const interactionEvents: Array<keyof WindowEventMap> = [
-      'touchstart',
-      'pointerdown',
+      'pointerup',
+      'touchend',
       'click',
-      'scroll',
       'keydown',
     ];
     const onInteraction = () => {
       cleanupInteraction();
-      playNow();
+      playFromGesture();
     };
     for (const evt of interactionEvents) {
-      const opts: AddEventListenerOptions = { once: true, passive: true };
+      // capture:true fires before React handlers, so the listener
+      // catches even taps on the video / anchor itself before they
+      // trigger navigation.
+      const opts: AddEventListenerOptions = { once: true, passive: true, capture: true };
       window.addEventListener(evt, onInteraction, opts);
       removeInteraction.push(() =>
         window.removeEventListener(evt, onInteraction, opts),
