@@ -54,23 +54,19 @@ export default function LandingPlatform() {
     setLang(langFromPath(location.pathname) ?? 'nl');
   }, [location.pathname]);
 
-  // Fox video playback: kick in 1s after mount, run once, then schedule
-  // another play 60s after each end. isFoxPlaying drives a crossfade
-  // with the fox.png image so the slot never goes blank — the clip ends
-  // on a white frame which would otherwise 'vanish' on the white UI.
-  //
-  // Runs fresh on every mount, including hard reloads on / and /en,
-  // since this effect has empty deps and LandingPlatform mounts from
-  // scratch on a page load.
+  // Fox video playback: wait for the video to be ready, then play once
+  // 1 second after mount; on end, schedule the next run 60 seconds later.
+  // isFoxPlaying drives a crossfade with fox.png so the slot never goes
+  // blank during the gap.
   useEffect(() => {
     const video = foxVideoRef.current;
     if (!video) return;
 
+    let cancelled = false;
     let startTimer: number | undefined;
     let replayTimer: number | undefined;
-    let cancelled = false;
 
-    const tryPlay = async () => {
+    const tryPlay = () => {
       const v = foxVideoRef.current;
       if (!v || cancelled) return;
       try {
@@ -78,21 +74,28 @@ export default function LandingPlatform() {
       } catch {
         /* seek may fail before metadata loads */
       }
-      try {
-        await v.play();
-      } catch {
-        // Cold reload: the video may not be playable yet. Wait for the
-        // first canplay event and retry once.
-        if (cancelled) return;
-        const onCanPlay = () => {
-          v.removeEventListener('canplay', onCanPlay);
-          if (!cancelled) {
-            void v.play().catch(() => { /* give up silently */ });
-          }
-        };
-        v.addEventListener('canplay', onCanPlay);
+      const p = v.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => { /* autoplay can be blocked; ignore */ });
       }
     };
+
+    const scheduleFirstPlay = () => {
+      if (cancelled) return;
+      startTimer = window.setTimeout(tryPlay, 1_000);
+    };
+
+    // readyState 2 = HAVE_CURRENT_DATA or better, i.e. at least the
+    // first frame is decoded so play() will not abort.
+    if (video.readyState >= 2) {
+      scheduleFirstPlay();
+    } else {
+      const onReady = () => {
+        video.removeEventListener('loadeddata', onReady);
+        scheduleFirstPlay();
+      };
+      video.addEventListener('loadeddata', onReady);
+    }
 
     const onPlaying = () => setIsFoxPlaying(true);
     const onEnded = () => {
@@ -102,16 +105,6 @@ export default function LandingPlatform() {
     };
     const onPause = () => setIsFoxPlaying(false);
 
-    // Prime the element. Some browsers skip preload on back-forward
-    // cache restores and after reload under memory pressure — an
-    // explicit load() makes the first play() far more reliable.
-    try {
-      video.load();
-    } catch {
-      /* ignore */
-    }
-
-    startTimer = window.setTimeout(tryPlay, 1_000);
     video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
