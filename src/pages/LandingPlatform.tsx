@@ -1037,15 +1037,23 @@ export default function LandingPlatform() {
                             Scale · 7pt
                           </span>
                         </div>
-                        <div
-                          className="mt-1.5 flex items-center gap-1 text-[10.5px] text-gray-500"
-                          style={{ fontFamily: MONO }}
-                        >
-                          <span className="rounded border border-gray-200 bg-gray-50 px-1">-3 Cold</span>
-                          <span>·</span>
-                          <span className="rounded border border-gray-200 bg-gray-50 px-1">0 Neutral</span>
-                          <span>·</span>
-                          <span className="rounded border border-gray-200 bg-gray-50 px-1">+3 Hot</span>
+                        <div className="mt-1.5">
+                          <div className="flex justify-between gap-1">
+                            {['-3', '-2', '-1', '0', '+1', '+2', '+3'].map((v) => (
+                              <span
+                                key={v}
+                                className="flex-1 rounded border border-gray-200 bg-gray-50 px-0.5 py-0.5 text-center text-[10px] text-gray-600 tabular-nums"
+                                style={{ fontFamily: MONO }}
+                              >
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-0.5 flex justify-between px-0.5 text-[9px] text-gray-400">
+                            <span>Cold</span>
+                            <span>Neutral</span>
+                            <span>Hot</span>
+                          </div>
                         </div>
                         <div className="mt-1.5 flex items-center gap-1.5">
                           <span className="inline-flex items-center gap-1 rounded-full bg-teal-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
