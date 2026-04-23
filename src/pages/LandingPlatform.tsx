@@ -128,6 +128,20 @@ export default function LandingPlatform() {
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
 
+    // iOS sometimes drops the video frame when the tab is backgrounded
+    // and does not fire a pause event on return, which leaves the
+    // overlay hidden over an empty video and the slot looks blank.
+    // When the page becomes visible again, always reveal the fox
+    // image and attempt another play.
+    const onVisibilityOrShow = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (cancelled) return;
+      setIsFoxPlaying(false);
+      playNow();
+    };
+    document.addEventListener('visibilitychange', onVisibilityOrShow);
+    window.addEventListener('pageshow', onVisibilityOrShow);
+
     // Fallback for mobile (iOS Safari / iOS Chrome under Low Power,
     // Data Saver, or tab restore): first real user activation
     // anywhere on the page unlocks playback. Only events that count
@@ -164,6 +178,8 @@ export default function LandingPlatform() {
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('pause', onPause);
+      document.removeEventListener('visibilitychange', onVisibilityOrShow);
+      window.removeEventListener('pageshow', onVisibilityOrShow);
     };
   }, []);
 
