@@ -47,6 +47,7 @@ export default function LandingPlatform() {
   const location = useLocation();
   const foxVideoRef = useRef<HTMLVideoElement | null>(null);
   const foxImageRef = useRef<HTMLImageElement | null>(null);
+  const foxOverlayRef = useRef<HTMLSpanElement | null>(null);
   const [isFoxPlaying, setIsFoxPlaying] = useState(false);
 
   // URL is the source of truth for the landing language.
@@ -151,6 +152,23 @@ export default function LandingPlatform() {
       if (cancelled) return;
       if (document.visibilityState && document.visibilityState !== 'visible') return;
 
+      // iOS sometimes pauses JS long enough that React state updates
+      // from here never commit to the DOM until the user taps. So we
+      // bypass React entirely: force the overlay opacity to 1 via the
+      // DOM ref so the fox image appears immediately.
+      const overlay = foxOverlayRef.current;
+      if (overlay) {
+        overlay.style.opacity = '1';
+        // Kick the compositor: toggling display forces iOS to
+        // reconsider and repaint this subtree, which fixes cases
+        // where the slot is blank due to a stale compositing layer.
+        const prevDisplay = overlay.style.display;
+        overlay.style.display = 'none';
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        overlay.offsetHeight;
+        overlay.style.display = prevDisplay;
+      }
+
       const img = foxImageRef.current;
       if (img) {
         try {
@@ -163,6 +181,7 @@ export default function LandingPlatform() {
         } catch { /* ignore */ }
       }
 
+      // Keep React state in sync for subsequent renders.
       setIsFoxPlaying(false);
 
       const v = foxVideoRef.current;
@@ -395,6 +414,7 @@ export default function LandingPlatform() {
               {/* Idle-state cover: small fox on a white tile, drops out
                   when the video is actually playing. */}
               <span
+                ref={foxOverlayRef}
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 flex h-12 w-12 items-center justify-center rounded-md bg-white transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-0' : 'opacity-100'
