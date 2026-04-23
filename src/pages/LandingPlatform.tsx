@@ -203,11 +203,11 @@ export default function LandingPlatform() {
     >
       {/* Nav */}
       <header className="sticky top-0 z-30 backdrop-blur bg-white/85 border-b border-gray-200/70">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="ComfortOS home">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
             <video
               src="/video.mp4"
-              className="w-7 h-7 object-cover rounded"
+              className="w-12 h-12 object-cover rounded-md"
               autoPlay
               loop
               muted
