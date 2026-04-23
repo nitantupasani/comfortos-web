@@ -191,10 +191,12 @@ export default function LandingAiChat() {
             className={panelClass}
             style={{ transformOrigin: 'bottom right' }}
           >
-            <header className="flex items-center justify-between bg-teal-700 px-4 py-3 text-white">
+            <header className="flex items-center justify-between bg-teal-700 px-4 py-3 text-white" translate="no">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{BOT_NAME}</p>
-                <p className="truncate text-xs text-teal-100">
+                <p className="truncate text-sm font-semibold" translate="no" lang={lang}>
+                  {BOT_NAME}
+                </p>
+                <p className="truncate text-xs text-teal-100" translate="no" lang={lang}>
                   {t('jouw ComfortOS-vos', 'your ComfortOS fox')}
                 </p>
               </div>
@@ -236,20 +238,28 @@ export default function LandingAiChat() {
             </header>
 
             <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 px-4 py-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm leading-5 ${
-                    message.role === 'user'
-                      ? 'ml-auto bg-teal-600 text-white'
-                      : 'mr-auto bg-white text-gray-700 shadow-sm'
-                  }`}
-                >
-                  {message.text}
-                </div>
-              ))}
+              {messages.map((message) => {
+                const isWelcome = message.id === 'welcome';
+                return (
+                  <div
+                    key={message.id}
+                    className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm leading-5 ${
+                      message.role === 'user'
+                        ? 'ml-auto bg-teal-600 text-white'
+                        : 'mr-auto bg-white text-gray-700 shadow-sm'
+                    }`}
+                    {...(isWelcome ? { translate: 'no' as const, lang } : {})}
+                  >
+                    {message.text}
+                  </div>
+                );
+              })}
               {isSending && (
-                <div className="mr-auto max-w-[85%] rounded-xl bg-white px-3 py-2 text-sm italic text-gray-500 shadow-sm">
+                <div
+                  className="mr-auto max-w-[85%] rounded-xl bg-white px-3 py-2 text-sm italic text-gray-500 shadow-sm"
+                  translate="no"
+                  lang={lang}
+                >
                   {t('Aan het nadenken…', 'Thinking…')}
                 </div>
               )}
@@ -258,6 +268,7 @@ export default function LandingAiChat() {
             <form
               onSubmit={handleSubmit}
               className="border-t border-gray-200 bg-white p-3"
+              translate="no"
             >
               <div className="flex items-center gap-2">
                 <input
@@ -266,11 +277,15 @@ export default function LandingAiChat() {
                   placeholder={t('Stel me een vraag over ComfortOS…', 'Ask me about ComfortOS…')}
                   disabled={isSending}
                   className="input h-10"
+                  translate="no"
+                  lang={lang}
                 />
                 <button
                   type="submit"
                   disabled={!canSend}
                   className="h-10 rounded-lg bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  translate="no"
+                  lang={lang}
                 >
                   {t('Sturen', 'Send')}
                 </button>
