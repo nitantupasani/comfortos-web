@@ -46,7 +46,15 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div ref={wrapperRef} className="relative">
+    // translate="no" + notranslate class tell Chrome/Safari's built-in
+    // page-translator to leave this widget alone — otherwise 'en' (which
+    // is also the Dutch word for 'and') gets auto-translated to 'AND',
+    // and 'Nederlands' / 'English' get rewritten in place.
+    <div
+      ref={wrapperRef}
+      className="notranslate relative"
+      translate="no"
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -55,8 +63,10 @@ export default function LanguageSwitcher() {
         aria-expanded={open}
       >
         <Globe className="h-3.5 w-3.5 text-gray-500" />
-        <span className="hidden sm:inline">{current.flag}</span>
-        <span className="uppercase tracking-wider">{current.code}</span>
+        <span className="hidden sm:inline" translate="no">{current.flag}</span>
+        <span className="uppercase tracking-wider" translate="no">
+          {current.code}
+        </span>
         <ChevronDown className="h-3 w-3 text-gray-400" />
       </button>
 
@@ -64,6 +74,7 @@ export default function LanguageSwitcher() {
         <ul
           role="listbox"
           className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg"
+          translate="no"
         >
           {OPTIONS.map((o) => {
             const active = o.code === lang;
@@ -74,6 +85,8 @@ export default function LanguageSwitcher() {
                   role="option"
                   aria-selected={active}
                   onClick={() => select(o.code)}
+                  lang={o.code}
+                  translate="no"
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] transition ${
                     active
                       ? 'bg-teal-50 text-teal-800'
