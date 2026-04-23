@@ -205,9 +205,7 @@ export default function LandingPlatform() {
       <header className="sticky top-0 z-30 backdrop-blur bg-white/85 border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="ComfortOS home">
-            <div className="w-7 h-7 rounded-md bg-teal-600 text-white flex items-center justify-center">
-              <Cpu className="h-4 w-4" />
-            </div>
+            <img src="/fox.png" alt="" className="w-7 h-7 object-contain" />
             <span className="font-semibold text-[15px] tracking-tight">ComfortOS</span>
             <span
               className="ml-2 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200 rounded uppercase tracking-wider"
