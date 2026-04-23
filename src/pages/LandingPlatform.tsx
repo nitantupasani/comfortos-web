@@ -12,14 +12,12 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
-  CircleDot,
   CloudSun,
   Cpu,
   FileJson,
   Gauge,
   GripVertical,
   Leaf,
-  List,
   MessageSquare,
   LayoutDashboard,
   LogIn,
@@ -1025,27 +1023,14 @@ export default function LandingPlatform() {
                   </span>
                 </div>
                 <div className="p-3 space-y-2.5">
-                  {/* Form title row */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
-                    <div
-                      className="text-[10px] font-semibold uppercase tracking-wider text-gray-400"
-                      style={{ fontFamily: MONO }}
-                    >
-                      form title
-                    </div>
-                    <div className="mt-0.5 text-[13px] font-semibold text-gray-900">
-                      Thermal comfort
-                    </div>
-                  </div>
-
-                  {/* Question 1 — scale */}
+                  {/* Question 1 — Thermal comfort (scale) */}
                   <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
                     <div className="flex items-start gap-2">
                       <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0 truncate text-[12.5px] font-semibold text-gray-900">
-                            How do you feel right now?
+                            Thermal comfort
                           </div>
                           <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
                             <Sliders className="h-3 w-3" />
@@ -1072,7 +1057,7 @@ export default function LandingPlatform() {
                     </div>
                   </div>
 
-                  {/* Question 2 — chips */}
+                  {/* Question 2 — What are you wearing? (chips) */}
                   <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
                     <div className="flex items-start gap-2">
                       <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
@@ -1087,44 +1072,24 @@ export default function LandingPlatform() {
                           </span>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1">
-                          {['Light', 'Medium', 'Warm', 'Heavy'].map((o) => (
+                          {[
+                            { label: 'Light', hint: 'T-shirt' },
+                            { label: 'Medium', hint: 'Shirt' },
+                            { label: 'Warm', hint: 'Sweater' },
+                            { label: 'Heavy', hint: 'Jacket' },
+                          ].map((o) => (
                             <span
-                              key={o}
-                              className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10.5px] text-gray-700"
+                              key={o.label}
+                              className="inline-flex items-baseline gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10.5px] text-gray-700"
                             >
-                              {o}
+                              <span className="font-semibold">{o.label}</span>
+                              <span className="text-gray-400">{o.hint}</span>
                             </span>
                           ))}
                           <span className="rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-[10.5px] text-gray-400">
                             + option
                           </span>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Question 3 — select */}
-                  <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
-                    <div className="flex items-start gap-2">
-                      <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 truncate text-[12.5px] font-semibold text-gray-900">
-                            What were you doing?
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                            <List className="h-3 w-3" />
-                            Select
-                          </span>
-                        </div>
-                        <ul className="mt-1.5 space-y-0.5 text-[11.5px] text-gray-700">
-                          {['Resting', 'Typing', 'Standing', 'Walking'].map((o) => (
-                            <li key={o} className="flex items-center gap-1.5">
-                              <CircleDot className="h-2.5 w-2.5 text-gray-300" />
-                              {o}
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                     </div>
                   </div>
