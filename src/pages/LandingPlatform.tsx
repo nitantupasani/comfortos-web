@@ -10,20 +10,26 @@ import {
   Brain,
   Building2,
   CalendarDays,
+  Check,
   ChevronRight,
+  CircleDot,
   CloudSun,
   Cpu,
   FileJson,
   Gauge,
+  GripVertical,
   Leaf,
+  List,
   MessageSquare,
   LayoutDashboard,
   LogIn,
   MapPin,
   Network,
+  Plus,
   Radio,
   Server,
   Sliders,
+  Tag,
   Thermometer,
   TrendingDown,
   Users,
@@ -1018,28 +1024,120 @@ export default function LandingPlatform() {
                     form.thermal.v3
                   </span>
                 </div>
-                <pre
-                  className="text-[11.5px] leading-relaxed p-4 overflow-x-auto text-gray-800"
-                  style={{ fontFamily: MONO }}
-                >
-{`{
-  "surface": "vote_form",
-  "title": "Thermal comfort",
-  "scale": {
-    "type": "pmv_7pt",
-    "labels": ["Cold", "Neutral", "Hot"]
-  },
-  "fields": [
-    { "id": "thermal", "required": true },
-    { "id": "clothing", "type": "chips" },
-    { "id": "activity", "type": "select" }
-  ],
-  "submit": {
-    "label": "Submit",
-    "rate_limit": "1/5min"
-  }
-}`}
-                </pre>
+                <div className="p-3 space-y-2.5">
+                  {/* Form title row */}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
+                    <div
+                      className="text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+                      style={{ fontFamily: MONO }}
+                    >
+                      form title
+                    </div>
+                    <div className="mt-0.5 text-[13px] font-semibold text-gray-900">
+                      Thermal comfort
+                    </div>
+                  </div>
+
+                  {/* Question 1 — scale */}
+                  <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
+                    <div className="flex items-start gap-2">
+                      <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 truncate text-[12.5px] font-semibold text-gray-900">
+                            How do you feel right now?
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
+                            <Sliders className="h-3 w-3" />
+                            Scale · 7pt
+                          </span>
+                        </div>
+                        <div
+                          className="mt-1.5 flex items-center gap-1 text-[10.5px] text-gray-500"
+                          style={{ fontFamily: MONO }}
+                        >
+                          <span className="rounded border border-gray-200 bg-gray-50 px-1">-3 Cold</span>
+                          <span>·</span>
+                          <span className="rounded border border-gray-200 bg-gray-50 px-1">0 Neutral</span>
+                          <span>·</span>
+                          <span className="rounded border border-gray-200 bg-gray-50 px-1">+3 Hot</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-teal-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            <Check className="h-2.5 w-2.5" />
+                            required
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question 2 — chips */}
+                  <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
+                    <div className="flex items-start gap-2">
+                      <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 truncate text-[12.5px] font-semibold text-gray-900">
+                            What are you wearing?
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                            <Tag className="h-3 w-3" />
+                            Chips
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {['Light', 'Medium', 'Warm', 'Heavy'].map((o) => (
+                            <span
+                              key={o}
+                              className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10.5px] text-gray-700"
+                            >
+                              {o}
+                            </span>
+                          ))}
+                          <span className="rounded-full border border-dashed border-gray-300 px-2 py-0.5 text-[10.5px] text-gray-400">
+                            + option
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question 3 — select */}
+                  <div className="rounded-lg border border-gray-200 bg-white px-2.5 py-2">
+                    <div className="flex items-start gap-2">
+                      <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-300" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 truncate text-[12.5px] font-semibold text-gray-900">
+                            What were you doing?
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <List className="h-3 w-3" />
+                            Select
+                          </span>
+                        </div>
+                        <ul className="mt-1.5 space-y-0.5 text-[11.5px] text-gray-700">
+                          {['Resting', 'Typing', 'Standing', 'Walking'].map((o) => (
+                            <li key={o} className="flex items-center gap-1.5">
+                              <CircleDot className="h-2.5 w-2.5 text-gray-300" />
+                              {o}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add question */}
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 bg-white py-1.5 text-[11.5px] font-medium text-gray-500 hover:border-teal-400 hover:text-teal-700"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add question
+                  </button>
+                </div>
                 <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 bg-gray-50/40">
                   <span className="text-[10.5px] text-gray-500" style={{ fontFamily: MONO }}>
                     saved · 12s ago
