@@ -268,22 +268,15 @@ export default function LandingPlatform() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
             <span className="relative inline-flex h-12 w-12 items-center justify-center">
-              <img
-                src="/fox.png"
-                alt=""
-                aria-hidden
-                className={`h-7 w-7 rounded-md object-contain object-top transition-opacity duration-200 ${
-                  isFoxPlaying ? 'opacity-0' : 'opacity-100'
-                }`}
-                style={{ transform: 'translateY(4px)' }}
-              />
+              {/* Video is always fully opaque so the browser keeps it in
+                  the 'visible' set. Some browsers skip autoplay for
+                  elements with opacity:0, which is what caused the video
+                  to fail on reload. */}
               <video
                 ref={foxVideoRef}
                 src="/video.mp4"
                 poster="/fox.png"
-                className={`absolute inset-0 h-12 w-12 rounded-md object-contain object-top transition-opacity duration-200 ${
-                  isFoxPlaying ? 'opacity-100' : 'opacity-0'
-                }`}
+                className="absolute inset-0 h-12 w-12 rounded-md object-contain object-top"
                 style={{ transform: 'translateY(4px)' }}
                 autoPlay
                 muted
@@ -292,6 +285,22 @@ export default function LandingPlatform() {
                 controls={false}
                 aria-hidden
               />
+              {/* Idle-state cover: small fox on a white tile, drops out
+                  when the video is actually playing. */}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-0 flex h-12 w-12 items-center justify-center rounded-md bg-white transition-opacity duration-200 ${
+                  isFoxPlaying ? 'opacity-0' : 'opacity-100'
+                }`}
+              >
+                <img
+                  src="/fox.png"
+                  alt=""
+                  aria-hidden
+                  className="h-7 w-7 rounded-md object-contain object-top"
+                  style={{ transform: 'translateY(4px)' }}
+                />
+              </span>
             </span>
             <span className="font-semibold text-[15px] tracking-tight">ComfortOS</span>
             <span
