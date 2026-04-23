@@ -9,6 +9,7 @@ import {
 import { Maximize2, Minimize2, X } from 'lucide-react';
 import { aiApi, AiChatMessage } from '../../api/ai';
 import { ApiError } from '../../api/client';
+import { useLang } from '../../i18n/landing';
 
 type ChatMessage = {
   id: string;
@@ -24,28 +25,58 @@ const DRAG_MOVE_THRESHOLD_PX = 6;
 
 const BOT_NAME = 'Vos';
 
-const timeHook = (hour: number): string => {
-  if (hour < 5) return "It's late. I keep one ear open. Curious about ComfortOS?";
-  if (hour < 9) return 'Goedemorgen! Want a quick tour of what ComfortOS does?';
-  if (hour < 12) return 'Morning. Ask me what ComfortOS is and why it exists.';
-  if (hour < 14) return 'Lunchtime lull — a good moment for a 90-second pitch.';
-  if (hour < 17) return "Afternoon. What would you like to know about ComfortOS?";
-  if (hour < 19) return 'Wrapping up the day? Ask away while I have your attention.';
-  if (hour < 22) return 'Goedenavond. Ask me anything about ComfortOS.';
-  return 'Still awake? Ask me anything about ComfortOS.';
+type Tr = (nl: string, en: string) => string;
+
+const timeHook = (hour: number, tr: Tr): string => {
+  if (hour < 5) return tr(
+    'Het is laat. Ik hou één oor open. Nieuwsgierig naar ComfortOS?',
+    "It's late. I keep one ear open. Curious about ComfortOS?",
+  );
+  if (hour < 9) return tr(
+    'Goedemorgen! Zin in een korte rondleiding van wat ComfortOS doet?',
+    'Goedemorgen! Want a quick tour of what ComfortOS does?',
+  );
+  if (hour < 12) return tr(
+    'Morgen. Vraag me wat ComfortOS is en waarom het bestaat.',
+    'Morning. Ask me what ComfortOS is and why it exists.',
+  );
+  if (hour < 14) return tr(
+    'Lunchpauze — een mooi moment voor een pitch van 90 seconden.',
+    'Lunchtime lull — a good moment for a 90-second pitch.',
+  );
+  if (hour < 17) return tr(
+    'Middag. Wat wil je weten over ComfortOS?',
+    'Afternoon. What would you like to know about ComfortOS?',
+  );
+  if (hour < 19) return tr(
+    'Dag aan het afronden? Stel je vraag nu ik je aandacht heb.',
+    'Wrapping up the day? Ask away while I have your attention.',
+  );
+  if (hour < 22) return tr(
+    'Goedenavond. Vraag me alles over ComfortOS.',
+    'Goedenavond. Ask me anything about ComfortOS.',
+  );
+  return tr(
+    'Nog wakker? Vraag me alles over ComfortOS.',
+    'Still awake? Ask me anything about ComfortOS.',
+  );
 };
 
-const welcomeFor = (now: Date = new Date()): ChatMessage => ({
+const welcomeFor = (tr: Tr, now: Date = new Date()): ChatMessage => ({
   id: 'welcome',
   role: 'bot',
-  text: `Hi, I'm ${BOT_NAME}, the ComfortOS fox. ${timeHook(now.getHours())}`,
+  text: tr(
+    `Hoi, ik ben ${BOT_NAME}, de ComfortOS-vos. ${timeHook(now.getHours(), tr)}`,
+    `Hi, I'm ${BOT_NAME}, the ComfortOS fox. ${timeHook(now.getHours(), tr)}`,
+  ),
 });
 
 export default function LandingAiChat() {
+  const { lang, t } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([welcomeFor()]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [welcomeFor(t)]);
   const [isSending, setIsSending] = useState(false);
 
   const bubbleX = useMotionValue(0);
@@ -87,11 +118,11 @@ export default function LandingAiChat() {
     if (!isOpen) return;
     setMessages((prev) => {
       if (prev.length === 1 && prev[0].id === 'welcome') {
-        return [welcomeFor()];
+        return [welcomeFor(t)];
       }
       return prev;
     });
-  }, [isOpen]);
+  }, [isOpen, lang]);
 
   const canSend = useMemo(
     () => input.trim().length > 0 && !isSending,
@@ -130,10 +161,13 @@ export default function LandingAiChat() {
       const detail =
         err instanceof ApiError
           ? err.message
-          : 'Something went wrong reaching the AI assistant.';
+          : t(
+              'Er ging iets mis met de AI-assistent.',
+              'Something went wrong reaching the AI assistant.',
+            );
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'bot', text: `Sorry — ${detail}` },
+        { id: crypto.randomUUID(), role: 'bot', text: `${t('Sorry —', 'Sorry —')} ${detail}` },
       ]);
     } finally {
       setIsSending(false);
@@ -160,15 +194,25 @@ export default function LandingAiChat() {
             <header className="flex items-center justify-between bg-teal-700 px-4 py-3 text-white">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{BOT_NAME}</p>
-                <p className="truncate text-xs text-teal-100">your ComfortOS fox</p>
+                <p className="truncate text-xs text-teal-100">
+                  {t('jouw ComfortOS-vos', 'your ComfortOS fox')}
+                </p>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setIsFullscreen((v) => !v)}
                   className="rounded-md p-1.5 text-teal-100 transition hover:bg-teal-600 hover:text-white"
-                  aria-label={isFullscreen ? 'Exit full screen' : 'Expand to full screen'}
-                  title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+                  aria-label={
+                    isFullscreen
+                      ? t('Volledig scherm verlaten', 'Exit full screen')
+                      : t('Uitklappen naar volledig scherm', 'Expand to full screen')
+                  }
+                  title={
+                    isFullscreen
+                      ? t('Volledig scherm verlaten', 'Exit full screen')
+                      : t('Volledig scherm', 'Full screen')
+                  }
                 >
                   {isFullscreen ? (
                     <Minimize2 className="h-4 w-4" />
@@ -183,8 +227,8 @@ export default function LandingAiChat() {
                     setIsFullscreen(false);
                   }}
                   className="rounded-md p-1.5 text-teal-100 transition hover:bg-teal-600 hover:text-white"
-                  aria-label="Close chat"
-                  title="Close"
+                  aria-label={t('Chat sluiten', 'Close chat')}
+                  title={t('Sluiten', 'Close')}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -206,7 +250,7 @@ export default function LandingAiChat() {
               ))}
               {isSending && (
                 <div className="mr-auto max-w-[85%] rounded-xl bg-white px-3 py-2 text-sm italic text-gray-500 shadow-sm">
-                  Thinking…
+                  {t('Aan het nadenken…', 'Thinking…')}
                 </div>
               )}
             </div>
@@ -219,7 +263,7 @@ export default function LandingAiChat() {
                 <input
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
-                  placeholder="Ask me about ComfortOS…"
+                  placeholder={t('Stel me een vraag over ComfortOS…', 'Ask me about ComfortOS…')}
                   disabled={isSending}
                   className="input h-10"
                 />
@@ -228,7 +272,7 @@ export default function LandingAiChat() {
                   disabled={!canSend}
                   className="h-10 rounded-lg bg-teal-600 px-4 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Send
+                  {t('Sturen', 'Send')}
                 </button>
               </div>
             </form>
@@ -259,7 +303,11 @@ export default function LandingAiChat() {
             setIsOpen((prev) => !prev);
           }}
           className="fixed bottom-24 right-6 z-[1000] h-16 w-16 cursor-grab touch-none overflow-hidden rounded-full border border-gray-200 bg-white shadow-xl active:cursor-grabbing focus:outline-none focus:ring-4 focus:ring-teal-200"
-          aria-label={isOpen ? 'Close Vos chat' : 'Open Vos chat'}
+          aria-label={
+            isOpen
+              ? t('Vos-chat sluiten', 'Close Vos chat')
+              : t('Vos-chat openen', 'Open Vos chat')
+          }
         >
           <img
             src="/fox.png"
