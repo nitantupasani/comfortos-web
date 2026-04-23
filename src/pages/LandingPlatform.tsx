@@ -122,7 +122,7 @@ export default function LandingPlatform() {
     const onEnded = () => {
       setIsFoxPlaying(false);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
-      replayTimer = window.setTimeout(playNow, 30_000);
+      replayTimer = window.setTimeout(playNow, 15_000);
     };
     const onIdle = () => setIsFoxPlaying(false);
 
