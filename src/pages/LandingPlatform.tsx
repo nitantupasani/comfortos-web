@@ -54,19 +54,28 @@ export default function LandingPlatform() {
     setLang(langFromPath(location.pathname) ?? 'nl');
   }, [location.pathname]);
 
-  // Fox video playback: wait for the video to be ready, then play once
-  // 1 second after mount; on end, schedule the next run 60 seconds later.
-  // isFoxPlaying drives a crossfade with fox.png so the slot never goes
-  // blank during the gap.
+  // Fox video playback.
+  //
+  // Browsers only grant muted-autoplay to the <video> element's own
+  // autoPlay attribute; a programmatic play() from a setTimeout is often
+  // rejected by autoplay policy even when muted. So we let autoPlay run
+  // the first play, listen for the natural `ended` event, then schedule
+  // another play() 60s later (any subsequent play() inherits the media
+  // element's earlier autoplay grant and runs fine).
+  //
+  // React has a long-standing quirk where the `muted` attribute on
+  // <video> can arrive on the DOM without also setting the
+  // HTMLMediaElement.muted property, which autoplay requires. We set it
+  // explicitly in JS below.
   useEffect(() => {
     const video = foxVideoRef.current;
     if (!video) return;
+    video.muted = true;
 
     let cancelled = false;
-    let startTimer: number | undefined;
     let replayTimer: number | undefined;
 
-    const tryPlay = () => {
+    const playNow = () => {
       const v = foxVideoRef.current;
       if (!v || cancelled) return;
       try {
@@ -76,32 +85,15 @@ export default function LandingPlatform() {
       }
       const p = v.play();
       if (p && typeof p.catch === 'function') {
-        p.catch(() => { /* autoplay can be blocked; ignore */ });
+        p.catch(() => { /* ignore */ });
       }
     };
-
-    const scheduleFirstPlay = () => {
-      if (cancelled) return;
-      startTimer = window.setTimeout(tryPlay, 1_000);
-    };
-
-    // readyState 2 = HAVE_CURRENT_DATA or better, i.e. at least the
-    // first frame is decoded so play() will not abort.
-    if (video.readyState >= 2) {
-      scheduleFirstPlay();
-    } else {
-      const onReady = () => {
-        video.removeEventListener('loadeddata', onReady);
-        scheduleFirstPlay();
-      };
-      video.addEventListener('loadeddata', onReady);
-    }
 
     const onPlaying = () => setIsFoxPlaying(true);
     const onEnded = () => {
       setIsFoxPlaying(false);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
-      replayTimer = window.setTimeout(tryPlay, 60_000);
+      replayTimer = window.setTimeout(playNow, 60_000);
     };
     const onPause = () => setIsFoxPlaying(false);
 
@@ -109,9 +101,12 @@ export default function LandingPlatform() {
     video.addEventListener('ended', onEnded);
     video.addEventListener('pause', onPause);
 
+    // In case autoplay was blocked, kick it off ourselves. Muted plays
+    // from an effect are reliably allowed on all major browsers.
+    playNow();
+
     return () => {
       cancelled = true;
-      if (startTimer !== undefined) window.clearTimeout(startTimer);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
@@ -288,9 +283,12 @@ export default function LandingPlatform() {
                 className={`absolute inset-0 h-12 w-12 rounded-md object-cover transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-100' : 'opacity-0'
                 }`}
+                autoPlay
                 muted
+                defaultMuted
                 playsInline
                 preload="auto"
+                controls={false}
                 aria-hidden
               />
             </span>
