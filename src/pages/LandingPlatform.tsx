@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import LandingAiChat from '../components/common/LandingAiChat';
@@ -46,6 +46,7 @@ export default function LandingPlatform() {
   const { t } = useLang();
   const location = useLocation();
   const foxVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [isFoxPlaying, setIsFoxPlaying] = useState(false);
 
   // URL is the source of truth for the landing language.
   // /en → English. Anything else → Dutch.
@@ -53,8 +54,10 @@ export default function LandingPlatform() {
     setLang(langFromPath(location.pathname) ?? 'nl');
   }, [location.pathname]);
 
-  // Fox video playback: kick in 1s after mount, then pause on the final
-  // frame; schedule a fresh replay 60s after each run ends.
+  // Fox video playback: kick in 1s after mount, run once, then schedule
+  // another play 60s after each end. isFoxPlaying drives a crossfade
+  // with the fox.png poster so the slot never goes blank — the clip
+  // ends on a white frame which would otherwise 'vanish' on white UI.
   useEffect(() => {
     const video = foxVideoRef.current;
     if (!video) return;
@@ -73,17 +76,24 @@ export default function LandingPlatform() {
       });
     };
 
+    const onPlaying = () => setIsFoxPlaying(true);
     const onEnded = () => {
+      setIsFoxPlaying(false);
       replayTimer = window.setTimeout(play, 60_000);
     };
+    const onPause = () => setIsFoxPlaying(false);
 
     startTimer = window.setTimeout(play, 1_000);
+    video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
+    video.addEventListener('pause', onPause);
 
     return () => {
       if (startTimer !== undefined) window.clearTimeout(startTimer);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
+      video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
+      video.removeEventListener('pause', onPause);
     };
   }, []);
 
@@ -240,16 +250,28 @@ export default function LandingPlatform() {
       <header className="sticky top-0 z-30 backdrop-blur bg-white/85 border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
-            <video
-              ref={foxVideoRef}
-              src="/video.mp4"
-              poster="/fox.png"
-              className="w-12 h-12 object-cover rounded-md"
-              muted
-              playsInline
-              preload="auto"
-              aria-hidden
-            />
+            <span className="relative inline-block h-12 w-12">
+              <img
+                src="/fox.png"
+                alt=""
+                aria-hidden
+                className={`absolute inset-0 h-12 w-12 rounded-md object-cover transition-opacity duration-200 ${
+                  isFoxPlaying ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+              <video
+                ref={foxVideoRef}
+                src="/video.mp4"
+                poster="/fox.png"
+                className={`absolute inset-0 h-12 w-12 rounded-md object-cover transition-opacity duration-200 ${
+                  isFoxPlaying ? 'opacity-100' : 'opacity-0'
+                }`}
+                muted
+                playsInline
+                preload="auto"
+                aria-hidden
+              />
+            </span>
             <span className="font-semibold text-[15px] tracking-tight">ComfortOS</span>
             <span
               className="ml-2 px-1.5 py-0.5 text-[10px] font-medium text-gray-500 border border-gray-200 rounded uppercase tracking-wider"
