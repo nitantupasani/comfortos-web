@@ -255,7 +255,7 @@ export default function LandingPlatform() {
                 src="/fox.png"
                 alt=""
                 aria-hidden
-                className={`h-9 w-9 rounded-md object-cover transition-opacity duration-200 ${
+                className={`h-7 w-7 rounded-md object-cover transition-opacity duration-200 ${
                   isFoxPlaying ? 'opacity-0' : 'opacity-100'
                 }`}
               />
