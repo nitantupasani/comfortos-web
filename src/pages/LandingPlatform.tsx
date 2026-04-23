@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import LandingAiChat from '../components/common/LandingAiChat';
@@ -45,12 +45,47 @@ export default function LandingPlatform() {
   const reduce = useReducedMotion();
   const { t } = useLang();
   const location = useLocation();
+  const foxVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // URL is the source of truth for the landing language.
   // /en → English. Anything else → Dutch.
   useEffect(() => {
     setLang(langFromPath(location.pathname) ?? 'nl');
   }, [location.pathname]);
+
+  // Fox video playback: kick in 1s after mount, then pause on the final
+  // frame; schedule a fresh replay 60s after each run ends.
+  useEffect(() => {
+    const video = foxVideoRef.current;
+    if (!video) return;
+    let startTimer: number | undefined;
+    let replayTimer: number | undefined;
+
+    const play = () => {
+      if (!foxVideoRef.current) return;
+      try {
+        foxVideoRef.current.currentTime = 0;
+      } catch {
+        /* ignore seek errors before metadata is loaded */
+      }
+      foxVideoRef.current.play().catch(() => {
+        /* autoplay can be blocked by the browser, ignore silently */
+      });
+    };
+
+    const onEnded = () => {
+      replayTimer = window.setTimeout(play, 60_000);
+    };
+
+    startTimer = window.setTimeout(play, 1_000);
+    video.addEventListener('ended', onEnded);
+
+    return () => {
+      if (startTimer !== undefined) window.clearTimeout(startTimer);
+      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
+      video.removeEventListener('ended', onEnded);
+    };
+  }, []);
 
   useEffect(() => {
     const id = 'comfortos-platform-fonts';
@@ -206,12 +241,12 @@ export default function LandingPlatform() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
             <video
+              ref={foxVideoRef}
               src="/video.mp4"
               className="w-12 h-12 object-cover rounded-md"
-              autoPlay
-              loop
               muted
               playsInline
+              preload="auto"
               aria-hidden
             />
             <span className="font-semibold text-[15px] tracking-tight">ComfortOS</span>
