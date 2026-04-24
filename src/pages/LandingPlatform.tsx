@@ -138,15 +138,13 @@ export default function LandingPlatform() {
         return;
       }
 
-      const v = foxVideoRef.current;
-      if (v) {
-        try { v.load(); } catch { /* ignore */ }
-      }
-
-      // Desktop: might auto-resume. iOS: will fail without a gesture,
-      // so we also re-arm the interaction fallback so the next tap or
-      // scroll-end on the page kicks playback off again.
-      window.setTimeout(playNow, 100);
+      // Resume without calling video.load() — load() resets the
+      // element and causes a brief flash of the poster image on
+      // return from background. play() alone lets the browser pick up
+      // from the still-buffered state. If it silently fails (iOS
+      // without a gesture grant), the re-armed interaction listeners
+      // below will catch the next tap or scroll-end.
+      playNow();
       armInteractionListeners();
     };
     document.addEventListener('visibilitychange', onVisibilityOrShow);
