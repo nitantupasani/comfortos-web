@@ -73,6 +73,7 @@ export default function LandingPlatform() {
     video.muted = true;
 
     let cancelled = false;
+    let replayTimer: number | undefined;
     const removeInteraction: Array<() => void> = [];
 
     const cleanupInteraction = () => {
@@ -114,8 +115,14 @@ export default function LandingPlatform() {
       // Autoplay / gesture unlock worked — drop the fallback listeners.
       cleanupInteraction();
     };
+    // One-second breather between plays, then restart.
+    const onEnded = () => {
+      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
+      replayTimer = window.setTimeout(playNow, 1_000);
+    };
 
     video.addEventListener('playing', onPlaying);
+    video.addEventListener('ended', onEnded);
 
     // On return from background / bfcache restore, force the video
     // element to reload so a new play() has fresh data to work with.
@@ -183,8 +190,10 @@ export default function LandingPlatform() {
 
     return () => {
       cancelled = true;
+      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       cleanupInteraction();
       video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('ended', onEnded);
       document.removeEventListener('visibilitychange', onVisibilityOrShow);
       window.removeEventListener('pageshow', onVisibilityOrShow);
       window.removeEventListener('focus', onVisibilityOrShow);
@@ -344,7 +353,7 @@ export default function LandingPlatform() {
       <header className="sticky top-0 z-30 backdrop-blur bg-white/85 border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5" aria-label="ComfortOS home">
-            <span className="relative inline-flex h-12 w-12 items-center justify-center">
+            <span className="relative inline-flex h-14 w-14 items-center justify-center">
               {/* Video is always fully opaque so the browser keeps it in
                   the 'visible' set. Some browsers skip autoplay for
                   elements with opacity:0, which is what caused the video
@@ -353,11 +362,10 @@ export default function LandingPlatform() {
                 ref={foxVideoRef}
                 src="/video.mp4"
                 poster="/fox.png"
-                className="absolute inset-0 h-12 w-12 rounded-md object-contain object-top"
+                className="absolute inset-0 h-14 w-14 rounded-md object-contain object-top"
                 style={{ transform: 'translateY(4px)' }}
                 autoPlay
                 muted
-                loop
                 playsInline
                 preload="auto"
                 controls={false}
