@@ -71,6 +71,10 @@ const welcomeFor = (tr: Tr, now: Date = new Date()): ChatMessage => ({
   ),
 });
 
+const PEEK_DISMISSED_KEY = 'comfortos.vos.peekDismissed';
+const PEEK_DELAY_MS = 1_800;   // wait a bit so the page settles
+const PEEK_LIFETIME_MS = 8_000; // then auto-dismiss
+
 export default function LandingAiChat() {
   const { lang, t } = useLang();
   const [isOpen, setIsOpen] = useState(false);
@@ -78,6 +82,37 @@ export default function LandingAiChat() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(() => [welcomeFor(t)]);
   const [isSending, setIsSending] = useState(false);
+  const [showPeek, setShowPeek] = useState(false);
+
+  // One-time peek bubble next to the fox so first-time visitors
+  // realise the icon is a chat. Dismissed state lives in session
+  // storage so it does not pop up again on navigation within the
+  // same tab.
+  useEffect(() => {
+    let already = false;
+    try {
+      already = sessionStorage.getItem(PEEK_DISMISSED_KEY) === '1';
+    } catch {
+      /* storage may be disabled */
+    }
+    if (already) return;
+
+    const show = window.setTimeout(() => setShowPeek(true), PEEK_DELAY_MS);
+    const hide = window.setTimeout(() => {
+      setShowPeek(false);
+      try { sessionStorage.setItem(PEEK_DISMISSED_KEY, '1'); } catch { /* ignore */ }
+    }, PEEK_DELAY_MS + PEEK_LIFETIME_MS);
+
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, []);
+
+  const dismissPeek = () => {
+    setShowPeek(false);
+    try { sessionStorage.setItem(PEEK_DISMISSED_KEY, '1'); } catch { /* ignore */ }
+  };
 
   const bubbleX = useMotionValue(0);
   const bubbleY = useMotionValue(0);
@@ -316,6 +351,7 @@ export default function LandingAiChat() {
               wasDragged.current = false;
               return;
             }
+            dismissPeek();
             setIsOpen((prev) => !prev);
           }}
           className="fixed bottom-24 right-6 z-[1000] h-16 w-16 cursor-grab touch-none overflow-hidden rounded-full border border-gray-200 bg-white shadow-xl active:cursor-grabbing focus:outline-none focus:ring-4 focus:ring-teal-200"
@@ -333,6 +369,51 @@ export default function LandingAiChat() {
           />
         </motion.button>
       )}
+
+      <AnimatePresence>
+        {!isOpen && !isFullscreen && showPeek && (
+          <motion.div
+            key="vos-peek"
+            initial={{ opacity: 0, y: 8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            className="fixed bottom-24 right-24 z-[1001] flex max-w-[16rem] items-start gap-2 rounded-2xl rounded-br-sm border border-gray-200 bg-white px-3 py-2 shadow-xl"
+            role="button"
+            tabIndex={0}
+            translate="no"
+            lang={lang}
+            onClick={() => {
+              dismissPeek();
+              setIsOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                dismissPeek();
+                setIsOpen(true);
+              }
+            }}
+          >
+            <span className="flex-1 whitespace-pre-wrap text-[12.5px] leading-snug text-gray-700">
+              {welcomeFor(t).text}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissPeek();
+              }}
+              className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label={t('Sluit bericht', 'Dismiss message')}
+              title={t('Sluiten', 'Dismiss')}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </>
   );
 }
