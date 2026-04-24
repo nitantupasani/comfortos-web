@@ -73,7 +73,6 @@ export default function LandingPlatform() {
     video.muted = true;
 
     let cancelled = false;
-    let replayTimer: number | undefined;
     const removeInteraction: Array<() => void> = [];
 
     const cleanupInteraction = () => {
@@ -115,13 +114,8 @@ export default function LandingPlatform() {
       // Autoplay / gesture unlock worked — drop the fallback listeners.
       cleanupInteraction();
     };
-    const onEnded = () => {
-      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
-      replayTimer = window.setTimeout(playNow, 15_000);
-    };
 
     video.addEventListener('playing', onPlaying);
-    video.addEventListener('ended', onEnded);
 
     // On return from background / bfcache restore, force the video
     // element to reload so a new play() has fresh data to work with.
@@ -189,10 +183,8 @@ export default function LandingPlatform() {
 
     return () => {
       cancelled = true;
-      if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       cleanupInteraction();
       video.removeEventListener('playing', onPlaying);
-      video.removeEventListener('ended', onEnded);
       document.removeEventListener('visibilitychange', onVisibilityOrShow);
       window.removeEventListener('pageshow', onVisibilityOrShow);
       window.removeEventListener('focus', onVisibilityOrShow);
@@ -365,6 +357,7 @@ export default function LandingPlatform() {
                 style={{ transform: 'translateY(4px)' }}
                 autoPlay
                 muted
+                loop
                 playsInline
                 preload="auto"
                 controls={false}
