@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import LandingAiChat from '../components/common/LandingAiChat';
@@ -46,9 +46,6 @@ export default function LandingPlatform() {
   const { t } = useLang();
   const location = useLocation();
   const foxVideoRef = useRef<HTMLVideoElement | null>(null);
-  const foxImageRef = useRef<HTMLImageElement | null>(null);
-  const foxOverlayRef = useRef<HTMLSpanElement | null>(null);
-  const [isFoxPlaying, setIsFoxPlaying] = useState(false);
 
   // URL is the source of truth for the landing language.
   // /en → English. Anything else → Dutch.
@@ -115,39 +112,19 @@ export default function LandingPlatform() {
     };
 
     const onPlaying = () => {
-      setIsFoxPlaying(true);
       // Autoplay / gesture unlock worked — drop the fallback listeners.
       cleanupInteraction();
     };
     const onEnded = () => {
-      setIsFoxPlaying(false);
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
       replayTimer = window.setTimeout(playNow, 15_000);
     };
-    const onIdle = () => setIsFoxPlaying(false);
 
     video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', onEnded);
-    // pause / suspend / emptied / error all mean 'video is not showing
-    // its own frames right now', so the fox image overlay must come
-    // back. iOS fires some of these without pause() in between on
-    // backgrounding, which is what left the slot blank.
-    video.addEventListener('pause', onIdle);
-    video.addEventListener('suspend', onIdle);
-    video.addEventListener('emptied', onIdle);
-    video.addEventListener('error', onIdle);
 
-    // iOS sometimes drops the video frame AND does not fire a pause
-    // event on tab restore, which leaves the overlay hidden over an
-    // empty video and the slot looks blank. It also sometimes
-    // invalidates the <img>'s decoded bitmap on bfcache restore.
-    // Whenever the page comes back to the foreground, we:
-    //   1. force the fox image to re-decode (trigger a reload via
-    //      setting the same src back),
-    //   2. reset isFoxPlaying so the overlay is revealed,
-    //   3. call video.load() to reset the element to its poster state,
-    //   4. schedule a playNow() a tick later so the poster has time
-    //      to render before we swap it for the video frame.
+    // On return from background / bfcache restore, force the video
+    // element to reload so a new play() has fresh data to work with.
     const onVisibilityOrShow = (event?: Event) => {
       if (cancelled) return;
       if (document.visibilityState && document.visibilityState !== 'visible') return;
@@ -159,38 +136,6 @@ export default function LandingPlatform() {
       if (event && event.type === 'pageshow' && !(event as PageTransitionEvent).persisted) {
         return;
       }
-
-      // iOS sometimes pauses JS long enough that React state updates
-      // from here never commit to the DOM until the user taps. So we
-      // bypass React entirely: force the overlay opacity to 1 via the
-      // DOM ref so the fox image appears immediately.
-      const overlay = foxOverlayRef.current;
-      if (overlay) {
-        overlay.style.opacity = '1';
-        // Kick the compositor: toggling display forces iOS to
-        // reconsider and repaint this subtree, which fixes cases
-        // where the slot is blank due to a stale compositing layer.
-        const prevDisplay = overlay.style.display;
-        overlay.style.display = 'none';
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        overlay.offsetHeight;
-        overlay.style.display = prevDisplay;
-      }
-
-      const img = foxImageRef.current;
-      if (img) {
-        try {
-          // Reassign the src to force iOS to redecode the cached image.
-          const src = img.getAttribute('src');
-          if (src) {
-            img.setAttribute('src', '');
-            img.setAttribute('src', src);
-          }
-        } catch { /* ignore */ }
-      }
-
-      // Keep React state in sync for subsequent renders.
-      setIsFoxPlaying(false);
 
       const v = foxVideoRef.current;
       if (v) {
@@ -248,10 +193,6 @@ export default function LandingPlatform() {
       cleanupInteraction();
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', onEnded);
-      video.removeEventListener('pause', onIdle);
-      video.removeEventListener('suspend', onIdle);
-      video.removeEventListener('emptied', onIdle);
-      video.removeEventListener('error', onIdle);
       document.removeEventListener('visibilitychange', onVisibilityOrShow);
       window.removeEventListener('pageshow', onVisibilityOrShow);
       window.removeEventListener('focus', onVisibilityOrShow);
@@ -429,24 +370,6 @@ export default function LandingPlatform() {
                 controls={false}
                 aria-hidden
               />
-              {/* Idle-state cover: small fox on a white tile, drops out
-                  when the video is actually playing. */}
-              <span
-                ref={foxOverlayRef}
-                aria-hidden
-                className={`pointer-events-none absolute inset-0 flex h-12 w-12 items-center justify-center rounded-md bg-white transition-opacity duration-200 ${
-                  isFoxPlaying ? 'opacity-0' : 'opacity-100'
-                }`}
-              >
-                <img
-                  ref={foxImageRef}
-                  src="/fox.png"
-                  alt=""
-                  aria-hidden
-                  className="h-7 w-7 rounded-md object-contain object-top"
-                  style={{ transform: 'translateY(4px)' }}
-                />
-              </span>
             </span>
             <span className="font-semibold text-[15px] tracking-tight">ComfortOS</span>
             <span
