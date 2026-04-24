@@ -71,6 +71,10 @@ const welcomeFor = (buildingName: string | undefined, now: Date = new Date()): C
   return { id: 'welcome', role: 'bot', text };
 };
 
+const PEEK_DISMISSED_KEY = 'comfortos.vos.authPeekDismissed';
+const PEEK_DELAY_MS = 1_800;
+const PEEK_LIFETIME_MS = 8_000;
+
 const formatTimestamp = (iso: string): string => {
   try {
     const d = new Date(iso);
@@ -104,6 +108,35 @@ export default function AiChatWidget() {
   const [showHistory, setShowHistory] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const sessionKey = buildingId ?? 'none';
+
+  // One-time peek bubble so first-time signed-in users notice the fox
+  // is a chat. Dismissed state lives in sessionStorage so it does not
+  // nag on every navigation within the same tab.
+  const [showPeek, setShowPeek] = useState(false);
+
+  useEffect(() => {
+    let already = false;
+    try {
+      already = sessionStorage.getItem(PEEK_DISMISSED_KEY) === '1';
+    } catch {
+      /* storage may be disabled */
+    }
+    if (already) return;
+    const show = window.setTimeout(() => setShowPeek(true), PEEK_DELAY_MS);
+    const hide = window.setTimeout(() => {
+      setShowPeek(false);
+      try { sessionStorage.setItem(PEEK_DISMISSED_KEY, '1'); } catch { /* ignore */ }
+    }, PEEK_DELAY_MS + PEEK_LIFETIME_MS);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, []);
+
+  const dismissPeek = () => {
+    setShowPeek(false);
+    try { sessionStorage.setItem(PEEK_DISMISSED_KEY, '1'); } catch { /* ignore */ }
+  };
 
   // Fox-bubble drag state ────────────────────────────────────────────────
   const bubbleX = useMotionValue(0);
@@ -506,6 +539,7 @@ export default function AiChatWidget() {
               wasDragged.current = false;
               return;
             }
+            dismissPeek();
             setIsOpen((prev) => !prev);
           }}
           className="fixed bottom-24 right-6 z-[1000] h-16 w-16 cursor-grab touch-none overflow-hidden rounded-full border border-gray-200 bg-white shadow-xl active:cursor-grabbing focus:outline-none focus:ring-4 focus:ring-teal-200"
@@ -519,6 +553,49 @@ export default function AiChatWidget() {
           />
         </motion.button>
       )}
+
+      <AnimatePresence>
+        {!isOpen && !isFullscreen && showPeek && (
+          <motion.div
+            key="vos-auth-peek"
+            initial={{ opacity: 0, y: 8, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+            className="fixed bottom-24 right-24 z-[1001] flex max-w-[16rem] items-start gap-2 rounded-2xl rounded-br-sm border border-gray-200 bg-white px-3 py-2 shadow-xl"
+            role="button"
+            tabIndex={0}
+            translate="no"
+            onClick={() => {
+              dismissPeek();
+              setIsOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                dismissPeek();
+                setIsOpen(true);
+              }
+            }}
+          >
+            <span className="flex-1 whitespace-pre-wrap text-[12.5px] leading-snug text-gray-700">
+              {welcomeFor(buildingName).text}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissPeek();
+              }}
+              className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Dismiss message"
+              title="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
