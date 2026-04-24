@@ -115,10 +115,10 @@ export default function LandingPlatform() {
       // Autoplay / gesture unlock worked — drop the fallback listeners.
       cleanupInteraction();
     };
-    // One-second breather between plays, then restart.
+    // Five-second breather between plays, then restart.
     const onEnded = () => {
       if (replayTimer !== undefined) window.clearTimeout(replayTimer);
-      replayTimer = window.setTimeout(playNow, 1_000);
+      replayTimer = window.setTimeout(playNow, 5_000);
     };
 
     video.addEventListener('playing', onPlaying);
