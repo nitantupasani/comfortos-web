@@ -148,9 +148,17 @@ export default function LandingPlatform() {
     //   3. call video.load() to reset the element to its poster state,
     //   4. schedule a playNow() a tick later so the poster has time
     //      to render before we swap it for the video frame.
-    const onVisibilityOrShow = () => {
+    const onVisibilityOrShow = (event?: Event) => {
       if (cancelled) return;
       if (document.visibilityState && document.visibilityState !== 'visible') return;
+
+      // pageshow fires on every page load. On a fresh load React has
+      // already set up autoPlay; running the recovery path here would
+      // call video.load() and cancel the in-progress autoplay, leaving
+      // the slot frozen. Skip unless this is a bfcache restore.
+      if (event && event.type === 'pageshow' && !(event as PageTransitionEvent).persisted) {
+        return;
+      }
 
       // iOS sometimes pauses JS long enough that React state updates
       // from here never commit to the DOM until the user taps. So we
