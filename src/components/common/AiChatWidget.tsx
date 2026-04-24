@@ -554,6 +554,19 @@ export default function AiChatWidget() {
         </motion.button>
       )}
 
+      {/* Small AI badge so the bubble reads as an AI chat at a glance.
+          Shares the fox's motion values so it tracks along on drag. */}
+      {!isFullscreen && (
+        <motion.span
+          aria-hidden
+          style={{ x: bubbleX, y: bubbleY }}
+          className="pointer-events-none fixed bottom-[88px] right-[8px] z-[1001] rounded-full bg-teal-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-md ring-2 ring-white"
+          translate="no"
+        >
+          AI
+        </motion.span>
+      )}
+
       <AnimatePresence>
         {!isOpen && !isFullscreen && showPeek && (
           <motion.div
