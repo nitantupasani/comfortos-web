@@ -69,7 +69,7 @@ export const buildingsApi = {
     api.post<Building>('/buildings/personal', payload),
 
   deletePersonal: (buildingId: string) =>
-    api.delete<void>(`/buildings/personal/${buildingId}`),
+    api.post<void>(`/buildings/personal/${buildingId}/delete`),
 
   update: (buildingId: string, payload: Partial<BuildingCreatePayload>) =>
     api.put<Building>(`/buildings/${buildingId}`, payload),
