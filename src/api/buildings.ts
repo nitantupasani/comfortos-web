@@ -8,6 +8,27 @@ import type {
   LocationFormConfig,
 } from '../types';
 
+const HIDDEN_PERSONAL_KEY = 'comfortos.hiddenPersonalBuildings';
+
+function readHiddenPersonalIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(HIDDEN_PERSONAL_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed.filter((x): x is string => typeof x === 'string')) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function writeHiddenPersonalIds(ids: Set<string>): void {
+  try {
+    localStorage.setItem(HIDDEN_PERSONAL_KEY, JSON.stringify(Array.from(ids)));
+  } catch {
+    // localStorage unavailable — silently ignore
+  }
+}
+
 export interface BuildingCreatePayload {
   name: string;
   address: string;
@@ -62,14 +83,49 @@ export const buildingsApi = {
   create: (payload: BuildingCreatePayload) =>
     api.post<Building>('/buildings', payload),
 
-  listPersonal: () =>
-    api.get<Building[]>('/buildings/personal'),
+  /** List the caller's personal buildings, excluding any the user has
+   * hidden locally (kept in localStorage so dismissals survive reloads
+   * even if the backend delete call never confirmed). Hidden ids that
+   * are no longer present in the server response are pruned, so the
+   * set doesn't grow unbounded. */
+  listPersonal: async (): Promise<Building[]> => {
+    const all = await api.get<Building[]>('/buildings/personal');
+    const hidden = readHiddenPersonalIds();
+    if (hidden.size === 0) return all;
+    const presentIds = new Set(all.map((b) => b.id));
+    const stillHidden = new Set(Array.from(hidden).filter((id) => presentIds.has(id)));
+    if (stillHidden.size !== hidden.size) writeHiddenPersonalIds(stillHidden);
+    return all.filter((b) => !stillHidden.has(b.id));
+  },
 
-  createPersonal: (payload: PersonalBuildingPayload) =>
-    api.post<Building>('/buildings/personal', payload),
+  createPersonal: async (payload: PersonalBuildingPayload): Promise<Building> => {
+    const created = await api.post<Building>('/buildings/personal', payload);
+    // If the same id somehow lingered in the hidden set (extremely
+    // unlikely — UUID collision), un-hide it so the user can see what
+    // they just made.
+    const hidden = readHiddenPersonalIds();
+    if (hidden.delete(created.id)) writeHiddenPersonalIds(hidden);
+    return created;
+  },
 
-  deletePersonal: (buildingId: string) =>
-    api.post<void>(`/buildings/personal/${buildingId}/delete`),
+  /** Mark a personal building as deleted from the user's POV.
+   *
+   * Always resolves — never throws. Adds the id to the local hidden
+   * set first (so the building disappears immediately and stays gone
+   * after refresh), then fires a best-effort POST to the server. If
+   * the server call fails for any reason (route, proxy, network), the
+   * UI is still consistent. */
+  deletePersonal: async (buildingId: string): Promise<void> => {
+    const hidden = readHiddenPersonalIds();
+    hidden.add(buildingId);
+    writeHiddenPersonalIds(hidden);
+    try {
+      await api.post<void>(`/buildings/personal/${buildingId}/delete`);
+    } catch {
+      // Server-side delete failed — the localStorage hide keeps the
+      // building out of the user's view regardless.
+    }
+  },
 
   update: (buildingId: string, payload: Partial<BuildingCreatePayload>) =>
     api.put<Building>(`/buildings/${buildingId}`, payload),

@@ -75,12 +75,11 @@ export default function Presence() {
 
   const handleDelete = async (buildingId: string) => {
     if (!confirm('Remove this building? Your votes for it will remain.')) return;
-    try {
-      await buildingsApi.deletePersonal(buildingId);
-      await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete');
-    }
+    // Optimistically drop from local state — the API call is best-effort
+    // and never throws.
+    setPersonal((prev) => prev.filter((b) => b.id !== buildingId));
+    await buildingsApi.deletePersonal(buildingId);
+    await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
   };
 
   const personalIds = new Set(personal.map((b) => b.id));

@@ -106,12 +106,11 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
   const handleDelete = async (e: React.MouseEvent, buildingId: string) => {
     e.stopPropagation();
     if (!confirm('Remove this building?')) return;
-    try {
-      await buildingsApi.deletePersonal(buildingId);
-      await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete');
-    }
+    // Optimistically drop from local state — the API call below is
+    // best-effort and never throws.
+    setPersonal((prev) => prev.filter((b) => b.id !== buildingId));
+    await buildingsApi.deletePersonal(buildingId);
+    await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
   };
 
   const renderBuildingCard = (b: Building) => {
