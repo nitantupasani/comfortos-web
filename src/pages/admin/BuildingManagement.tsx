@@ -147,6 +147,11 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
     }
   };
 
+  const handleBuildingUpdated = (updated: Building) => {
+    setBuildings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    setSelected(updated);
+  };
+
   const handleChecklistNav = (tab: string) => {
     const map: Record<string, TabKey> = {
       locations: 'locations',
@@ -236,6 +241,7 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
                 comfort={comfort}
                 comfortLoading={comfortLoading}
                 onNavigateTab={handleChecklistNav}
+                onUpdated={handleBuildingUpdated}
               />
             )}
             {activeTab === 'locations' && <LocationHierarchyTab buildingId={selected.id} />}
@@ -339,28 +345,19 @@ function OverviewPanel({
   comfort,
   comfortLoading,
   onNavigateTab,
+  onUpdated,
 }: {
   building: Building;
   comfort: BuildingComfortData | null;
   comfortLoading: boolean;
   onNavigateTab: (tab: string) => void;
+  onUpdated: (b: Building) => void;
 }) {
   return (
     <div className="space-y-6">
       <BuildingSetupChecklist buildingId={building.id} onNavigateTab={onNavigateTab} />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DetailCard label="City" value={building.city || '—'} />
-        <DetailCard
-          label="Latitude"
-          value={building.latitude != null ? building.latitude.toFixed(4) : '—'}
-        />
-        <DetailCard
-          label="Longitude"
-          value={building.longitude != null ? building.longitude.toFixed(4) : '—'}
-        />
-        <DetailCard label="ID" value={building.id} mono />
-      </div>
+      <BuildingDetailsEditor building={building} onUpdated={onUpdated} />
 
       <div>
         <h4 className="font-semibold text-gray-700 mb-2 text-sm">Comfort score</h4>
@@ -432,6 +429,190 @@ function DetailCard({ label, value, mono }: { label: string; value: string; mono
       <div className="text-[11px] text-gray-500 uppercase tracking-wider">{label}</div>
       <div className={`font-semibold text-sm mt-0.5 truncate ${mono ? 'font-mono text-xs' : ''}`}>
         {value}
+      </div>
+    </div>
+  );
+}
+
+function BuildingDetailsEditor({
+  building,
+  onUpdated,
+}: {
+  building: Building;
+  onUpdated: (b: Building) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [city, setCity] = useState(building.city ?? '');
+  const [latitude, setLatitude] = useState<string>(
+    building.latitude != null ? String(building.latitude) : '',
+  );
+  const [longitude, setLongitude] = useState<string>(
+    building.longitude != null ? String(building.longitude) : '',
+  );
+  const [restricted, setRestricted] = useState<boolean>(building.requiresAccessPermission);
+
+  useEffect(() => {
+    setCity(building.city ?? '');
+    setLatitude(building.latitude != null ? String(building.latitude) : '');
+    setLongitude(building.longitude != null ? String(building.longitude) : '');
+    setRestricted(building.requiresAccessPermission);
+    setError(null);
+  }, [building.id, building.city, building.latitude, building.longitude, building.requiresAccessPermission]);
+
+  const cancel = () => {
+    setCity(building.city ?? '');
+    setLatitude(building.latitude != null ? String(building.latitude) : '');
+    setLongitude(building.longitude != null ? String(building.longitude) : '');
+    setRestricted(building.requiresAccessPermission);
+    setError(null);
+    setEditing(false);
+  };
+
+  const save = async () => {
+    setError(null);
+    const parseCoord = (raw: string, label: string): number | undefined | 'invalid' => {
+      const trimmed = raw.trim();
+      if (trimmed === '') return undefined;
+      const n = Number(trimmed);
+      if (!Number.isFinite(n)) {
+        setError(`${label} must be a number`);
+        return 'invalid';
+      }
+      return n;
+    };
+    const lat = parseCoord(latitude, 'Latitude');
+    if (lat === 'invalid') return;
+    const lng = parseCoord(longitude, 'Longitude');
+    if (lng === 'invalid') return;
+    if (typeof lat === 'number' && (lat < -90 || lat > 90)) {
+      setError('Latitude must be between -90 and 90');
+      return;
+    }
+    if (typeof lng === 'number' && (lng < -180 || lng > 180)) {
+      setError('Longitude must be between -180 and 180');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updated = await buildingsApi.update(building.id, {
+        city: city.trim() || undefined,
+        latitude: lat,
+        longitude: lng,
+        requiresAccessPermission: restricted,
+      });
+      onUpdated(updated);
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <DetailCard label="City" value={building.city || '—'} />
+          <DetailCard
+            label="Latitude"
+            value={building.latitude != null ? building.latitude.toFixed(4) : '—'}
+          />
+          <DetailCard
+            label="Longitude"
+            value={building.longitude != null ? building.longitude.toFixed(4) : '—'}
+          />
+          <DetailCard label="ID" value={building.id} mono />
+        </div>
+        <div className="flex justify-end">
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs font-medium text-primary-700 hover:text-primary-800"
+          >
+            Edit details
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">City</label>
+          <input
+            type="text"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+            maxLength={100}
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">Latitude</label>
+          <input
+            type="number"
+            step="any"
+            value={latitude}
+            onChange={(e) => setLatitude(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+            placeholder="52.0667"
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-1">Longitude</label>
+          <input
+            type="number"
+            step="any"
+            value={longitude}
+            onChange={(e) => setLongitude(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-primary-400 focus:outline-none"
+            placeholder="4.3279"
+          />
+        </div>
+      </div>
+
+      <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={restricted}
+          onChange={(e) => setRestricted(e.target.checked)}
+          className="mt-0.5 rounded"
+        />
+        <span>
+          Restricted building
+          <span className="block text-xs text-gray-500">
+            Occupants need an access grant or matching tenant before they can view or vote.
+          </span>
+        </span>
+      </label>
+
+      {error && (
+        <div className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{error}</div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={cancel}
+          disabled={saving}
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:bg-primary-300"
+        >
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          Save
+        </button>
       </div>
     </div>
   );

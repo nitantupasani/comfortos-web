@@ -27,9 +27,15 @@ interface NewBuildingForm {
   name: string;
   city: string;
   blocks: BlockRow[];
+  requiresAccessPermission: boolean;
 }
 
-const emptyForm = (): NewBuildingForm => ({ name: '', city: '', blocks: emptyBlockRows() });
+const emptyForm = (): NewBuildingForm => ({
+  name: '',
+  city: '',
+  blocks: emptyBlockRows(),
+  requiresAccessPermission: true,
+});
 
 export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props) {
   const {
@@ -116,6 +122,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
         name: form.name.trim(),
         city: form.city.trim() || undefined,
         blocks,
+        requiresAccessPermission: form.requiresAccessPermission,
       });
       setForm(emptyForm());
       setShowAddForm(false);
@@ -299,6 +306,18 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
                 rows={form.blocks}
                 onChange={(blocks) => setForm({ ...form, blocks })}
               />
+              <label className="flex items-start gap-2 px-1 pt-1 text-[11px] text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.requiresAccessPermission}
+                  onChange={(e) => setForm({ ...form, requiresAccessPermission: e.target.checked })}
+                  className="mt-0.5 rounded"
+                />
+                <span>
+                  Private — only I can see this building
+                  <span className="block text-slate-400">Uncheck for an office or shared building you want other people to find.</span>
+                </span>
+              </label>
               <p className="px-1 text-[11px] text-slate-400">
                 You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
               </p>

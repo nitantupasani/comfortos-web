@@ -27,9 +27,15 @@ interface NewPersonalBuildingForm {
   name: string;
   city: string;
   blocks: BlockRow[];
+  requiresAccessPermission: boolean;
 }
 
-const emptyPersonalForm = (): NewPersonalBuildingForm => ({ name: '', city: '', blocks: emptyBlockRows() });
+const emptyPersonalForm = (): NewPersonalBuildingForm => ({
+  name: '',
+  city: '',
+  blocks: emptyBlockRows(),
+  requiresAccessPermission: true,
+});
 
 /**
  * Default dashboard layout — used when the backend has no config.
@@ -126,6 +132,7 @@ export default function Dashboard() {
         name: personalForm.name.trim(),
         city: personalForm.city.trim() || undefined,
         blocks,
+        requiresAccessPermission: personalForm.requiresAccessPermission,
       });
       setPersonalForm(emptyPersonalForm());
       setShowAddPersonalForm(false);
@@ -263,6 +270,18 @@ export default function Dashboard() {
                   rows={personalForm.blocks}
                   onChange={(blocks) => setPersonalForm({ ...personalForm, blocks })}
                 />
+                <label className="flex items-start gap-2 px-1 pt-1 text-[11px] text-slate-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={personalForm.requiresAccessPermission}
+                    onChange={(e) => setPersonalForm({ ...personalForm, requiresAccessPermission: e.target.checked })}
+                    className="mt-0.5 rounded"
+                  />
+                  <span>
+                    Private — only I can see this building
+                    <span className="block text-slate-400">Uncheck for an office or shared building you want other people to find.</span>
+                  </span>
+                </label>
                 <p className="px-1 text-[11px] text-slate-400">
                   You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
                 </p>

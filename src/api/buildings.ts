@@ -61,6 +61,10 @@ export interface PersonalBuildingPayload {
    * location picker uses these to constrain the floor selector when
    * the user adds a room. */
   blocks?: PersonalBlockSpec[];
+  /** When true (default on the server), only the creator (and admins)
+   * can see the building. Set false for office / shared buildings the
+   * occupant wants other users to find. */
+  requiresAccessPermission?: boolean;
 }
 
 export interface PersonalRoomPayload {
