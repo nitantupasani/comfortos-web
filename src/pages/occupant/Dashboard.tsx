@@ -10,6 +10,7 @@ import BuildingQuickSwitch from '../../components/occupant/BuildingQuickSwitch';
 import LocationQuickPicker from '../../components/occupant/LocationQuickPicker';
 import { Vote, Loader2, Building2, MapPin } from 'lucide-react';
 import type { SduiNode, WeatherData, Building } from '../../types';
+import { getHiddenPersonalIds } from '../../api/buildings';
 
 /**
  * Default dashboard layout — used when the backend has no config.
@@ -104,6 +105,9 @@ export default function Dashboard() {
   // If no building selected, show inline building selector
   if (!activeBuilding) {
     const isLoading = usePresenceStore.getState().isLoading;
+    const hidden = getHiddenPersonalIds();
+    const visibleRecent = recentBuildings.filter((r) => !hidden.has(r.building.id));
+    const visibleAll = buildings.filter((b) => !hidden.has(b.id));
     return (
       <div className="space-y-6">
         <div className="rounded-[28px] border border-emerald-100 bg-[linear-gradient(180deg,_rgba(236,253,245,0.92)_0%,_rgba(255,255,255,0.98)_100%)] px-5 py-6 text-center shadow-[0_12px_40px_rgba(22,101,52,0.08)]">
@@ -115,13 +119,13 @@ export default function Dashboard() {
         </div>
 
         {/* Recent buildings */}
-        {recentBuildings.length > 0 && (
+        {visibleRecent.length > 0 && (
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
               Recent
             </div>
             <div className="space-y-2">
-              {recentBuildings.map((r) => (
+              {visibleRecent.map((r) => (
                 <button
                   key={r.building.id}
                   onClick={() => handleInlineBuildingSelect(r.building)}
@@ -155,7 +159,7 @@ export default function Dashboard() {
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
               All Buildings
             </div>
-            {buildings.length === 0 ? (
+            {visibleAll.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/75 px-5 py-8 text-center">
                 <div className="text-sm font-medium text-slate-600">No buildings yet</div>
                 <p className="mt-1 text-xs text-slate-400 leading-5">
@@ -164,8 +168,8 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-2">
-                {buildings
-                  .filter((b) => !recentBuildings.some((r) => r.building.id === b.id))
+                {visibleAll
+                  .filter((b) => !visibleRecent.some((r) => r.building.id === b.id))
                   .map((b) => (
                     <button
                       key={b.id}
