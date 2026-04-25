@@ -3,7 +3,18 @@ import { Building2, Star, Clock, Loader2, Plus, Trash2, X, Home } from 'lucide-r
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import BottomSheet from '../common/BottomSheet';
-import { buildingsApi, PERSONAL_BUILDING_LIMIT, getHiddenPersonalIds } from '../../api/buildings';
+import {
+  buildingsApi,
+  PERSONAL_BUILDING_LIMIT,
+  getHiddenPersonalIds,
+  readPersonalBlocks,
+  readPersonalRooms,
+} from '../../api/buildings';
+import PersonalBlocksField, {
+  emptyBlockRows,
+  blockRowsToPayload,
+  type BlockRow,
+} from './PersonalBlocksField';
 import type { Building } from '../../types';
 
 interface Props {
@@ -15,11 +26,10 @@ interface Props {
 interface NewBuildingForm {
   name: string;
   city: string;
-  floorCount: string;
-  zoneCount: string;
+  blocks: BlockRow[];
 }
 
-const EMPTY_FORM: NewBuildingForm = { name: '', city: '', floorCount: '', zoneCount: '' };
+const emptyForm = (): NewBuildingForm => ({ name: '', city: '', blocks: emptyBlockRows() });
 
 export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props) {
   const {
@@ -37,7 +47,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
 
   const [personal, setPersonal] = useState<Building[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [form, setForm] = useState<NewBuildingForm>(EMPTY_FORM);
+  const [form, setForm] = useState<NewBuildingForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +65,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
       loadPersonal();
     } else {
       setShowAddForm(false);
-      setForm(EMPTY_FORM);
+      setForm(emptyForm());
       setError(null);
     }
   }, [isOpen, buildings.length, fetchBuildings, user?.tenantId]);
@@ -96,15 +106,18 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
     setSubmitting(true);
     setError(null);
     try {
-      const floorCount = form.floorCount.trim() ? parseInt(form.floorCount, 10) : undefined;
-      const zoneCount = form.zoneCount.trim() ? parseInt(form.zoneCount, 10) : undefined;
+      const blocks = blockRowsToPayload(form.blocks);
+      if (blocks.length === 0) {
+        setError('Add at least one block with a valid floor range');
+        setSubmitting(false);
+        return;
+      }
       await buildingsApi.createPersonal({
         name: form.name.trim(),
         city: form.city.trim() || undefined,
-        floorCount: Number.isFinite(floorCount) ? floorCount : undefined,
-        zoneCount: Number.isFinite(zoneCount) ? zoneCount : undefined,
+        blocks,
       });
-      setForm(EMPTY_FORM);
+      setForm(emptyForm());
       setShowAddForm(false);
       await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
     } catch (err) {
@@ -174,16 +187,13 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
 
   const renderPersonalCard = (b: Building) => {
     const isActive = activeBuilding?.id === b.id;
-    const meta = (b.metadata ?? {}) as Record<string, unknown>;
-    const floorCount = typeof meta.floorCount === 'number' ? meta.floorCount : null;
-    const zoneCount = typeof meta.zoneCount === 'number' ? meta.zoneCount : null;
-    const rooms = Array.isArray(meta.rooms) ? meta.rooms.length : 0;
+    const blocks = readPersonalBlocks(b.metadata);
+    const rooms = readPersonalRooms(b.metadata);
     const subtitle =
       [
         b.city,
-        floorCount ? `${floorCount} floor${floorCount === 1 ? '' : 's'}` : null,
-        zoneCount ? `${zoneCount} zone${zoneCount === 1 ? '' : 's'}` : null,
-        rooms ? `${rooms} room${rooms === 1 ? '' : 's'}` : null,
+        blocks.length ? `${blocks.length} block${blocks.length === 1 ? '' : 's'}` : null,
+        rooms.length ? `${rooms.length} room${rooms.length === 1 ? '' : 's'}` : null,
       ]
         .filter(Boolean)
         .join(' · ') || 'Personal building';
@@ -256,7 +266,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
               <div className="text-sm font-semibold text-slate-800">New building</div>
               <button
                 type="button"
-                onClick={() => { setShowAddForm(false); setForm(EMPTY_FORM); setError(null); }}
+                onClick={() => { setShowAddForm(false); setForm(emptyForm()); setError(null); }}
                 className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <X className="h-4 w-4" />
@@ -282,31 +292,13 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
                 maxLength={100}
               />
               <p className="px-1 text-[11px] text-slate-500">
-                Tell us how the building is structured so we can ask
-                the right comfort questions.
+                Tell us how the building is structured (blocks and the
+                floors each block has).
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={200}
-                  placeholder="How many floors?"
-                  value={form.floorCount}
-                  onChange={(e) => setForm({ ...form, floorCount: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                />
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={50}
-                  placeholder="How many blocks/zones?"
-                  value={form.zoneCount}
-                  onChange={(e) => setForm({ ...form, zoneCount: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                />
-              </div>
+              <PersonalBlocksField
+                rows={form.blocks}
+                onChange={(blocks) => setForm({ ...form, blocks })}
+              />
               <p className="px-1 text-[11px] text-slate-400">
                 You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
               </p>
@@ -319,7 +311,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
             <div className="mt-3 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => { setShowAddForm(false); setForm(EMPTY_FORM); setError(null); }}
+                onClick={() => { setShowAddForm(false); setForm(emptyForm()); setError(null); }}
                 className="rounded-full px-4 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100"
               >
                 Cancel

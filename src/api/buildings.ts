@@ -42,14 +42,76 @@ export interface BuildingCreatePayload {
   requiresAccessPermission?: boolean;
 }
 
+export interface PersonalBlockSpec {
+  name: string;
+  startFloor: number;
+  endFloor: number;
+}
+
+export interface PersonalRoom {
+  block?: string;
+  floor?: number;
+  label: string;
+}
+
 export interface PersonalBuildingPayload {
   name: string;
   city?: string;
-  /** Number of floors in the building (informational, used by the
-   * location picker to suggest floor labels). */
-  floorCount?: number;
-  /** Number of blocks / zones / wings in the building. */
-  zoneCount?: number;
+  /** Per-block floor ranges describing the building's structure. The
+   * location picker uses these to constrain the floor selector when
+   * the user adds a room. */
+  blocks?: PersonalBlockSpec[];
+}
+
+export interface PersonalRoomPayload {
+  block?: string;
+  floor?: number;
+  label: string;
+}
+
+/** Coerce a raw rooms-array entry from the API into the canonical
+ * {block?, floor?, label} shape. Older personal buildings stored each
+ * entry as a plain string; both shapes are normalized here. */
+export function normalizePersonalRoom(raw: unknown): PersonalRoom | null {
+  if (typeof raw === 'string') {
+    const label = raw.trim();
+    return label ? { label } : null;
+  }
+  if (raw && typeof raw === 'object') {
+    const r = raw as Record<string, unknown>;
+    const label = typeof r.label === 'string' ? r.label : null;
+    if (!label) return null;
+    return {
+      label,
+      block: typeof r.block === 'string' ? r.block : undefined,
+      floor: typeof r.floor === 'number' ? r.floor : undefined,
+    };
+  }
+  return null;
+}
+
+export function readPersonalRooms(metadata: unknown): PersonalRoom[] {
+  if (!metadata || typeof metadata !== 'object') return [];
+  const arr = (metadata as Record<string, unknown>).rooms;
+  if (!Array.isArray(arr)) return [];
+  return arr.map(normalizePersonalRoom).filter((r): r is PersonalRoom => r !== null);
+}
+
+export function readPersonalBlocks(metadata: unknown): PersonalBlockSpec[] {
+  if (!metadata || typeof metadata !== 'object') return [];
+  const arr = (metadata as Record<string, unknown>).blocks;
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((b): PersonalBlockSpec | null => {
+      if (!b || typeof b !== 'object') return null;
+      const r = b as Record<string, unknown>;
+      const name = typeof r.name === 'string' ? r.name : null;
+      const startFloor = typeof r.startFloor === 'number' ? r.startFloor : null;
+      const endFloor = typeof r.endFloor === 'number' ? r.endFloor : null;
+      if (!name || startFloor === null || endFloor === null) return null;
+      return { name, startFloor, endFloor };
+    })
+    .filter((b): b is PersonalBlockSpec => b !== null);
 }
 
 export const PERSONAL_BUILDING_LIMIT = 3;
@@ -115,14 +177,15 @@ export const buildingsApi = {
     return created;
   },
 
-  /** Add a room label to a personal building. Returns the updated
-   * Building. Idempotent — re-adding an existing label is a no-op. */
-  addPersonalRoom: (buildingId: string, room: string) =>
-    api.post<Building>(`/buildings/personal/${buildingId}/rooms`, { room }),
+  /** Add a room to a personal building. Idempotent — re-adding the
+   * same {block, floor, label} triple is a no-op. */
+  addPersonalRoom: (buildingId: string, payload: PersonalRoomPayload) =>
+    api.post<Building>(`/buildings/personal/${buildingId}/rooms`, payload),
 
-  /** Remove a room label from a personal building. */
-  removePersonalRoom: (buildingId: string, room: string) =>
-    api.post<Building>(`/buildings/personal/${buildingId}/rooms/remove`, { room }),
+  /** Remove a room. Pass the same {block, floor, label} that was used
+   * to add it. */
+  removePersonalRoom: (buildingId: string, payload: PersonalRoomPayload) =>
+    api.post<Building>(`/buildings/personal/${buildingId}/rooms/remove`, payload),
 
   /** Mark a personal building as deleted from the user's POV.
    *

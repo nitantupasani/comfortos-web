@@ -10,16 +10,26 @@ import BuildingQuickSwitch from '../../components/occupant/BuildingQuickSwitch';
 import LocationQuickPicker from '../../components/occupant/LocationQuickPicker';
 import { Vote, Loader2, Building2, MapPin, Plus, Trash2, X, Home } from 'lucide-react';
 import type { SduiNode, WeatherData, Building } from '../../types';
-import { buildingsApi, getHiddenPersonalIds, PERSONAL_BUILDING_LIMIT } from '../../api/buildings';
+import {
+  buildingsApi,
+  getHiddenPersonalIds,
+  PERSONAL_BUILDING_LIMIT,
+  readPersonalBlocks,
+  readPersonalRooms,
+} from '../../api/buildings';
+import PersonalBlocksField, {
+  emptyBlockRows,
+  blockRowsToPayload,
+  type BlockRow,
+} from '../../components/occupant/PersonalBlocksField';
 
 interface NewPersonalBuildingForm {
   name: string;
   city: string;
-  floorCount: string;
-  zoneCount: string;
+  blocks: BlockRow[];
 }
 
-const EMPTY_PERSONAL_FORM: NewPersonalBuildingForm = { name: '', city: '', floorCount: '', zoneCount: '' };
+const emptyPersonalForm = (): NewPersonalBuildingForm => ({ name: '', city: '', blocks: emptyBlockRows() });
 
 /**
  * Default dashboard layout — used when the backend has no config.
@@ -82,7 +92,7 @@ export default function Dashboard() {
   // Personal building management for the inline (no-active-building) view.
   const [personal, setPersonal] = useState<Building[]>([]);
   const [showAddPersonalForm, setShowAddPersonalForm] = useState(false);
-  const [personalForm, setPersonalForm] = useState<NewPersonalBuildingForm>(EMPTY_PERSONAL_FORM);
+  const [personalForm, setPersonalForm] = useState<NewPersonalBuildingForm>(emptyPersonalForm);
   const [personalSubmitting, setPersonalSubmitting] = useState(false);
   const [personalError, setPersonalError] = useState<string | null>(null);
 
@@ -104,18 +114,20 @@ export default function Dashboard() {
       setPersonalError('Building name is required');
       return;
     }
+    const blocks = blockRowsToPayload(personalForm.blocks);
+    if (blocks.length === 0) {
+      setPersonalError('Add at least one block with a valid floor range');
+      return;
+    }
     setPersonalSubmitting(true);
     setPersonalError(null);
     try {
-      const floorCount = personalForm.floorCount.trim() ? parseInt(personalForm.floorCount, 10) : undefined;
-      const zoneCount = personalForm.zoneCount.trim() ? parseInt(personalForm.zoneCount, 10) : undefined;
       await buildingsApi.createPersonal({
         name: personalForm.name.trim(),
         city: personalForm.city.trim() || undefined,
-        floorCount: Number.isFinite(floorCount) ? floorCount : undefined,
-        zoneCount: Number.isFinite(zoneCount) ? zoneCount : undefined,
+        blocks,
       });
-      setPersonalForm(EMPTY_PERSONAL_FORM);
+      setPersonalForm(emptyPersonalForm());
       setShowAddPersonalForm(false);
       await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
     } catch (err) {
@@ -218,7 +230,7 @@ export default function Dashboard() {
                 <div className="text-sm font-semibold text-slate-800">New building</div>
                 <button
                   type="button"
-                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(EMPTY_PERSONAL_FORM); setPersonalError(null); }}
+                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(emptyPersonalForm()); setPersonalError(null); }}
                   className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   <X className="h-4 w-4" />
@@ -243,31 +255,14 @@ export default function Dashboard() {
                   maxLength={100}
                 />
                 <p className="px-1 text-[11px] text-slate-500">
-                  Tell us how the building is structured so we can ask
-                  the right comfort questions.
+                  Tell us how the building is structured (blocks and
+                  the floors each block has) so we can ask the right
+                  comfort questions.
                 </p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={200}
-                    placeholder="How many floors?"
-                    value={personalForm.floorCount}
-                    onChange={(e) => setPersonalForm({ ...personalForm, floorCount: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                  />
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={50}
-                    placeholder="How many blocks/zones?"
-                    value={personalForm.zoneCount}
-                    onChange={(e) => setPersonalForm({ ...personalForm, zoneCount: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                  />
-                </div>
+                <PersonalBlocksField
+                  rows={personalForm.blocks}
+                  onChange={(blocks) => setPersonalForm({ ...personalForm, blocks })}
+                />
                 <p className="px-1 text-[11px] text-slate-400">
                   You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
                 </p>
@@ -278,7 +273,7 @@ export default function Dashboard() {
               <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(EMPTY_PERSONAL_FORM); setPersonalError(null); }}
+                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(emptyPersonalForm()); setPersonalError(null); }}
                   className="rounded-full px-4 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100"
                 >
                   Cancel
@@ -298,11 +293,14 @@ export default function Dashboard() {
           {personal.length > 0 && (
             <div className="space-y-2">
               {personal.map((b) => {
-                const meta = (b.metadata ?? {}) as Record<string, unknown>;
-                const floorMeta = typeof meta.floor === 'string' ? meta.floor : null;
-                const zoneMeta = typeof meta.zone === 'string' ? meta.zone : null;
+                const blocks = readPersonalBlocks(b.metadata);
+                const rooms = readPersonalRooms(b.metadata);
                 const subtitle =
-                  [b.city, floorMeta && `Floor ${floorMeta}`, zoneMeta && `Zone ${zoneMeta}`]
+                  [
+                    b.city,
+                    blocks.length ? `${blocks.length} block${blocks.length === 1 ? '' : 's'}` : null,
+                    rooms.length ? `${rooms.length} room${rooms.length === 1 ? '' : 's'}` : null,
+                  ]
                     .filter(Boolean)
                     .join(' · ') || 'Personal building';
                 return (
