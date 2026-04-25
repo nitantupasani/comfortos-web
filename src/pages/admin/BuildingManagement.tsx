@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
 import type { Building, BuildingComfortData } from '../../types';
@@ -48,6 +49,7 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
   const [comfort, setComfort] = useState<BuildingComfortData | null>(null);
   const [comfortLoading, setComfortLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>(tabParam ?? 'overview');
+  const [deleting, setDeleting] = useState(false);
 
   const basePath = managedOnly ? '/fm/buildings' : '/admin/buildings';
 
@@ -122,6 +124,29 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
     setSearchParams(params);
   };
 
+  const handleDelete = async (b: Building) => {
+    const confirmed = window.confirm(
+      `Permanently delete "${b.name}"?\n\nThis removes the building plus every vote, sensor, telemetry reading, zone, and complaint tied to it. Cannot be undone.`,
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await buildingsApi.delete(b.id);
+      setBuildings((prev) => prev.filter((x) => x.id !== b.id));
+      setComforts((prev) => {
+        const next = new Map(prev);
+        next.delete(b.id);
+        return next;
+      });
+      setSearchParams({});
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Delete failed';
+      window.alert(`Failed to delete building: ${msg}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleChecklistNav = (tab: string) => {
     const map: Record<string, TabKey> = {
       locations: 'locations',
@@ -166,6 +191,20 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
               <StatusBadge tone={selected.requiresAccessPermission ? 'warning' : 'success'}>
                 {selected.requiresAccessPermission ? 'Restricted' : 'Open'}
               </StatusBadge>
+              {!managedOnly && (
+                <button
+                  onClick={() => handleDelete(selected)}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:opacity-50 px-3 py-1.5 text-sm font-medium transition-colors"
+                >
+                  {deleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -209,6 +209,11 @@ export const buildingsApi = {
   update: (buildingId: string, payload: Partial<BuildingCreatePayload>) =>
     api.put<Building>(`/buildings/${buildingId}`, payload),
 
+  /** Admin hard-delete: cascades FK-dependent rows (votes, sensors,
+   * presence, etc.) then removes the building. */
+  delete: (buildingId: string) =>
+    api.post<void>(`/buildings/${buildingId}/delete`),
+
   dashboard: (buildingId: string) =>
     api.get<SduiNode | null>(`/buildings/${buildingId}/dashboard`),
 
