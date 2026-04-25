@@ -1,23 +1,24 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Building2, Loader2, UserPlus } from 'lucide-react';
 
 export default function SignUp() {
   const { signUp, loginWithGoogle, isLoading, error, clearError, user } = useAuthStore();
-  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState('');
 
-  // Redirect if already logged in
   if (user) {
-    if (user.role === 'admin') navigate('/admin', { replace: true });
-    else if (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager')
-      navigate('/fm', { replace: true });
-    else navigate('/dashboard', { replace: true });
+    const dest =
+      user.role === 'admin'
+        ? '/admin'
+        : user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager'
+        ? '/fm'
+        : '/dashboard';
+    return <Navigate to={dest} replace />;
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
