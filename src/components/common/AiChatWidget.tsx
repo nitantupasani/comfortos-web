@@ -145,9 +145,10 @@ export default function AiChatWidget() {
 
   const clampBubbleY = () => {
     const maxUp = -(window.innerHeight - BUBBLE_SIZE - BUBBLE_MARGIN_Y - 16);
+    const maxDown = BUBBLE_MARGIN_Y;
     const y = bubbleY.get();
     if (y < maxUp) bubbleY.set(maxUp);
-    if (y > 0) bubbleY.set(0);
+    if (y > maxDown) bubbleY.set(maxDown);
   };
 
   const handleDragStart = () => { wasDragged.current = false; };
