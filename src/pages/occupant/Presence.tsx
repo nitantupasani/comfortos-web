@@ -4,7 +4,7 @@ import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import { Building2, MapPin, Lock, Loader2, Plus, Trash2, X } from 'lucide-react';
 import type { Building } from '../../types';
-import { buildingsApi, PERSONAL_BUILDING_LIMIT } from '../../api/buildings';
+import { buildingsApi, PERSONAL_BUILDING_LIMIT, getHiddenPersonalIds } from '../../api/buildings';
 
 interface NewBuildingForm {
   name: string;
@@ -16,7 +16,7 @@ interface NewBuildingForm {
 const EMPTY_FORM: NewBuildingForm = { name: '', city: '', floor: '', zone: '' };
 
 export default function Presence() {
-  const { buildings, isLoading, fetchBuildings, selectBuilding } = usePresenceStore();
+  const { buildings, isLoading, fetchBuildings, selectBuilding, forgetBuilding } = usePresenceStore();
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
@@ -75,15 +75,20 @@ export default function Presence() {
 
   const handleDelete = async (buildingId: string) => {
     if (!confirm('Remove this building? Your votes for it will remain.')) return;
-    // Optimistically drop from local state — the API call is best-effort
-    // and never throws.
+    // Optimistically drop from every UI surface (personal list, recent,
+    // favorites, active selection). The API call is best-effort and
+    // never throws.
     setPersonal((prev) => prev.filter((b) => b.id !== buildingId));
+    forgetBuilding(buildingId);
     await buildingsApi.deletePersonal(buildingId);
     await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
   };
 
   const personalIds = new Set(personal.map((b) => b.id));
-  const otherBuildings = buildings.filter((b) => !personalIds.has(b.id));
+  const hidden = getHiddenPersonalIds();
+  const otherBuildings = buildings.filter(
+    (b) => !personalIds.has(b.id) && !hidden.has(b.id),
+  );
   const atLimit = personal.length >= PERSONAL_BUILDING_LIMIT;
 
   return (

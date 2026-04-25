@@ -10,6 +10,10 @@ import type {
 
 const HIDDEN_PERSONAL_KEY = 'comfortos.hiddenPersonalBuildings';
 
+export function getHiddenPersonalIds(): Set<string> {
+  return readHiddenPersonalIds();
+}
+
 function readHiddenPersonalIds(): Set<string> {
   try {
     const raw = localStorage.getItem(HIDDEN_PERSONAL_KEY);

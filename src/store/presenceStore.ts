@@ -26,6 +26,7 @@ interface PresenceState {
   clearBuilding: () => void;
   addFavorite: (buildingId: string) => void;
   removeFavorite: (buildingId: string) => void;
+  forgetBuilding: (buildingId: string) => void;
 }
 
 export const usePresenceStore = create<PresenceState>()(
@@ -92,6 +93,18 @@ export const usePresenceStore = create<PresenceState>()(
       removeFavorite: (buildingId) =>
         set((s) => ({
           favoriteBuildings: s.favoriteBuildings.filter((id) => id !== buildingId),
+        })),
+
+      forgetBuilding: (buildingId) =>
+        set((s) => ({
+          buildings: s.buildings.filter((b) => b.id !== buildingId),
+          recentBuildings: s.recentBuildings.filter((r) => r.building.id !== buildingId),
+          favoriteBuildings: s.favoriteBuildings.filter((id) => id !== buildingId),
+          activeBuilding: s.activeBuilding?.id === buildingId ? null : s.activeBuilding,
+          floor: s.activeBuilding?.id === buildingId ? null : s.floor,
+          room: s.activeBuilding?.id === buildingId ? null : s.room,
+          floorLabel: s.activeBuilding?.id === buildingId ? null : s.floorLabel,
+          roomLabel: s.activeBuilding?.id === buildingId ? null : s.roomLabel,
         })),
     }),
     {

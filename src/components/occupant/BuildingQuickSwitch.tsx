@@ -3,7 +3,7 @@ import { Building2, Star, Clock, Loader2, Plus, Trash2, X, Home } from 'lucide-r
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import BottomSheet from '../common/BottomSheet';
-import { buildingsApi, PERSONAL_BUILDING_LIMIT } from '../../api/buildings';
+import { buildingsApi, PERSONAL_BUILDING_LIMIT, getHiddenPersonalIds } from '../../api/buildings';
 import type { Building } from '../../types';
 
 interface Props {
@@ -31,6 +31,7 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
     favoriteBuildings,
     addFavorite,
     removeFavorite,
+    forgetBuilding,
   } = usePresenceStore();
   const user = useAuthStore((s) => s.user);
 
@@ -61,14 +62,22 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
 
   const isFavorite = (id: string) => favoriteBuildings.includes(id);
   const personalIds = new Set(personal.map((b) => b.id));
-  const recentIds = new Set(recentBuildings.map((r) => r.building.id));
+  const hidden = getHiddenPersonalIds();
+  // A building is "filtered out" of the generic Recent/Favorites/All
+  // sections if it's already shown in My Buildings OR if the user has
+  // hidden it locally (deleted personal building whose server delete
+  // may not have landed).
+  const isFiltered = (id: string) => personalIds.has(id) || hidden.has(id);
+  const recentIds = new Set(
+    recentBuildings.filter((r) => !isFiltered(r.building.id)).map((r) => r.building.id),
+  );
 
-  const favorites = buildings.filter((b) => isFavorite(b.id) && !personalIds.has(b.id));
+  const favorites = buildings.filter((b) => isFavorite(b.id) && !isFiltered(b.id));
   const recent = recentBuildings
-    .filter((r) => !isFavorite(r.building.id) && !personalIds.has(r.building.id))
+    .filter((r) => !isFavorite(r.building.id) && !isFiltered(r.building.id))
     .map((r) => r.building);
   const others = buildings.filter(
-    (b) => !isFavorite(b.id) && !recentIds.has(b.id) && !personalIds.has(b.id),
+    (b) => !isFavorite(b.id) && !recentIds.has(b.id) && !isFiltered(b.id),
   );
 
   const atLimit = personal.length >= PERSONAL_BUILDING_LIMIT;
@@ -106,9 +115,11 @@ export default function BuildingQuickSwitch({ isOpen, onClose, onSelect }: Props
   const handleDelete = async (e: React.MouseEvent, buildingId: string) => {
     e.stopPropagation();
     if (!confirm('Remove this building?')) return;
-    // Optimistically drop from local state — the API call below is
+    // Optimistically drop from every UI surface (My Buildings list,
+    // Recent, Favorites, active selection). The API call is
     // best-effort and never throws.
     setPersonal((prev) => prev.filter((b) => b.id !== buildingId));
+    forgetBuilding(buildingId);
     await buildingsApi.deletePersonal(buildingId);
     await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
   };
