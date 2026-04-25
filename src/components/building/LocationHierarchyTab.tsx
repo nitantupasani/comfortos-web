@@ -54,6 +54,7 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
   const [formCode, setFormCode] = useState('');
   const [formOrientation, setFormOrientation] = useState('');
   const [formUsageType, setFormUsageType] = useState('');
+  const [formFloorNumber, setFormFloorNumber] = useState('');
 
   const loadTree = useCallback(async () => {
     try {
@@ -93,6 +94,7 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
     setFormCode('');
     setFormOrientation('');
     setFormUsageType('');
+    setFormFloorNumber('');
   };
 
   const openAddChild = (parent: LocationTreeNode) => {
@@ -104,6 +106,7 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
     setFormCode('');
     setFormOrientation('');
     setFormUsageType('');
+    setFormFloorNumber('');
   };
 
   const openEdit = (node: LocationTreeNode) => {
@@ -113,6 +116,34 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
     setFormCode(node.code || '');
     setFormOrientation(node.orientation || '');
     setFormUsageType(node.usageType || '');
+    const existingFloorNumber = node.metadata && typeof node.metadata === 'object'
+      ? (node.metadata as Record<string, unknown>).floorNumber
+      : undefined;
+    setFormFloorNumber(
+      typeof existingFloorNumber === 'number'
+        ? String(existingFloorNumber)
+        : typeof existingFloorNumber === 'string'
+          ? existingFloorNumber
+          : '',
+    );
+  };
+
+  const buildFloorMetadata = (
+    existing: Record<string, unknown> | null | undefined,
+  ): Record<string, unknown> | undefined => {
+    if (formType !== 'floor') return undefined;
+    const trimmed = formFloorNumber.trim();
+    const base = { ...(existing ?? {}) };
+    if (trimmed === '') {
+      delete base.floorNumber;
+    } else {
+      const parsed = Number(trimmed);
+      if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+        throw new Error('Floor number must be a whole integer (e.g. -1, 0, 2)');
+      }
+      base.floorNumber = parsed;
+    }
+    return base;
   };
 
   const handleSave = async () => {
@@ -129,6 +160,7 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
           code: formCode.trim() || undefined,
           orientation: formOrientation.trim() || undefined,
           usageType: formUsageType.trim() || undefined,
+          metadata: buildFloorMetadata(null),
         };
         await locationsApi.create(data);
       } else if (modal?.mode === 'edit' && modal.editNode) {
@@ -137,6 +169,7 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
           code: formCode.trim() || undefined,
           orientation: formOrientation.trim() || undefined,
           usageType: formUsageType.trim() || undefined,
+          metadata: buildFloorMetadata(modal.editNode.metadata),
         };
         await locationsApi.update(modal.editNode.id, data);
       }
@@ -324,6 +357,25 @@ export default function LocationHierarchyTab({ buildingId }: Props) {
                   placeholder="Short identifier, e.g. NW, F2, R201"
                 />
               </div>
+
+              {formType === 'floor' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Floor number <span className="text-gray-400 font-normal">(integer)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={formFloorNumber}
+                    onChange={e => setFormFloorNumber(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    placeholder="0 for ground, -1 for basement, 2 for second"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Lets you rename the floor (e.g. &quot;Mezzanine&quot;) without breaking occupant&nbsp;views that work in floor numbers.
+                  </p>
+                </div>
+              )}
 
               {(formType === 'block_or_wing' || formType === 'room') && (
                 <div>
