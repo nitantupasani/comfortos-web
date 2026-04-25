@@ -2,13 +2,31 @@ import { useState } from 'react';
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useBuildingWizardStore, type FloorEntry } from '../../../store/buildingWizardStore';
 
+interface BlockSetupRow {
+  name: string;
+  code: string;
+  startFloor: string;
+  endFloor: string;
+  roomsPerFloor: string;
+  roomPrefix: string;
+}
+
+const emptyBlockRow = (): BlockSetupRow => ({
+  name: '',
+  code: '',
+  startFloor: '1',
+  endFloor: '1',
+  roomsPerFloor: '0',
+  roomPrefix: 'Room',
+});
+
 export default function Step1_LocationHierarchy() {
   const { floors, setFloors } = useBuildingWizardStore();
-  const [quickFloorCount, setQuickFloorCount] = useState('');
-  const [quickRoomCount, setQuickRoomCount] = useState('');
-  const [quickRoomPrefix, setQuickRoomPrefix] = useState('Room');
   const [expandedFloors, setExpandedFloors] = useState<Set<number>>(new Set());
-  const [mode, setMode] = useState<'quick' | 'manual'>(floors.length > 0 ? 'manual' : 'quick');
+  const [mode, setMode] = useState<'blocks' | 'manual'>(floors.length > 0 ? 'manual' : 'blocks');
+  const [blockRows, setBlockRows] = useState<BlockSetupRow[]>(() => [
+    { name: 'Main', code: 'MAIN', startFloor: '1', endFloor: '1', roomsPerFloor: '0', roomPrefix: 'Room' },
+  ]);
 
   const toggleFloor = (idx: number) => {
     setExpandedFloors((prev) => {
@@ -19,30 +37,52 @@ export default function Step1_LocationHierarchy() {
     });
   };
 
-  const handleQuickGenerate = () => {
-    const numFloors = parseInt(quickFloorCount) || 0;
-    const numRooms = parseInt(quickRoomCount) || 0;
-    if (numFloors <= 0) return;
+  const updateBlockRow = (idx: number, patch: Partial<BlockSetupRow>) => {
+    setBlockRows(blockRows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+  const addBlockRow = () => setBlockRows([...blockRows, emptyBlockRow()]);
+  const removeBlockRow = (idx: number) => {
+    if (blockRows.length === 1) return;
+    setBlockRows(blockRows.filter((_, i) => i !== idx));
+  };
 
+  /** Generate floors[] from the current block rows, parenting each
+   * floor to its block via blockName/blockCode. Each room gets a
+   * unique code by combining the block code + floor + index. */
+  const handleGenerate = () => {
     const generated: FloorEntry[] = [];
-    for (let f = 1; f <= numFloors; f++) {
-      const rooms: { name: string; code: string }[] = [];
-      for (let r = 1; r <= numRooms; r++) {
-        const roomNum = f * 100 + r;
-        rooms.push({
-          name: `${quickRoomPrefix} ${roomNum}`,
-          code: `${roomNum}`,
+    for (const block of blockRows) {
+      const name = block.name.trim();
+      if (!name) continue;
+      const start = parseInt(block.startFloor, 10);
+      const end = parseInt(block.endFloor, 10);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+      if (end < start) continue;
+      const roomsPerFloor = Math.max(0, parseInt(block.roomsPerFloor, 10) || 0);
+      const prefix = block.roomPrefix.trim() || 'Room';
+      const blockCode = block.code.trim() || name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6);
+      for (let f = start; f <= end; f++) {
+        const floorCode = `${blockCode}-${f}`;
+        const rooms: { name: string; code: string }[] = [];
+        for (let r = 1; r <= roomsPerFloor; r++) {
+          const num = Math.abs(f) * 100 + r;
+          rooms.push({
+            name: `${prefix} ${blockCode}${num}`,
+            code: `${blockCode}-${num}`,
+          });
+        }
+        generated.push({
+          name: `${name} · Floor ${f}`,
+          code: floorCode,
+          rooms,
+          blockName: name,
+          blockCode,
         });
       }
-      generated.push({
-        name: `Floor ${f}`,
-        code: `F${f}`,
-        rooms,
-      });
     }
+    if (generated.length === 0) return;
     setFloors(generated);
     setMode('manual');
-    // Expand all
     setExpandedFloors(new Set(generated.map((_, i) => i)));
   };
 
@@ -83,24 +123,33 @@ export default function Step1_LocationHierarchy() {
     });
   };
 
+  const blockSummary = (() => {
+    const counts = new Map<string, number>();
+    for (const f of floors) {
+      const key = f.blockName ?? '—';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return Array.from(counts.entries());
+  })();
+
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Zones</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Building structure</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Add floors and rooms. Use Quick Setup for repeating layouts, or build it by hand.
+          Define each block (e.g. Main, East Wing) with the range of floors it has.
+          The wizard creates block → floor → room nodes for you. Use Manual to fine-tune afterward.
         </p>
       </div>
 
-      {/* Mode toggle */}
       <div className="flex gap-2">
         <button
-          onClick={() => setMode('quick')}
+          onClick={() => setMode('blocks')}
           className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-            mode === 'quick' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-500 hover:bg-gray-50'
+            mode === 'blocks' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-500 hover:bg-gray-50'
           }`}
         >
-          Quick Setup
+          By Block
         </button>
         <button
           onClick={() => setMode('manual')}
@@ -112,51 +161,108 @@ export default function Step1_LocationHierarchy() {
         </button>
       </div>
 
-      {mode === 'quick' && (
-        <div className="space-y-4 bg-gray-50 rounded-xl p-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Number of Floors</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={quickFloorCount}
-                onChange={(e) => setQuickFloorCount(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="e.g. 3"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Rooms per Floor</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={quickRoomCount}
-                onChange={(e) => setQuickRoomCount(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="e.g. 5"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Room Prefix</label>
-              <input
-                type="text"
-                value={quickRoomPrefix}
-                onChange={(e) => setQuickRoomPrefix(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="Room"
-              />
-            </div>
+      {mode === 'blocks' && (
+        <div className="space-y-3 bg-gray-50 rounded-xl p-4">
+          <div className="text-xs text-gray-500">
+            Add one row per block. Negative floors are allowed for basements.
           </div>
-          <button
-            onClick={handleQuickGenerate}
-            disabled={!quickFloorCount || parseInt(quickFloorCount) <= 0}
-            className="w-full bg-primary-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors"
-          >
-            Generate Floors & Rooms
-          </button>
+
+          <div className="space-y-2">
+            {/* Header row */}
+            <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_72px_72px_96px_1.2fr_36px] gap-1.5 px-1 text-[10px] font-semibold uppercase text-gray-400">
+              <span>Block name</span>
+              <span>Code</span>
+              <span>Start</span>
+              <span>End</span>
+              <span>Rooms / floor</span>
+              <span>Room label prefix</span>
+              <span></span>
+            </div>
+
+            {blockRows.map((row, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_72px_72px_96px_1.2fr_36px] gap-1.5 items-center"
+              >
+                <input
+                  type="text"
+                  placeholder="e.g. Main, East Wing"
+                  value={row.name}
+                  onChange={(e) => updateBlockRow(idx, { name: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm"
+                  maxLength={50}
+                />
+                <input
+                  type="text"
+                  placeholder="MAIN"
+                  value={row.code}
+                  onChange={(e) => updateBlockRow(idx, { code: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm font-mono"
+                  maxLength={10}
+                />
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={row.startFloor}
+                  onChange={(e) => updateBlockRow(idx, { startFloor: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm w-full"
+                  title="Lowest floor (use 0 for ground, negative for basements)"
+                />
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={row.endFloor}
+                  onChange={(e) => updateBlockRow(idx, { endFloor: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm w-full"
+                  title="Highest floor"
+                />
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="100"
+                  value={row.roomsPerFloor}
+                  onChange={(e) => updateBlockRow(idx, { roomsPerFloor: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm w-full"
+                  title="How many rooms each floor of this block has (uniform)"
+                />
+                <input
+                  type="text"
+                  value={row.roomPrefix}
+                  onChange={(e) => updateBlockRow(idx, { roomPrefix: e.target.value })}
+                  className="border rounded-lg px-2 py-1.5 text-sm"
+                  placeholder="Room"
+                  maxLength={20}
+                />
+                <button
+                  onClick={() => removeBlockRow(idx)}
+                  disabled={blockRows.length === 1}
+                  className="p-1.5 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Remove block"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={addBlockRow}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-primary-300 hover:text-primary-600"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add block
+            </button>
+            <button
+              onClick={handleGenerate}
+              className="inline-flex items-center gap-1 rounded-lg bg-primary-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-primary-700"
+            >
+              Generate floors &amp; rooms
+            </button>
+            <span className="text-[11px] text-gray-400">
+              You can switch to Manual after generating to tweak names or add extras.
+            </span>
+          </div>
         </div>
       )}
 
@@ -180,6 +286,11 @@ export default function Step1_LocationHierarchy() {
                 onChange={(e) => updateFloor(fIdx, { name: e.target.value })}
                 className="flex-1 text-sm font-medium text-gray-800 bg-transparent border-none outline-none focus:bg-gray-50 rounded px-1"
               />
+              {floor.blockName && (
+                <span className="text-[10px] font-semibold uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  {floor.blockName}
+                </span>
+              )}
               <span className="text-xs text-gray-400">{floor.rooms.length} rooms</span>
               <button
                 onClick={() => addRoom(fIdx)}
@@ -237,9 +348,15 @@ export default function Step1_LocationHierarchy() {
       </div>
 
       {floors.length > 0 && (
-        <div className="text-xs text-gray-400 text-right">
-          {floors.length} floor{floors.length !== 1 ? 's' : ''},{' '}
-          {floors.reduce((sum, f) => sum + f.rooms.length, 0)} rooms total
+        <div className="flex flex-wrap justify-end gap-2 text-xs text-gray-400">
+          {blockSummary.map(([block, count]) => (
+            <span key={block} className="rounded-full bg-gray-100 px-2.5 py-0.5">
+              {block === '—' ? 'Unblocked' : block}: {count} floor{count === 1 ? '' : 's'}
+            </span>
+          ))}
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5">
+            {floors.reduce((s, f) => s + f.rooms.length, 0)} rooms total
+          </span>
         </div>
       )}
     </div>

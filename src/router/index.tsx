@@ -176,6 +176,7 @@ export default function AppRouter() {
         <Route path="/fm" element={<FMDashboard />} />
         <Route path="/fm/overview" element={<Navigate to="/fm" replace />} />
         <Route path="/fm/buildings" element={<BuildingManagement managedOnly />} />
+        <Route path="/fm/buildings/new" element={<BuildingSetupWizard />} />
         <Route path="/fm/comfort" element={<ComfortAnalytics />} />
         <Route path="/fm/building-analytics" element={<FMBuildingAnalytics />} />
         <Route path="/fm/dashboard-config" element={<FMDashboardConfig />} />

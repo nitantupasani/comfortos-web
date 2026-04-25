@@ -5,6 +5,11 @@ export interface FloorEntry {
   name: string;
   code: string;
   rooms: { name: string; code: string }[];
+  /** Optional block / wing this floor belongs to. When set on any
+   * floor, the wizard creates a block_or_wing node under the building
+   * and parents the floor to that block. */
+  blockName?: string;
+  blockCode?: string;
 }
 
 export interface ConnectorEntry {

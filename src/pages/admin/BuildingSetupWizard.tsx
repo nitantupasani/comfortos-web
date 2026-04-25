@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Plus } from 'lucide-react';
 import { useBuildingWizardStore } from '../../store/buildingWizardStore';
 import { buildingsApi } from '../../api/buildings';
@@ -86,6 +86,12 @@ function getDashboardTemplate(template: 'default' | 'minimal' | 'full', metrics:
 
 export default function BuildingSetupWizard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Reused for both /admin/buildings/new and /fm/buildings/new — derive
+  // the surrounding section from the URL so back-links and the launch
+  // redirect land on the right list.
+  const sectionBase = location.pathname.startsWith('/fm/') ? '/fm/buildings' : '/admin/buildings';
+  const wizardEntry = `${sectionBase}/new`;
   const store = useBuildingWizardStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +124,7 @@ export default function BuildingSetupWizard() {
         }
 
         case 1: {
-          // Create zones
+          // Create zones — building → (block_or_wing →)? floor → rooms
           if (!store.createdBuildingId || store.floors.length === 0) return true;
           setIsSubmitting(true);
 
@@ -129,10 +135,34 @@ export default function BuildingSetupWizard() {
             code: 'ROOT',
           });
 
+          // If any floor declared a blockName, materialize block_or_wing
+          // nodes and parent floors to them. Floors without a blockName
+          // hang directly off the building root, mirroring the older flow.
+          const hasBlocks = store.floors.some((f) => !!f.blockName);
+          const blockNodeByName = new Map<string, string>();
+          if (hasBlocks) {
+            const seen = new Map<string, { name: string; code?: string }>();
+            for (const f of store.floors) {
+              if (!f.blockName || seen.has(f.blockName)) continue;
+              seen.set(f.blockName, { name: f.blockName, code: f.blockCode });
+            }
+            for (const [, spec] of seen) {
+              const blockNode = await locationsApi.create({
+                buildingId: store.createdBuildingId,
+                parentId: buildingRoot.id,
+                type: 'block_or_wing',
+                name: spec.name,
+                code: spec.code || undefined,
+              });
+              blockNodeByName.set(spec.name, blockNode.id);
+            }
+          }
+
           for (const floor of store.floors) {
+            const parentId = floor.blockName ? blockNodeByName.get(floor.blockName) ?? buildingRoot.id : buildingRoot.id;
             const floorNode = await locationsApi.create({
               buildingId: store.createdBuildingId,
-              parentId: buildingRoot.id,
+              parentId,
               type: 'floor',
               name: floor.name,
               code: floor.code || undefined,
@@ -227,7 +257,7 @@ export default function BuildingSetupWizard() {
   const handleBack = () => {
     if (store.currentStep === 0) {
       store.reset();
-      navigate('/admin/buildings');
+      navigate(sectionBase);
     }
   };
 
@@ -244,7 +274,7 @@ export default function BuildingSetupWizard() {
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Link
-            to={`/admin/buildings?id=${launched.id}`}
+            to={`${sectionBase}?id=${launched.id}`}
             className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-medium transition-colors shadow-sm"
           >
             Go to building <ArrowRight className="h-4 w-4" />
@@ -253,7 +283,7 @@ export default function BuildingSetupWizard() {
             onClick={() => {
               store.reset();
               setLaunched(null);
-              navigate('/admin/buildings/new');
+              navigate(wizardEntry);
             }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 text-sm font-medium transition-colors"
           >

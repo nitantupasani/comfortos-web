@@ -217,14 +217,12 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
         title={managedOnly ? 'My buildings' : 'Buildings'}
         description="Select a building to view and configure setup, zones, telemetry, and dashboards."
         actions={
-          !managedOnly ? (
-            <button
-              onClick={() => navigate('/admin/buildings/new')}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
-            >
-              <Plus className="h-4 w-4" /> Add Building
-            </button>
-          ) : null
+          <button
+            onClick={() => navigate(managedOnly ? '/fm/buildings/new' : '/admin/buildings/new')}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" /> Add Building
+          </button>
         }
       />
 
@@ -233,18 +231,14 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
           <Building2 className="mx-auto h-8 w-8 text-gray-300" />
           <h3 className="mt-3 text-sm font-medium text-gray-900">No buildings yet</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {managedOnly
-              ? 'Once an admin grants you access, your buildings will appear here.'
-              : 'Add your first building to get started.'}
+            Add your first building to get started.
           </p>
-          {!managedOnly && (
-            <button
-              onClick={() => navigate('/admin/buildings/new')}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium"
-            >
-              <Plus className="h-4 w-4" /> Add building
-            </button>
-          )}
+          <button
+            onClick={() => navigate(managedOnly ? '/fm/buildings/new' : '/admin/buildings/new')}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white px-3.5 py-2 text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" /> Add building
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
