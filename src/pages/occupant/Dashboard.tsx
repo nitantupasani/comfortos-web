@@ -8,9 +8,18 @@ import SduiRenderer from '../../components/sdui/SduiRenderer';
 import DashboardContextBar from '../../components/occupant/DashboardContextBar';
 import BuildingQuickSwitch from '../../components/occupant/BuildingQuickSwitch';
 import LocationQuickPicker from '../../components/occupant/LocationQuickPicker';
-import { Vote, Loader2, Building2, MapPin } from 'lucide-react';
+import { Vote, Loader2, Building2, MapPin, Plus, Trash2, X, Home } from 'lucide-react';
 import type { SduiNode, WeatherData, Building } from '../../types';
-import { getHiddenPersonalIds } from '../../api/buildings';
+import { buildingsApi, getHiddenPersonalIds, PERSONAL_BUILDING_LIMIT } from '../../api/buildings';
+
+interface NewPersonalBuildingForm {
+  name: string;
+  city: string;
+  floor: string;
+  zone: string;
+}
+
+const EMPTY_PERSONAL_FORM: NewPersonalBuildingForm = { name: '', city: '', floor: '', zone: '' };
 
 /**
  * Default dashboard layout — used when the backend has no config.
@@ -63,10 +72,65 @@ export default function Dashboard() {
   const { dashboardConfig, fetchDashboard, fetchLocationForm } = useBuildingStore();
   const navigate = useNavigate();
 
+  const forgetBuilding = usePresenceStore((s) => s.forgetBuilding);
+
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBuildingSwitch, setShowBuildingSwitch] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  // Personal building management for the inline (no-active-building) view.
+  const [personal, setPersonal] = useState<Building[]>([]);
+  const [showAddPersonalForm, setShowAddPersonalForm] = useState(false);
+  const [personalForm, setPersonalForm] = useState<NewPersonalBuildingForm>(EMPTY_PERSONAL_FORM);
+  const [personalSubmitting, setPersonalSubmitting] = useState(false);
+  const [personalError, setPersonalError] = useState<string | null>(null);
+
+  const loadPersonal = async () => {
+    try {
+      setPersonal(await buildingsApi.listPersonal());
+    } catch {
+      // non-critical — leave list empty
+    }
+  };
+
+  useEffect(() => {
+    if (!activeBuilding) loadPersonal();
+  }, [activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitPersonal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!personalForm.name.trim()) {
+      setPersonalError('Building name is required');
+      return;
+    }
+    setPersonalSubmitting(true);
+    setPersonalError(null);
+    try {
+      await buildingsApi.createPersonal({
+        name: personalForm.name.trim(),
+        city: personalForm.city.trim() || undefined,
+        floor: personalForm.floor.trim() || undefined,
+        zone: personalForm.zone.trim() || undefined,
+      });
+      setPersonalForm(EMPTY_PERSONAL_FORM);
+      setShowAddPersonalForm(false);
+      await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
+    } catch (err) {
+      setPersonalError(err instanceof Error ? err.message : 'Failed to add building');
+    } finally {
+      setPersonalSubmitting(false);
+    }
+  };
+
+  const deletePersonal = async (e: React.MouseEvent, buildingId: string) => {
+    e.stopPropagation();
+    if (!confirm('Remove this building?')) return;
+    setPersonal((prev) => prev.filter((b) => b.id !== buildingId));
+    forgetBuilding(buildingId);
+    await buildingsApi.deletePersonal(buildingId);
+    await Promise.all([loadPersonal(), fetchBuildings(user?.tenantId ?? undefined)]);
+  };
 
   const loadData = async () => {
     if (!activeBuilding) return;
@@ -106,8 +170,11 @@ export default function Dashboard() {
   if (!activeBuilding) {
     const isLoading = usePresenceStore.getState().isLoading;
     const hidden = getHiddenPersonalIds();
-    const visibleRecent = recentBuildings.filter((r) => !hidden.has(r.building.id));
-    const visibleAll = buildings.filter((b) => !hidden.has(b.id));
+    const personalIds = new Set(personal.map((b) => b.id));
+    const isFiltered = (id: string) => hidden.has(id) || personalIds.has(id);
+    const visibleRecent = recentBuildings.filter((r) => !isFiltered(r.building.id));
+    const visibleAll = buildings.filter((b) => !isFiltered(b.id));
+    const atPersonalLimit = personal.length >= PERSONAL_BUILDING_LIMIT;
     return (
       <div className="space-y-6">
         <div className="rounded-[28px] border border-emerald-100 bg-[linear-gradient(180deg,_rgba(236,253,245,0.92)_0%,_rgba(255,255,255,0.98)_100%)] px-5 py-6 text-center shadow-[0_12px_40px_rgba(22,101,52,0.08)]">
@@ -116,6 +183,148 @@ export default function Dashboard() {
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Select a building to view your dashboard
           </p>
+        </div>
+
+        {/* My Buildings + Add building */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
+              <Home className="h-3 w-3" />
+              My Buildings
+              <span className="ml-2 normal-case text-[10px] font-normal tracking-normal text-slate-400">
+                {personal.length} of {PERSONAL_BUILDING_LIMIT}
+              </span>
+            </div>
+            {!showAddPersonalForm && (
+              <button
+                onClick={() => { setShowAddPersonalForm(true); setPersonalError(null); }}
+                disabled={atPersonalLimit}
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add building
+              </button>
+            )}
+          </div>
+
+          {showAddPersonalForm && (
+            <form
+              onSubmit={submitPersonal}
+              className="rounded-[24px] border border-emerald-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-800">New building</div>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(EMPTY_PERSONAL_FORM); setPersonalError(null); }}
+                  className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                <input
+                  type="text"
+                  placeholder="Building name (required)"
+                  value={personalForm.name}
+                  onChange={(e) => setPersonalForm({ ...personalForm, name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                  maxLength={200}
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  placeholder="City (optional)"
+                  value={personalForm.city}
+                  onChange={(e) => setPersonalForm({ ...personalForm, city: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                  maxLength={100}
+                />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <input
+                    type="text"
+                    placeholder="Floor"
+                    value={personalForm.floor}
+                    onChange={(e) => setPersonalForm({ ...personalForm, floor: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                    maxLength={50}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Zone"
+                    value={personalForm.zone}
+                    onChange={(e) => setPersonalForm({ ...personalForm, zone: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                    maxLength={50}
+                  />
+                </div>
+                <p className="px-1 text-[11px] text-slate-400">
+                  Default comfort questions will be ready for voting.
+                </p>
+              </div>
+              {personalError && (
+                <div className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{personalError}</div>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddPersonalForm(false); setPersonalForm(EMPTY_PERSONAL_FORM); setPersonalError(null); }}
+                  className="rounded-full px-4 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={personalSubmitting}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:bg-emerald-300"
+                >
+                  {personalSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
+
+          {personal.length > 0 && (
+            <div className="space-y-2">
+              {personal.map((b) => {
+                const meta = (b.metadata ?? {}) as Record<string, unknown>;
+                const floorMeta = typeof meta.floor === 'string' ? meta.floor : null;
+                const zoneMeta = typeof meta.zone === 'string' ? meta.zone : null;
+                const subtitle =
+                  [b.city, floorMeta && `Floor ${floorMeta}`, zoneMeta && `Zone ${zoneMeta}`]
+                    .filter(Boolean)
+                    .join(' · ') || 'Personal building';
+                return (
+                  <div
+                    key={b.id}
+                    className="flex items-center gap-3 rounded-[24px] border border-emerald-100 bg-white px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                  >
+                    <button
+                      onClick={() => handleInlineBuildingSelect(b)}
+                      className="flex flex-1 items-center gap-3 text-left"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-slate-800">{b.name}</div>
+                        <div className="mt-0.5 truncate text-xs text-slate-400">{subtitle}</div>
+                      </div>
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-600">Select</span>
+                    </button>
+                    <button
+                      onClick={(e) => deletePersonal(e, b.id)}
+                      className="rounded-full p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                      title="Remove"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Recent buildings */}
