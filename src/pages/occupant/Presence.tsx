@@ -9,11 +9,11 @@ import { buildingsApi, PERSONAL_BUILDING_LIMIT, getHiddenPersonalIds } from '../
 interface NewBuildingForm {
   name: string;
   city: string;
-  floor: string;
-  zone: string;
+  floorCount: string;
+  zoneCount: string;
 }
 
-const EMPTY_FORM: NewBuildingForm = { name: '', city: '', floor: '', zone: '' };
+const EMPTY_FORM: NewBuildingForm = { name: '', city: '', floorCount: '', zoneCount: '' };
 
 export default function Presence() {
   const { buildings, isLoading, fetchBuildings, selectBuilding, forgetBuilding } = usePresenceStore();
@@ -57,11 +57,13 @@ export default function Presence() {
     setSubmitting(true);
     setError(null);
     try {
+      const floorCount = form.floorCount.trim() ? parseInt(form.floorCount, 10) : undefined;
+      const zoneCount = form.zoneCount.trim() ? parseInt(form.zoneCount, 10) : undefined;
       await buildingsApi.createPersonal({
         name: form.name.trim(),
         city: form.city.trim() || undefined,
-        floor: form.floor.trim() || undefined,
-        zone: form.zone.trim() || undefined,
+        floorCount: Number.isFinite(floorCount) ? floorCount : undefined,
+        zoneCount: Number.isFinite(zoneCount) ? zoneCount : undefined,
       });
       setForm(EMPTY_FORM);
       setShowAddForm(false);
@@ -152,26 +154,34 @@ export default function Presence() {
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
                 maxLength={100}
               />
+              <p className="px-1 text-[11px] text-slate-500">
+                Tell us how the building is structured so we can ask
+                the right comfort questions.
+              </p>
               <div className="grid grid-cols-2 gap-2.5">
                 <input
-                  type="text"
-                  placeholder="Floor"
-                  value={form.floor}
-                  onChange={(e) => setForm({ ...form, floor: e.target.value })}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={200}
+                  placeholder="How many floors?"
+                  value={form.floorCount}
+                  onChange={(e) => setForm({ ...form, floorCount: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                  maxLength={50}
                 />
                 <input
-                  type="text"
-                  placeholder="Zone"
-                  value={form.zone}
-                  onChange={(e) => setForm({ ...form, zone: e.target.value })}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={50}
+                  placeholder="How many blocks/zones?"
+                  value={form.zoneCount}
+                  onChange={(e) => setForm({ ...form, zoneCount: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                  maxLength={50}
                 />
               </div>
               <p className="px-1 text-[11px] text-slate-400">
-                You can specify a floor, a zone, or both. Default comfort questions will be ready to vote on.
+                You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
               </p>
             </div>
 
@@ -211,8 +221,9 @@ export default function Presence() {
           <div className="space-y-2.5">
             {personal.map((b) => {
               const meta = (b.metadata ?? {}) as Record<string, unknown>;
-              const floor = typeof meta.floor === 'string' ? meta.floor : null;
-              const zone = typeof meta.zone === 'string' ? meta.zone : null;
+              const floorCount = typeof meta.floorCount === 'number' ? meta.floorCount : null;
+              const zoneCount = typeof meta.zoneCount === 'number' ? meta.zoneCount : null;
+              const rooms = Array.isArray(meta.rooms) ? meta.rooms.length : 0;
               return (
                 <div
                   key={b.id}
@@ -228,7 +239,12 @@ export default function Presence() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-slate-800">{b.name}</div>
                       <div className="mt-0.5 truncate text-xs text-slate-400">
-                        {[b.city, floor && `Floor ${floor}`, zone && `Zone ${zone}`]
+                        {[
+                          b.city,
+                          floorCount ? `${floorCount} floor${floorCount === 1 ? '' : 's'}` : null,
+                          zoneCount ? `${zoneCount} zone${zoneCount === 1 ? '' : 's'}` : null,
+                          rooms ? `${rooms} room${rooms === 1 ? '' : 's'}` : null,
+                        ]
                           .filter(Boolean)
                           .join(' · ') || 'Personal building'}
                       </div>

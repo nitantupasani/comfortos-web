@@ -15,11 +15,11 @@ import { buildingsApi, getHiddenPersonalIds, PERSONAL_BUILDING_LIMIT } from '../
 interface NewPersonalBuildingForm {
   name: string;
   city: string;
-  floor: string;
-  zone: string;
+  floorCount: string;
+  zoneCount: string;
 }
 
-const EMPTY_PERSONAL_FORM: NewPersonalBuildingForm = { name: '', city: '', floor: '', zone: '' };
+const EMPTY_PERSONAL_FORM: NewPersonalBuildingForm = { name: '', city: '', floorCount: '', zoneCount: '' };
 
 /**
  * Default dashboard layout — used when the backend has no config.
@@ -107,11 +107,13 @@ export default function Dashboard() {
     setPersonalSubmitting(true);
     setPersonalError(null);
     try {
+      const floorCount = personalForm.floorCount.trim() ? parseInt(personalForm.floorCount, 10) : undefined;
+      const zoneCount = personalForm.zoneCount.trim() ? parseInt(personalForm.zoneCount, 10) : undefined;
       await buildingsApi.createPersonal({
         name: personalForm.name.trim(),
         city: personalForm.city.trim() || undefined,
-        floor: personalForm.floor.trim() || undefined,
-        zone: personalForm.zone.trim() || undefined,
+        floorCount: Number.isFinite(floorCount) ? floorCount : undefined,
+        zoneCount: Number.isFinite(zoneCount) ? zoneCount : undefined,
       });
       setPersonalForm(EMPTY_PERSONAL_FORM);
       setShowAddPersonalForm(false);
@@ -240,26 +242,34 @@ export default function Dashboard() {
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
                   maxLength={100}
                 />
+                <p className="px-1 text-[11px] text-slate-500">
+                  Tell us how the building is structured so we can ask
+                  the right comfort questions.
+                </p>
                 <div className="grid grid-cols-2 gap-2.5">
                   <input
-                    type="text"
-                    placeholder="Floor"
-                    value={personalForm.floor}
-                    onChange={(e) => setPersonalForm({ ...personalForm, floor: e.target.value })}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={200}
+                    placeholder="How many floors?"
+                    value={personalForm.floorCount}
+                    onChange={(e) => setPersonalForm({ ...personalForm, floorCount: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                    maxLength={50}
                   />
                   <input
-                    type="text"
-                    placeholder="Zone"
-                    value={personalForm.zone}
-                    onChange={(e) => setPersonalForm({ ...personalForm, zone: e.target.value })}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={50}
+                    placeholder="How many blocks/zones?"
+                    value={personalForm.zoneCount}
+                    onChange={(e) => setPersonalForm({ ...personalForm, zoneCount: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                    maxLength={50}
                   />
                 </div>
                 <p className="px-1 text-[11px] text-slate-400">
-                  Default comfort questions will be ready for voting.
+                  You can add room numbers later from the location picker. Default comfort questions are ready to vote on.
                 </p>
               </div>
               {personalError && (

@@ -1,10 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
-import { MapPin, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
+import { MapPin, ChevronRight, Loader2, ArrowLeft, Plus, Trash2, X } from 'lucide-react';
 import { useBuildingStore } from '../../store/buildingStore';
 import { usePresenceStore } from '../../store/presenceStore';
 import { locationsApi, type LocationTreeNode } from '../../api/locations';
 import { telemetryApi } from '../../api/telemetry';
+import { buildingsApi } from '../../api/buildings';
 import BottomSheet from '../common/BottomSheet';
+import type { Building } from '../../types';
 
 interface Props {
   isOpen: boolean;
@@ -207,6 +209,12 @@ function buildHierarchyFromReadings(
 
 /* ── Component ─────────────────────────────────────────── */
 
+function isPersonalBuilding(b: Building | null): boolean {
+  if (!b) return false;
+  const meta = (b.metadata ?? {}) as Record<string, unknown>;
+  return meta.isPersonal === true;
+}
+
 export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
   const setLocation = usePresenceStore((s) => s.setLocation);
@@ -218,8 +226,82 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   const [path, setPath] = useState<HierarchyNode[]>([]);
   const [hierarchy, setHierarchy] = useState<Hierarchy | null>(null);
 
+  // Personal-building room management. Only used when activeBuilding has
+  // metadata.isPersonal=true; the rest of the picker (hierarchy
+  // resolution from API/telemetry) doesn't apply because personal
+  // buildings live entirely in the building's metadata column.
+  const [personalRooms, setPersonalRooms] = useState<string[]>([]);
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [roomInput, setRoomInput] = useState('');
+  const [roomSubmitting, setRoomSubmitting] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
+
+  const personalMeta = activeBuilding?.metadata as Record<string, unknown> | undefined;
+  const personalFloorCount =
+    typeof personalMeta?.floorCount === 'number' ? personalMeta.floorCount : null;
+  const personalZoneCount =
+    typeof personalMeta?.zoneCount === 'number' ? personalMeta.zoneCount : null;
+
   useEffect(() => {
     if (!isOpen || !activeBuilding) return;
+    if (!isPersonalBuilding(activeBuilding)) return;
+    const meta = (activeBuilding.metadata ?? {}) as Record<string, unknown>;
+    setPersonalRooms(Array.isArray(meta.rooms) ? meta.rooms.filter((r): r is string => typeof r === 'string') : []);
+    setShowAddRoom(false);
+    setRoomInput('');
+    setRoomError(null);
+  }, [isOpen, activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeBuilding) return;
+    const value = roomInput.trim();
+    if (!value) {
+      setRoomError('Room label is required');
+      return;
+    }
+    setRoomSubmitting(true);
+    setRoomError(null);
+    try {
+      const updated = await buildingsApi.addPersonalRoom(activeBuilding.id, value);
+      const meta = (updated.metadata ?? {}) as Record<string, unknown>;
+      const rooms = Array.isArray(meta.rooms)
+        ? meta.rooms.filter((r): r is string => typeof r === 'string')
+        : [];
+      setPersonalRooms(rooms);
+      setRoomInput('');
+      setShowAddRoom(false);
+    } catch (err) {
+      setRoomError(err instanceof Error ? err.message : 'Failed to add room');
+    } finally {
+      setRoomSubmitting(false);
+    }
+  };
+
+  const removeRoom = async (room: string) => {
+    if (!activeBuilding) return;
+    if (!confirm(`Remove room "${room}"?`)) return;
+    setPersonalRooms((prev) => prev.filter((r) => r !== room));
+    try {
+      const updated = await buildingsApi.removePersonalRoom(activeBuilding.id, room);
+      const meta = (updated.metadata ?? {}) as Record<string, unknown>;
+      const rooms = Array.isArray(meta.rooms)
+        ? meta.rooms.filter((r): r is string => typeof r === 'string')
+        : [];
+      setPersonalRooms(rooms);
+    } catch {
+      // Silently keep the optimistic state — caller can retry.
+    }
+  };
+
+  const selectPersonalRoom = (room: string) => {
+    setLocation('default', 'Default', `personal-${room}`, room);
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen || !activeBuilding) return;
+    if (isPersonalBuilding(activeBuilding)) return;
 
     let cancelled = false;
     setLoading(true);
@@ -306,6 +388,149 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     setLocation('default', 'Default', 'default', 'Default');
     onClose();
   };
+
+  // Personal-building view — bypass the hierarchy resolver entirely.
+  if (isPersonalBuilding(activeBuilding)) {
+    const subtitleParts: string[] = [];
+    if (personalFloorCount) subtitleParts.push(`${personalFloorCount} floor${personalFloorCount === 1 ? '' : 's'}`);
+    if (personalZoneCount) subtitleParts.push(`${personalZoneCount} zone${personalZoneCount === 1 ? '' : 's'}`);
+    const structureSubtitle = subtitleParts.join(' · ');
+
+    return (
+      <BottomSheet isOpen={isOpen} onClose={onClose} title="Change Location">
+        <div className="space-y-3">
+          {structureSubtitle && (
+            <div className="rounded-2xl bg-emerald-50/60 px-3 py-2 text-[11px] text-emerald-700">
+              {activeBuilding?.name}: {structureSubtitle}.
+            </div>
+          )}
+          <div className="flex items-center justify-between px-1">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              Your Rooms
+              <span className="ml-2 normal-case text-[10px] font-normal tracking-normal text-slate-400">
+                {personalRooms.length} added
+              </span>
+            </div>
+            {!showAddRoom && (
+              <button
+                onClick={() => { setShowAddRoom(true); setRoomError(null); }}
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add room
+              </button>
+            )}
+          </div>
+
+          {showAddRoom && (
+            <form onSubmit={submitRoom} className="rounded-2xl border border-emerald-200 bg-white px-3 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-800">New room</div>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddRoom(false); setRoomInput(''); setRoomError(null); }}
+                  className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. 101, F2-East, Lab A"
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                maxLength={50}
+                autoFocus
+              />
+              <p className="mt-1.5 px-1 text-[11px] text-slate-400">
+                Use any label that helps you remember the spot. You can include the floor or zone in the name.
+              </p>
+              {roomError && (
+                <div className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">{roomError}</div>
+              )}
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddRoom(false); setRoomInput(''); setRoomError(null); }}
+                  className="rounded-full px-4 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={roomSubmitting}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+                >
+                  {roomSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Save
+                </button>
+              </div>
+            </form>
+          )}
+
+          {personalRooms.length === 0 && !showAddRoom ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/75 px-4 py-6 text-center text-xs text-slate-400">
+              No rooms yet. Add one to get a location-aware comfort vote.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {personalRooms.map((room) => {
+                const roomKey = `personal-${room}`;
+                const isCurrent = currentRoomId === roomKey;
+                return (
+                  <div
+                    key={room}
+                    className={`flex items-center gap-2 px-3 py-3 rounded-2xl border transition-all ${
+                      isCurrent ? 'bg-emerald-50 border-emerald-200' : 'border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    <button
+                      onClick={() => selectPersonalRoom(room)}
+                      className="flex flex-1 items-center gap-3 text-left"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600">
+                        {room.replace(/[^0-9A-Za-z]/g, '').slice(0, 2).toUpperCase() || '·'}
+                      </div>
+                      <div className="flex-1 text-sm font-semibold text-slate-800">{room}</div>
+                      {isCurrent ? (
+                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          Current
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          Select
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => removeRoom(room)}
+                      className="rounded-full p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                      title="Remove room"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                setLocation('default', 'Default', 'default', 'Default');
+                onClose();
+              }}
+              className="w-full rounded-full bg-slate-100 px-4 py-2 text-xs font-medium text-slate-500 hover:bg-slate-200"
+            >
+              Skip — use default location
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+    );
+  }
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Change Location">

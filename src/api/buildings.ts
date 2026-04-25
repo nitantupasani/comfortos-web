@@ -45,8 +45,11 @@ export interface BuildingCreatePayload {
 export interface PersonalBuildingPayload {
   name: string;
   city?: string;
-  floor?: string;
-  zone?: string;
+  /** Number of floors in the building (informational, used by the
+   * location picker to suggest floor labels). */
+  floorCount?: number;
+  /** Number of blocks / zones / wings in the building. */
+  zoneCount?: number;
 }
 
 export const PERSONAL_BUILDING_LIMIT = 3;
@@ -111,6 +114,15 @@ export const buildingsApi = {
     if (hidden.delete(created.id)) writeHiddenPersonalIds(hidden);
     return created;
   },
+
+  /** Add a room label to a personal building. Returns the updated
+   * Building. Idempotent — re-adding an existing label is a no-op. */
+  addPersonalRoom: (buildingId: string, room: string) =>
+    api.post<Building>(`/buildings/personal/${buildingId}/rooms`, { room }),
+
+  /** Remove a room label from a personal building. */
+  removePersonalRoom: (buildingId: string, room: string) =>
+    api.post<Building>(`/buildings/personal/${buildingId}/rooms/remove`, { room }),
 
   /** Mark a personal building as deleted from the user's POV.
    *
