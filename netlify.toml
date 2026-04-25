@@ -12,3 +12,23 @@
   for = "/*"
   [headers.values]
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+
+# index.html and all HTML routes must never be cached so the next
+# deploy is picked up immediately. Without this, iOS Safari hangs onto
+# the old bundle pointer and serves stale JS even after a Netlify deploy.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate, no-store"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate, no-store"
+
+# Fingerprinted JS / CSS bundles are safe to cache forever — Vite hashes
+# the filename, so a new deploy produces a new URL.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
