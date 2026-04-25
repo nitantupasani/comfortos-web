@@ -17,6 +17,15 @@ export interface BuildingCreatePayload {
   requiresAccessPermission?: boolean;
 }
 
+export interface PersonalBuildingPayload {
+  name: string;
+  city?: string;
+  floor?: string;
+  zone?: string;
+}
+
+export const PERSONAL_BUILDING_LIMIT = 3;
+
 export interface BuildingConfigUpdatePayload {
   dashboardLayout?: unknown;
   voteFormSchema?: unknown;
@@ -52,6 +61,15 @@ export const buildingsApi = {
 
   create: (payload: BuildingCreatePayload) =>
     api.post<Building>('/buildings', payload),
+
+  listPersonal: () =>
+    api.get<Building[]>('/buildings/personal'),
+
+  createPersonal: (payload: PersonalBuildingPayload) =>
+    api.post<Building>('/buildings/personal', payload),
+
+  deletePersonal: (buildingId: string) =>
+    api.delete<void>(`/buildings/personal/${buildingId}`),
 
   update: (buildingId: string, payload: Partial<BuildingCreatePayload>) =>
     api.put<Building>(`/buildings/${buildingId}`, payload),
