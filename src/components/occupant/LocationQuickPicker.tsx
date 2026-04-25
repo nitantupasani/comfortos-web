@@ -256,9 +256,11 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   // buildings live entirely in the building's metadata column.
   const [personalRooms, setPersonalRooms] = useState<PersonalRoom[]>([]);
   const [personalBlocks, setPersonalBlocks] = useState<PersonalBlockSpec[]>([]);
+  // Top-level "where am I" selectors. The Add-room form and the rooms
+  // list are both filtered/seeded from these.
+  const [pickedBlock, setPickedBlock] = useState<string>('');
+  const [pickedFloor, setPickedFloor] = useState<string>('');
   const [showAddRoom, setShowAddRoom] = useState(false);
-  const [roomBlockSel, setRoomBlockSel] = useState<string>('');
-  const [roomFloorSel, setRoomFloorSel] = useState<string>('');
   const [roomLabelInput, setRoomLabelInput] = useState('');
   const [roomSubmitting, setRoomSubmitting] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
@@ -270,8 +272,8 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     setPersonalRooms(readPersonalRooms(activeBuilding.metadata));
     setPersonalBlocks(blocks);
     setShowAddRoom(false);
-    setRoomBlockSel(blocks.length ? blocks[0].name : '');
-    setRoomFloorSel(blocks.length ? String(blocks[0].startFloor) : '');
+    setPickedBlock(blocks.length ? blocks[0].name : '');
+    setPickedFloor(blocks.length ? String(blocks[0].startFloor) : '');
     setRoomLabelInput('');
     setRoomError(null);
   }, [isOpen, activeBuilding?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -279,9 +281,9 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
   // When the user changes the block dropdown, pin the floor selector
   // to that block's start floor.
   const onBlockChange = (name: string) => {
-    setRoomBlockSel(name);
+    setPickedBlock(name);
     const block = personalBlocks.find((b) => b.name === name);
-    if (block) setRoomFloorSel(String(block.startFloor));
+    if (block) setPickedFloor(String(block.startFloor));
   };
 
   const submitRoom = async (e: React.FormEvent) => {
@@ -292,8 +294,8 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
       setRoomError('Room number / label is required');
       return;
     }
-    const floorParsed = roomFloorSel ? parseInt(roomFloorSel, 10) : NaN;
-    const block = roomBlockSel || undefined;
+    const floorParsed = pickedFloor ? parseInt(pickedFloor, 10) : NaN;
+    const block = pickedBlock || undefined;
     setRoomSubmitting(true);
     setRoomError(null);
     try {
@@ -311,6 +313,22 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     } finally {
       setRoomSubmitting(false);
     }
+  };
+
+  /** Commit just block + floor as the user's location, without picking
+   * a specific room. */
+  const useFloorAsLocation = () => {
+    const floorParsed = pickedFloor ? parseInt(pickedFloor, 10) : NaN;
+    if (!Number.isFinite(floorParsed)) return;
+    const blockName = pickedBlock || undefined;
+    const floorId = `${blockName ?? '_'}-${floorParsed}`;
+    const floorLabel = blockName
+      ? `${blockName} · Floor ${floorParsed}`
+      : `Floor ${floorParsed}`;
+    // No room picked — store a synthetic room id pointing to the floor
+    // so existing dashboard code that expects a roomId still works.
+    setLocation(floorId, floorLabel, `${floorId}-floor`, 'Whole floor');
+    onClose();
   };
 
   const removeRoom = async (r: PersonalRoom) => {
@@ -340,10 +358,19 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
     onClose();
   };
 
-  const selectedBlockObj = personalBlocks.find((b) => b.name === roomBlockSel);
+  const selectedBlockObj = personalBlocks.find((b) => b.name === pickedBlock);
   const floorOptions = selectedBlockObj
     ? floorRange(selectedBlockObj.startFloor, selectedBlockObj.endFloor)
     : [];
+
+  const pickedFloorNum = pickedFloor !== '' ? parseInt(pickedFloor, 10) : NaN;
+  const filteredRooms = personalRooms.filter((r) => {
+    if (pickedBlock && r.block && r.block !== pickedBlock) return false;
+    if (Number.isFinite(pickedFloorNum) && typeof r.floor === 'number' && r.floor !== pickedFloorNum)
+      return false;
+    return true;
+  });
+  const isSingleBlock = personalBlocks.length === 1;
 
   useEffect(() => {
     if (!isOpen || !activeBuilding) return;
@@ -451,11 +478,61 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
             </div>
           )}
 
+          {/* Where am I — block + floor selectors. Drives the rooms list
+              filter and the Add-room form's defaults. */}
+          {personalBlocks.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 space-y-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                Where are you?
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block px-1 text-[10px] font-semibold text-slate-500">Block</label>
+                  {isSingleBlock ? (
+                    <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                      {personalBlocks[0].name}
+                    </div>
+                  ) : (
+                    <select
+                      value={pickedBlock}
+                      onChange={(e) => onBlockChange(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                    >
+                      {personalBlocks.map((b) => (
+                        <option key={b.name} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block px-1 text-[10px] font-semibold text-slate-500">Floor</label>
+                  <select
+                    value={pickedFloor}
+                    onChange={(e) => setPickedFloor(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:bg-white focus:outline-none"
+                  >
+                    {floorOptions.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={useFloorAsLocation}
+                className="w-full rounded-full bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                Use this floor as my location
+              </button>
+            </div>
+          )}
+
+          {/* Rooms on the picked block + floor */}
           <div className="flex items-center justify-between px-1">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-              Your Rooms
+              Rooms on this floor
               <span className="ml-2 normal-case text-[10px] font-normal tracking-normal text-slate-400">
-                {personalRooms.length} added
+                {filteredRooms.length} added
               </span>
             </div>
             {!showAddRoom && (
@@ -472,7 +549,16 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
           {showAddRoom && (
             <form onSubmit={submitRoom} className="rounded-2xl border border-emerald-200 bg-white px-3 py-3 space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-800">New room</div>
+                <div className="text-sm font-semibold text-slate-800">
+                  New room {pickedBlock || pickedFloor !== '' ? (
+                    <span className="font-normal text-slate-500">
+                      on{' '}
+                      {[pickedBlock, pickedFloor !== '' ? `Floor ${pickedFloor}` : null]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  ) : null}
+                </div>
                 <button
                   type="button"
                   onClick={() => { setShowAddRoom(false); setRoomLabelInput(''); setRoomError(null); }}
@@ -481,35 +567,6 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-
-              {personalBlocks.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="mb-1 block px-1 text-[10px] font-semibold text-slate-500">Block</label>
-                    <select
-                      value={roomBlockSel}
-                      onChange={(e) => onBlockChange(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                    >
-                      {personalBlocks.map((b) => (
-                        <option key={b.name} value={b.name}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block px-1 text-[10px] font-semibold text-slate-500">Floor</label>
-                    <select
-                      value={roomFloorSel}
-                      onChange={(e) => setRoomFloorSel(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:border-emerald-400 focus:bg-white focus:outline-none"
-                    >
-                      {floorOptions.map((f) => (
-                        <option key={f} value={f}>{f}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
 
               <div>
                 <label className="mb-1 block px-1 text-[10px] font-semibold text-slate-500">Room number / label</label>
@@ -547,19 +604,16 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
             </form>
           )}
 
-          {personalRooms.length === 0 && !showAddRoom ? (
+          {filteredRooms.length === 0 && !showAddRoom ? (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white/75 px-4 py-6 text-center text-xs text-slate-400">
-              No rooms yet. Add one to get a location-aware comfort vote.
+              No rooms on this floor yet. Add one or use the whole floor as your location.
             </div>
           ) : (
             <div className="space-y-1.5">
-              {personalRooms.map((r) => {
+              {filteredRooms.map((r) => {
                 const key = roomKey(r);
                 const isCurrent = currentRoomId === key;
                 const initials = r.label.replace(/[^0-9A-Za-z]/g, '').slice(0, 2).toUpperCase() || '·';
-                const sub: string[] = [];
-                if (r.block) sub.push(`Block ${r.block}`);
-                if (typeof r.floor === 'number') sub.push(`Floor ${r.floor}`);
                 return (
                   <div
                     key={key}
@@ -574,12 +628,7 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-600">
                         {initials}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-800">{r.label}</div>
-                        {sub.length > 0 && (
-                          <div className="truncate text-[11px] text-slate-400">{sub.join(' · ')}</div>
-                        )}
-                      </div>
+                      <div className="min-w-0 flex-1 text-sm font-semibold text-slate-800 truncate">{r.label}</div>
                       {isCurrent ? (
                         <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
                           Current
