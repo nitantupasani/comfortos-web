@@ -1,20 +1,26 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Building2, Loader2, Mail, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const { loginWithEmail, loginWithGoogle, isLoading, error, clearError, user } = useAuthStore();
-  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Redirect if already logged in
+  // Already logged in — bounce to the role's home using <Navigate>.
+  // Do NOT call navigate() imperatively during render: that's a React
+  // side-effect-in-render and under React 18 concurrent mode it can
+  // leave the tree in a state where Login returns nothing and the page
+  // goes completely blank.
   if (user) {
-    if (user.role === 'admin') navigate('/admin', { replace: true });
-    else if (user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager')
-      navigate('/fm', { replace: true });
-    else navigate('/dashboard', { replace: true });
+    const dest =
+      user.role === 'admin'
+        ? '/admin'
+        : user.role === 'tenant_facility_manager' || user.role === 'building_facility_manager'
+        ? '/fm'
+        : '/dashboard';
+    return <Navigate to={dest} replace />;
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
