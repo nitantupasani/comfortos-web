@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import TelemetryChartNode from './TelemetryChartNode';
+import VoteAggregateNode, { type VoteAggregateMetric } from './VoteAggregateNode';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   thermostat: Thermometer, thermometer: Thermometer,
@@ -410,6 +411,15 @@ function renderNode(node: SduiNode): React.ReactNode {
         </div>
       );
     }
+
+    case 'vote_aggregate':
+      return (
+        <VoteAggregateNode
+          windowDays={node.windowDays as number | undefined}
+          metrics={node.metrics as VoteAggregateMetric[] | undefined}
+          zone={node.zone as string | undefined}
+        />
+      );
 
     case 'telemetry_chart':
       return (
