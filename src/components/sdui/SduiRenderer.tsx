@@ -282,6 +282,135 @@ function renderNode(node: SduiNode): React.ReactNode {
         </div>
       );
 
+    case 'gauge': {
+      const value = Number(node.value ?? 0);
+      const min = Number(node.min ?? 0);
+      const max = Number(node.max ?? 100);
+      const range = Math.max(max - min, 0.0001);
+      const pct = Math.min(Math.max((value - min) / range, 0), 1);
+      const color = resolveColor(node.color as string);
+      // Half-circle gauge: 180° arc from left to right.
+      const r = 60;
+      const cx = 80;
+      const cy = 80;
+      const circumference = Math.PI * r;
+      const dash = pct * circumference;
+      // Threshold band markers (optional)
+      const bands = (node.bands as { from: number; to: number; color: string }[] | undefined) ?? [];
+      return (
+        <div className="bg-white rounded-xl border p-4 shadow-sm flex flex-col items-center">
+          {node.label ? <div className="text-xs text-gray-400 mb-1">{String(node.label)}</div> : null}
+          <svg width="160" height="100" viewBox="0 0 160 100">
+            <path
+              d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+              fill="none" stroke="#e5e7eb" strokeWidth="12" strokeLinecap="round"
+            />
+            {bands.map((b, i) => {
+              const bandStart = Math.min(Math.max((b.from - min) / range, 0), 1);
+              const bandEnd = Math.min(Math.max((b.to - min) / range, 0), 1);
+              const offset = bandStart * circumference;
+              const len = (bandEnd - bandStart) * circumference;
+              return (
+                <path
+                  key={i}
+                  d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+                  fill="none"
+                  stroke={resolveColor(b.color)}
+                  strokeOpacity={0.25}
+                  strokeWidth="12"
+                  strokeLinecap="butt"
+                  strokeDasharray={`${len} ${circumference}`}
+                  strokeDashoffset={-offset}
+                />
+              );
+            })}
+            <path
+              d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+              fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
+              strokeDasharray={`${dash} ${circumference}`}
+            />
+            <text x={cx} y={cy - 6} textAnchor="middle" className="text-xl font-bold" fill="#1f2937">
+              {value}
+            </text>
+            {node.unit ? (
+              <text x={cx} y={cy + 12} textAnchor="middle" className="text-[10px]" fill="#94a3b8">
+                {String(node.unit)}
+              </text>
+            ) : null}
+          </svg>
+          <div className="flex justify-between w-full text-[10px] text-gray-400 px-2">
+            <span>{min}</span>
+            <span>{max}</span>
+          </div>
+        </div>
+      );
+    }
+
+    case 'heatmap_strip': {
+      const cells = (node.cells as { label: string; value: number; color?: string }[] | undefined) ?? [];
+      const min = Number(node.min ?? 0);
+      const max = Number(node.max ?? 100);
+      const range = Math.max(max - min, 0.0001);
+      // Pick color from a 5-stop scale by value; cell.color overrides.
+      const stops = ['#1d4ed8', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+      const pickColor = (v: number) => {
+        const t = Math.min(Math.max((v - min) / range, 0), 1);
+        const idx = Math.min(Math.floor(t * stops.length), stops.length - 1);
+        return stops[idx];
+      };
+      const cols = Number(node.columns ?? 7);
+      return (
+        <div className="bg-white rounded-xl border p-3 shadow-sm">
+          {node.title ? <div className="text-sm font-semibold text-gray-700 mb-2">{String(node.title)}</div> : null}
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+            {cells.map((c, i) => (
+              <div
+                key={i}
+                className="rounded-md flex flex-col items-center justify-center py-2 text-white text-[10px] font-medium"
+                style={{ backgroundColor: c.color ? resolveColor(c.color) : pickColor(c.value) }}
+                title={`${c.label}: ${c.value}${node.unit ? String(node.unit) : ''}`}
+              >
+                <span className="opacity-90">{c.label}</span>
+                <span className="font-bold text-[12px]">{c.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400">
+            <span>{min}{node.unit ? String(node.unit) : ''}</span>
+            <div className="flex-1 h-1.5 rounded-full" style={{ background: `linear-gradient(to right, ${stops.join(',')})` }} />
+            <span>{max}{node.unit ? String(node.unit) : ''}</span>
+          </div>
+        </div>
+      );
+    }
+
+    case 'bar_list': {
+      const items = (node.items as { label: string; value: number; color?: string }[] | undefined) ?? [];
+      const maxV = items.reduce((m, it) => Math.max(m, it.value), 1);
+      return (
+        <div className="bg-white rounded-xl border p-4 shadow-sm">
+          {node.title ? <div className="text-sm font-semibold text-gray-700 mb-3">{String(node.title)}</div> : null}
+          <div className="space-y-2">
+            {items.map((it, i) => {
+              const w = Math.max((it.value / maxV) * 100, 4);
+              const color = resolveColor(it.color ?? (node.color as string) ?? 'teal');
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-20 text-gray-600 truncate">{it.label}</span>
+                  <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${w}%`, backgroundColor: color }} />
+                  </div>
+                  <span className="w-12 text-right font-semibold tabular-nums">
+                    {it.value}{node.unit ? String(node.unit) : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
     case 'telemetry_chart':
       return (
         <TelemetryChartNode
@@ -291,6 +420,7 @@ function renderNode(node: SduiNode): React.ReactNode {
           timeRanges={node.timeRanges as { label: string; hours: number; granularity: 'raw' | 'hourly' | 'daily' }[] | undefined}
           groupBy={node.groupBy as 'room' | 'floor' | 'wing' | undefined}
           height={node.height as number | undefined}
+          chartKind={node.chartKind as 'line' | 'area' | 'bar' | undefined}
         />
       );
 

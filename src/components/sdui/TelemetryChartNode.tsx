@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
@@ -64,6 +65,8 @@ function friendlyError(err: unknown): string {
 
 /* ── Props ──────────────────────────────────────────────── */
 
+export type ChartKind = 'line' | 'area' | 'bar';
+
 export interface TelemetryChartNodeProps {
   metricType?: string;
   title?: string;
@@ -71,6 +74,7 @@ export interface TelemetryChartNodeProps {
   timeRanges?: TimeRange[];
   groupBy?: 'room' | 'floor' | 'wing';
   height?: number;
+  chartKind?: ChartKind;
 }
 
 /* ── Component ──────────────────────────────────────────── */
@@ -85,6 +89,7 @@ export default function TelemetryChartNode({
   timeRanges,
   groupBy: _groupByProp = 'room',
   height = 240,
+  chartKind = 'line',
 }: TelemetryChartNodeProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
   const userRoom = usePresenceStore((s) => s.room);
@@ -175,6 +180,21 @@ export default function TelemetryChartNode({
     return { chartData: sorted, seriesKeys: data.series.map((_, i) => `s${i}`), seriesLabels: labels, hourTicks: hours, halfHourTicks: halves };
   }, [data]);
 
+  // For bar mode: snapshot of latest value per series, sorted descending.
+  const barSnapshot = useMemo(() => {
+    if (!data) return [] as { name: string; value: number }[];
+    return data.series
+      .map((s) => {
+        const last = s.points[s.points.length - 1];
+        return {
+          name: cleanLabel(s.locationName || s.label),
+          value: last ? Number(last.value) : 0,
+        };
+      })
+      .filter((r) => r.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [data]);
+
   if (!activeBuilding) return null;
 
   return (
@@ -253,6 +273,92 @@ export default function TelemetryChartNode({
               {rangeIdx === 0 && ranges.length > 1 ? 'Try last 24 hours' : 'Refresh'}
             </button>
           </div>
+        ) : chartKind === 'bar' ? (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart
+              data={barSnapshot}
+              layout="vertical"
+              margin={{ top: 8, right: 16, bottom: 4, left: 8 }}
+            >
+              <CartesianGrid horizontal={false} stroke="#f1f5f9" />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 9, fill: '#94a3b8' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+                unit={unit === '°C' ? '°' : ''}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fontSize: 10, fill: '#475569' }}
+                tickLine={false}
+                axisLine={false}
+                width={84}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, padding: '8px 12px' }}
+                formatter={(value: number) => [`${value.toFixed(1)}${unit}`, 'Latest']}
+              />
+              <Bar dataKey="value" radius={[0, 6, 6, 0]} fill="#14b8a6" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : chartKind === 'area' ? (
+          <ResponsiveContainer width="100%" height={height}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -16 }}>
+              <defs>
+                {seriesKeys.map((key, idx) => (
+                  <linearGradient key={`g-${key}`} id={`area-${key}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={SERIES_COLORS[idx % SERIES_COLORS.length]} stopOpacity={0.35} />
+                    <stop offset="100%" stopColor={SERIES_COLORS[idx % SERIES_COLORS.length]} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid horizontal={false} vertical={false} />
+              <XAxis
+                dataKey="_ts"
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                ticks={hourTicks}
+                tickFormatter={(ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                tick={{ fontSize: 9, fill: '#94a3b8' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e2e8f0' }}
+              />
+              <YAxis
+                tick={{ fontSize: 9, fill: '#94a3b8' }}
+                tickLine={false}
+                axisLine={false}
+                domain={metricType === 'temperature' ? [16, 28] : ['auto', 'auto']}
+                ticks={metricType === 'temperature' ? [16, 18, 20, 22, 24, 26, 28] : undefined}
+                unit={unit === '°C' ? '°' : ''}
+              />
+              {hourTicks.map((t) => (
+                <ReferenceLine key={`xh-${t}`} x={t} stroke="#e2e8f0" strokeWidth={1} />
+              ))}
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 11, padding: '8px 12px' }}
+                labelFormatter={(ts: number) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                formatter={(value: number, name: string) => [
+                  `${value.toFixed(1)}${unit}`,
+                  seriesLabels[name] || name,
+                ]}
+              />
+              {seriesKeys.map((key, idx) => (
+                <Area
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  name={key}
+                  stroke={SERIES_COLORS[idx % SERIES_COLORS.length]}
+                  strokeWidth={2}
+                  fill={`url(#area-${key})`}
+                  connectNulls
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height={height}>
             <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: -16 }}>
