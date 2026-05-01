@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
+  XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
@@ -430,6 +430,13 @@ export default function TelemetryChartNode({
                   seriesLabels[name] || name,
                 ]}
               />
+              {seriesKeys.length > 1 && (
+                <Legend
+                  iconType="plainline"
+                  wrapperStyle={{ fontSize: 11, paddingTop: 6 }}
+                  formatter={(value: string) => seriesLabels[value] ?? value}
+                />
+              )}
               {seriesKeys.map((key, idx) => (
                 <Area
                   key={key}
@@ -492,6 +499,13 @@ export default function TelemetryChartNode({
                   seriesLabels[name] || name,
                 ]}
               />
+              {seriesKeys.length > 1 && (
+                <Legend
+                  iconType="plainline"
+                  wrapperStyle={{ fontSize: 11, paddingTop: 6 }}
+                  formatter={(value: string) => seriesLabels[value] ?? value}
+                />
+              )}
               {seriesKeys.map((key, idx) => (
                 <Line
                   key={key}
