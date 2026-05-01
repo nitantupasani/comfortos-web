@@ -421,6 +421,8 @@ function renderNode(node: SduiNode): React.ReactNode {
           groupBy={node.groupBy as 'room' | 'floor' | 'wing' | undefined}
           height={node.height as number | undefined}
           chartKind={node.chartKind as 'line' | 'area' | 'bar' | undefined}
+          mode={node.mode as 'zone' | 'floor' | 'wing' | 'room' | 'pick' | undefined}
+          lockMode={node.lockMode as boolean | undefined}
         />
       );
 

@@ -7,6 +7,7 @@ import { Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import { telemetryApi, type TelemetryQueryResponse } from '../../api/telemetry';
+import { locationsApi, type LocationNode } from '../../api/locations';
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -66,6 +67,7 @@ function friendlyError(err: unknown): string {
 /* ── Props ──────────────────────────────────────────────── */
 
 export type ChartKind = 'line' | 'area' | 'bar';
+export type Mode = 'zone' | 'floor' | 'wing' | 'room' | 'pick';
 
 export interface TelemetryChartNodeProps {
   metricType?: string;
@@ -75,21 +77,44 @@ export interface TelemetryChartNodeProps {
   groupBy?: 'room' | 'floor' | 'wing';
   height?: number;
   chartKind?: ChartKind;
+  /** Force an initial view mode. Falls back to groupBy → presence → 'floor'. */
+  mode?: Mode;
+  /** Hide the view-mode toggle (useful when comparing wings/floors). */
+  lockMode?: boolean;
 }
 
 /* ── Component ──────────────────────────────────────────── */
 
-type ViewMode = 'zone' | 'floor' | 'wing';
-const VIEW_LABELS: Record<ViewMode, string> = { zone: 'My Zone', floor: 'By Floor', wing: 'By Wing' };
+const VIEW_LABELS: Record<Mode, string> = {
+  zone: 'My Zone',
+  floor: 'By Floor',
+  wing: 'By Wing',
+  room: 'All Rooms',
+  pick: 'Pick Room',
+};
+const TOGGLE_MODES: Mode[] = ['zone', 'floor', 'wing'];
+
+function deriveInitialMode(
+  mode: Mode | undefined,
+  groupBy: 'room' | 'floor' | 'wing' | undefined,
+  hasUserRoom: boolean,
+): Mode {
+  if (mode) return mode;
+  if (groupBy === 'wing') return 'wing';
+  if (groupBy === 'floor') return 'floor';
+  return hasUserRoom ? 'zone' : 'floor';
+}
 
 export default function TelemetryChartNode({
   metricType = 'temperature',
   title = 'Temperature',
   unit = '°C',
   timeRanges,
-  groupBy: _groupByProp = 'room',
+  groupBy,
   height = 240,
   chartKind = 'line',
+  mode,
+  lockMode = false,
 }: TelemetryChartNodeProps) {
   const activeBuilding = usePresenceStore((s) => s.activeBuilding);
   const userRoom = usePresenceStore((s) => s.room);
@@ -99,17 +124,47 @@ export default function TelemetryChartNode({
   const ranges = timeRanges ?? DEFAULT_RANGES;
   const [rangeIdx, setRangeIdx] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(userRoom ? 'zone' : 'floor');
+  const [viewMode, setViewMode] = useState<Mode>(
+    deriveInitialMode(mode, groupBy, !!userRoom),
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TelemetryQueryResponse | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Pick-mode: list of rooms + selected room id
+  const [rooms, setRooms] = useState<LocationNode[]>([]);
+  const [pickedRoomId, setPickedRoomId] = useState<string | null>(userRoom ?? null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   const range = ranges[rangeIdx];
 
+  // Fetch room list when in pick mode.
+  useEffect(() => {
+    if (viewMode !== 'pick' || !activeBuilding || !token) return;
+    locationsApi
+      .list(activeBuilding.id, 'room')
+      .then((rs) => {
+        const sorted = [...rs].sort((a, b) => a.sortOrder - b.sortOrder);
+        setRooms(sorted);
+        // If user's presence room missing or not yet picked, default to first.
+        setPickedRoomId((curr) => {
+          if (curr && sorted.some((r) => r.id === curr)) return curr;
+          return sorted[0]?.id ?? null;
+        });
+      })
+      .catch(() => setRooms([]));
+  }, [viewMode, activeBuilding?.id, token]);
+
   // Derive actual API params from viewMode
-  const effectiveGroupBy = viewMode === 'zone' ? 'room' : viewMode;
-  const effectiveLocationId = viewMode === 'zone' ? (userRoom ?? undefined) : undefined;
+  const effectiveGroupBy: 'room' | 'floor' | 'wing' =
+    viewMode === 'wing' ? 'wing'
+    : viewMode === 'floor' ? 'floor'
+    : 'room';
+  const effectiveLocationId =
+    viewMode === 'zone' ? (userRoom ?? undefined)
+    : viewMode === 'pick' ? (pickedRoomId ?? undefined)
+    : undefined;
 
   const fetchData = useCallback(async (buildingId: string, r: TimeRange) => {
     setLoading(true);
@@ -137,8 +192,10 @@ export default function TelemetryChartNode({
   useEffect(() => {
     // Wait for both building selection AND a valid auth session before fetching
     if (!activeBuilding || !token || !user) return;
+    // In pick mode, hold off until a room is selected (avoid all-rooms flash).
+    if (viewMode === 'pick' && !pickedRoomId) return;
     fetchData(activeBuilding.id, range);
-  }, [activeBuilding?.id, token, user?.id, rangeIdx, retryCount, viewMode, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeBuilding?.id, token, user?.id, rangeIdx, retryCount, viewMode, pickedRoomId, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRetry = () => setRetryCount((c) => c + 1);
 
@@ -228,23 +285,51 @@ export default function TelemetryChartNode({
         </div>
       </div>
 
-      {/* View mode toggle */}
-      <div className="flex gap-1.5">
-        {(['zone', 'floor', 'wing'] as ViewMode[]).map((mode) => (
+      {/* Mode controls: room picker (pick mode) OR view-mode toggle */}
+      {viewMode === 'pick' ? (
+        <div className="relative">
           <button
-            key={mode}
-            onClick={() => setViewMode(mode)}
-            disabled={mode === 'zone' && !userRoom}
-            className={`rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
-              viewMode === mode
-                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
-            } ${mode === 'zone' && !userRoom ? 'opacity-40 cursor-not-allowed' : ''}`}
+            onClick={() => setPickerOpen(!pickerOpen)}
+            disabled={rooms.length === 0}
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3 py-1.5 text-[11px] font-medium text-indigo-700 transition-colors hover:bg-indigo-100 disabled:opacity-50"
           >
-            {VIEW_LABELS[mode]}
+            Room: {rooms.find((r) => r.id === pickedRoomId)?.name ?? 'Select…'}
+            <ChevronDown className={`h-3 w-3 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
           </button>
-        ))}
-      </div>
+          {pickerOpen && rooms.length > 0 && (
+            <div className="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+              {rooms.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => { setPickedRoomId(r.id); setPickerOpen(false); }}
+                  className={`w-full px-4 py-2 text-left text-xs font-medium transition-colors ${
+                    r.id === pickedRoomId ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : !lockMode ? (
+        <div className="flex gap-1.5">
+          {TOGGLE_MODES.map((m) => (
+            <button
+              key={m}
+              onClick={() => setViewMode(m)}
+              disabled={m === 'zone' && !userRoom}
+              className={`rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                viewMode === m
+                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                  : 'bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100'
+              } ${m === 'zone' && !userRoom ? 'opacity-40 cursor-not-allowed' : ''}`}
+            >
+              {VIEW_LABELS[m]}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {/* Chart */}
       <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-sm">
