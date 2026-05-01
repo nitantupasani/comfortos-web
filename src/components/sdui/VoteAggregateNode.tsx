@@ -16,10 +16,17 @@ function resolveColor(name?: string): string {
   return COLOR_MAP[name ?? ''] ?? '#14b8a6';
 }
 
-type Kind = 'thermal' | 'air' | 'noise';
+type Kind =
+  | 'thermal'           // -3..3, closer to 0 = comfortable (ASHRAE PMV)
+  | 'preference'        // -1..1, closer to 0 = comfortable (McIntyre)
+  | 'acoustic'          // -2..2, closer to 0 = comfortable
+  | 'air'               // legacy 1..3 high = better
+  | 'air_5pt'           // 1..5 high = better
+  | 'noise'             // legacy 1..5 stars high = better (no longer authored, kept for legacy data)
+  | 'acceptability';    // boolean true = acceptable (= 100%)
 
 export interface VoteAggregateMetric {
-  /** Vote payload field id (thermal_comfort, air_quality, noise_level…). */
+  /** Vote payload field id (thermal_sensation, air_quality, acoustic_comfort…). */
   id: string;
   /** Display label (e.g. "Thermal comfort"). */
   label: string;
@@ -38,24 +45,43 @@ export interface VoteAggregateProps {
 }
 
 const DEFAULT_METRICS: VoteAggregateMetric[] = [
-  { id: 'thermal_comfort', label: 'Thermal comfort', color: 'teal',  kind: 'thermal' },
-  { id: 'air_quality',     label: 'Air freshness',   color: 'amber', kind: 'air' },
-  { id: 'noise_level',     label: 'Acoustic quality',color: 'teal',  kind: 'noise' },
+  { id: 'thermal_sensation', label: 'Thermal comfort',  color: 'teal',  kind: 'thermal' },
+  { id: 'air_quality',       label: 'Air freshness',    color: 'amber', kind: 'air_5pt' },
+  { id: 'acoustic_comfort',  label: 'Acoustic comfort', color: 'teal',  kind: 'acoustic' },
 ];
 
 /** Map a raw vote-field value to a 0..100 score (higher = better). */
-function scoreOf(kind: Kind, raw: number): number | null {
-  if (!Number.isFinite(raw)) return null;
+function scoreOf(kind: Kind, raw: unknown): number | null {
+  if (kind === 'acceptability') {
+    if (typeof raw === 'boolean') return raw ? 100 : 0;
+    if (typeof raw === 'string') {
+      if (raw === 'true' || raw === 'yes') return 100;
+      if (raw === 'false' || raw === 'no') return 0;
+    }
+    if (typeof raw === 'number') return raw ? 100 : 0;
+    return null;
+  }
+  const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN;
+  if (!Number.isFinite(num)) return null;
   switch (kind) {
     case 'thermal':
       // -3..3 around neutral 0; closer to 0 = more comfortable.
-      return Math.max(0, Math.min(100, (1 - Math.abs(raw) / 3) * 100));
+      return Math.max(0, Math.min(100, (1 - Math.abs(num) / 3) * 100));
+    case 'preference':
+      // -1..1 around 0; closer to 0 = comfortable (McIntyre).
+      return Math.max(0, Math.min(100, (1 - Math.abs(num)) * 100));
+    case 'acoustic':
+      // -2..2 around 0; closer to 0 = comfortable.
+      return Math.max(0, Math.min(100, (1 - Math.abs(num) / 2) * 100));
     case 'air':
-      // 1..3 (stuffy → fresh).
-      return Math.max(0, Math.min(100, ((raw - 1) / 2) * 100));
+      // legacy 1..3 (stuffy → fresh).
+      return Math.max(0, Math.min(100, ((num - 1) / 2) * 100));
+    case 'air_5pt':
+      // 1..5 (very stuffy → very fresh).
+      return Math.max(0, Math.min(100, ((num - 1) / 4) * 100));
     case 'noise':
-      // 1..5 stars (lower = noisy → bad; higher = quieter → good).
-      return Math.max(0, Math.min(100, ((raw - 1) / 4) * 100));
+      // legacy 1..5 stars (low = noisy/bad → high = quiet/good).
+      return Math.max(0, Math.min(100, ((num - 1) / 4) * 100));
   }
 }
 
@@ -107,11 +133,7 @@ export default function VoteAggregateNode({
       const scores: number[] = [];
       for (const v of votes) {
         const raw = (v.payload as Record<string, unknown> | null | undefined)?.[m.id];
-        const num =
-          typeof raw === 'number' ? raw
-          : typeof raw === 'string' ? Number(raw)
-          : NaN;
-        const s = scoreOf(m.kind, num);
+        const s = scoreOf(m.kind, raw);
         if (s !== null) scores.push(s);
       }
       const avg = scores.length === 0

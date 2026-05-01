@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Star } from 'lucide-react';
 import type { VoteFormSchema, VoteFormField } from '../../types';
 
 const THERMAL_LABELS = [
@@ -196,18 +195,25 @@ function renderField(field: VoteFormField, value: unknown, onChange: (v: unknown
     }
 
     case 'rating_stars': {
+      // Legacy form data may still arrive with this type. Render as a
+      // semantic 1..N button strip — no stars.
       const max = field.maxStars ?? 5;
       const current = (value as number) ?? 0;
+      const items = Array.from({ length: max }, (_, index) => index + 1);
       return (
-        <div className="flex gap-1">
-          {Array.from({ length: max }, (_, index) => index + 1).map((rating) => (
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${max}, minmax(0, 1fr))` }}>
+          {items.map((rating) => (
             <button
               key={rating}
               type="button"
               onClick={() => onChange(rating)}
-              className="rounded-xl p-1 transition-colors"
+              className={`flex h-12 items-center justify-center rounded-2xl border text-sm font-bold transition-all ${
+                current === rating
+                  ? 'border-emerald-500 bg-emerald-600 text-white scale-[1.03] shadow-sm'
+                  : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
+              }`}
             >
-              <Star className={`h-8 w-8 ${rating <= current ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+              {rating}
             </button>
           ))}
         </div>

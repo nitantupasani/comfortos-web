@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus, Trash2, ChevronUp, ChevronDown, GripVertical,
-  Type, Smile, Star, ToggleLeft, Sliders, Hash, MessageSquare,
+  Type, Smile, ToggleLeft, Sliders, Hash, MessageSquare,
   ThermometerSun, CheckSquare, Circle, Settings2, Info, X,
 } from 'lucide-react';
 import type { VoteFormSchema, VoteFormField, VoteFormOption } from '../../types';
@@ -15,7 +15,6 @@ const FIELD_TYPES = [
   { value: 'emoji_multi_select',  label: 'Emoji Multi Select',     icon: Smile,          category: 'emoji',  hasOptions: true  },
   { value: 'single_select',       label: 'Single Select',          icon: Circle,         category: 'choice', hasOptions: true  },
   { value: 'multi_select',        label: 'Multi Select',           icon: CheckSquare,    category: 'choice', hasOptions: true  },
-  { value: 'rating_stars',        label: 'Star Rating',            icon: Star,           category: 'scale',  hasOptions: false },
   { value: 'text_input',          label: 'Text Input',             icon: Type,           category: 'text',   hasOptions: false },
   { value: 'yes_no',              label: 'Yes / No',               icon: ToggleLeft,     category: 'binary', hasOptions: false },
   { value: 'slider',              label: 'Slider',                 icon: Sliders,        category: 'scale',  hasOptions: false },
@@ -76,7 +75,6 @@ function defaultFieldForType(type: string): VoteFormField {
   const base: VoteFormField = { id: uid(), type, question: '', required: true };
   switch (type) {
     case 'thermal_scale':       return { ...base, min: -3, max: 3, labels: { '-3': 'Cold', '0': 'Neutral', '3': 'Hot' } };
-    case 'rating_stars':        return { ...base, maxStars: 5 };
     case 'text_input':          return { ...base, required: false, maxLength: 300, hint: '' };
     case 'yes_no':              return { ...base, yesLabel: 'Yes', noLabel: 'No' };
     case 'slider':              return { ...base, min: 0, max: 10 };
@@ -378,13 +376,6 @@ function TypeSpecificSettings({ field, onUpdate }: { field: VoteFormField; onUpd
             <input type="number" min={-3} max={3} value={field.max ?? 3} onChange={(e) => onUpdate({ max: Number(e.target.value) })} className="input w-20" />
           </Field>
         </div>
-      );
-
-    case 'rating_stars':
-      return (
-        <Field label="Number of stars">
-          <input type="number" min={1} max={10} value={field.maxStars ?? 5} onChange={(e) => onUpdate({ maxStars: Number(e.target.value) })} className="input w-20" />
-        </Field>
       );
 
     case 'text_input':
