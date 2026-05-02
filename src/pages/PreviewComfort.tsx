@@ -1,8 +1,8 @@
 /**
  * Preview-only page for screenshotting the Building Comfort screen without
  * authentication. Two variants are exposed:
- *   /preview/comfort/b28  — Building 28 mock dataset
- *   /preview/comfort/hhs  — Haagse Hogeschool mock dataset
+ *   /preview/comfort/b28: Building 28 mock dataset
+ *   /preview/comfort/hhs: Haagse Hogeschool mock dataset
  *
  * Mocked data is deterministic and intended only for figure generation.
  */

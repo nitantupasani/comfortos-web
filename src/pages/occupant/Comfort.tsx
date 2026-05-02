@@ -6,7 +6,7 @@ import { ArrowLeft, Loader2, Activity, Heart, MessageCircle } from 'lucide-react
 import type { BuildingComfortData, LocationComfortData } from '../../types';
 
 /**
- * Building Comfort screen — redesigned to satisfy the relatedness need
+ * Building Comfort screen, redesigned to satisfy the relatedness need
  * from Self-Determination Theory.
  *
  * Design rules followed:
@@ -124,7 +124,7 @@ function EmptyState({ onVote }: { onVote: () => void }) {
     <div className="rounded-3xl bg-amber-50 border border-amber-200 p-6 text-center space-y-3">
       <Heart className="h-6 w-6 text-amber-600 mx-auto" />
       <p className="text-gray-700 text-sm">
-        No one has shared how they feel here yet. Be the first — your voice helps the rest of us calibrate.
+        No one has shared how they feel here yet. Be the first. Your voice helps the rest of us calibrate.
       </p>
       <button
         onClick={onVote}
@@ -189,7 +189,7 @@ function Header({ sceneLabel }: { sceneLabel: string }) {
   return (
     <header className="space-y-1">
       <h1 className="text-xl font-semibold text-gray-900 leading-tight">
-        You're not alone — here's how {sceneLabel} feels
+        You're not alone. Here's how {sceneLabel} feels
       </h1>
       <p className="text-xs text-gray-500">Anonymous. Aggregated. Yours and ours.</p>
     </header>
@@ -304,7 +304,7 @@ function ValidationCard() {
   return (
     <div className="rounded-3xl bg-coral-soft p-5 border border-orange-200" style={{ background: '#FFF1ED' }}>
       <p className="text-sm text-orange-900 leading-relaxed">
-        Your experience still counts — even when you're in the minority. We've flagged your zone so the team can look into localised conditions.
+        Your experience still counts, even when you're in the minority. We've flagged your zone so the team can look into localised conditions.
       </p>
     </div>
   );
