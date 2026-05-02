@@ -18,6 +18,7 @@ import LandingKinetic from '../pages/LandingKinetic';
 import LandingEditorial from '../pages/LandingEditorial';
 import LandingMidnight from '../pages/LandingMidnight';
 import LandingCove from '../pages/LandingCove';
+import PreviewComfort from '../pages/PreviewComfort';
 
 // Occupant
 import Presence from '../pages/occupant/Presence';
@@ -41,6 +42,7 @@ import BuildingAnalytics from '../pages/admin/BuildingAnalytics';
 import AdminDashboardConfig from '../pages/admin/DashboardConfig';
 import AdminVoteFormConfig from '../pages/admin/VoteFormConfig';
 import FMApprovals from '../pages/admin/FMApprovals';
+import AdminComplaints from '../pages/admin/Complaints';
 // FM
 import FMDashboard from '../pages/fm/FMDashboard';
 import ComfortAnalytics from '../pages/fm/ComfortAnalytics';
@@ -48,6 +50,7 @@ import FMBuildingAnalytics from '../pages/fm/BuildingAnalytics';
 import FMNotifications from '../pages/fm/Notifications';
 import FMDashboardConfig from '../pages/fm/DashboardConfig';
 import FMVoteFormConfig from '../pages/fm/VoteFormConfig';
+import FMComplaints from '../pages/fm/Complaints';
 
 export default function AppRouter() {
   const user = useAuthStore((s) => s.user);
@@ -78,6 +81,10 @@ export default function AppRouter() {
       <Route path="/landing/v4" element={<LandingEditorial />} />
       <Route path="/landing/v5" element={<LandingMidnight />} />
       <Route path="/landing/v6" element={<LandingCove />} />
+
+      {/* Preview-only routes for figure capture; safe to expose, no auth gate. */}
+      <Route path="/preview/comfort" element={<PreviewComfort />} />
+      <Route path="/preview/comfort/:variant" element={<PreviewComfort />} />
 
       {/* Root: landing for logged-out, role dashboard for logged-in.
           /en serves the English version of the landing page. */}
@@ -163,6 +170,7 @@ export default function AppRouter() {
         <Route path="/admin/dashboard-config" element={<AdminDashboardConfig />} />
         <Route path="/admin/vote-config" element={<AdminVoteFormConfig />} />
         <Route path="/admin/fm-approvals" element={<FMApprovals />} />
+        <Route path="/admin/complaints" element={<AdminComplaints />} />
       </Route>
 
       {/* ─── FM routes (sidebar layout) ─── */}
@@ -182,6 +190,7 @@ export default function AppRouter() {
         <Route path="/fm/dashboard-config" element={<FMDashboardConfig />} />
         <Route path="/fm/vote-config" element={<FMVoteFormConfig />} />
         <Route path="/fm/notifications" element={<FMNotifications />} />
+        <Route path="/fm/complaints" element={<FMComplaints />} />
       </Route>
 
       {/* Catch-all */}
