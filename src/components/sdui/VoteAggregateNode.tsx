@@ -22,6 +22,7 @@ type Kind =
   | 'acoustic'          // -2..2, closer to 0 = comfortable
   | 'air'               // legacy 1..3 high = better
   | 'air_5pt'           // 1..5 high = better
+  | 'overall'           // 1..5 high = better (overall satisfaction)
   | 'noise'             // legacy 1..5 stars high = better (no longer authored, kept for legacy data)
   | 'acceptability';    // boolean true = acceptable (= 100%)
 
@@ -78,6 +79,9 @@ function scoreOf(kind: Kind, raw: unknown): number | null {
       return Math.max(0, Math.min(100, ((num - 1) / 2) * 100));
     case 'air_5pt':
       // 1..5 (very stuffy → very fresh).
+      return Math.max(0, Math.min(100, ((num - 1) / 4) * 100));
+    case 'overall':
+      // 1..5 (very dissatisfied → very satisfied).
       return Math.max(0, Math.min(100, ((num - 1) / 4) * 100));
     case 'noise':
       // legacy 1..5 stars (low = noisy/bad → high = quiet/good).
