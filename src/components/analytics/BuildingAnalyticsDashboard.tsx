@@ -493,19 +493,27 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
     return meta;
   }, [chartData, seriesKeys]);
 
-  /* ── X-axis ticks: one per day (bug #10) ── */
+  /* ── X-axis ticks: one per day, capped so labels never overlap.
+     For long ranges (e.g. 90 d) we keep at most ~15 ticks by striding
+     across distinct days. ── */
   const xTicks = useMemo(() => {
-    const ticks: string[] = [];
+    const dayTicks: string[] = [];
     let lastDay = '';
     for (const row of chartData) {
       const iso = row.time as string;
       const dayKey = iso.slice(0, 10);
       if (dayKey !== lastDay) {
-        ticks.push(row._display as string);
+        dayTicks.push(row._display as string);
         lastDay = dayKey;
       }
     }
-    return ticks;
+    const MAX_TICKS = 15;
+    if (dayTicks.length <= MAX_TICKS) return dayTicks;
+    const stride = Math.ceil(dayTicks.length / MAX_TICKS);
+    const sampled = dayTicks.filter((_, i) => i % stride === 0);
+    const last = dayTicks[dayTicks.length - 1];
+    if (sampled[sampled.length - 1] !== last) sampled.push(last);
+    return sampled;
   }, [chartData]);
 
   /* ── "Now" marker: closest chart row to the current time, only if the
