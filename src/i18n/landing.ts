@@ -15,7 +15,7 @@ import { useSyncExternalStore } from 'react';
 export type Lang = 'nl' | 'en';
 
 const STORAGE_KEY = 'comfortos.landing.lang';
-const DEFAULT_LANG: Lang = 'nl';
+const DEFAULT_LANG: Lang = 'en';
 
 function langFromPath(pathname: string): Lang | null {
   // /en, /en/, /en?... → English. Everything else defers to storage / default.

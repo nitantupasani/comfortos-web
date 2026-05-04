@@ -34,7 +34,7 @@ const timeHook = (hour: number, tr: Tr): string => {
   );
   if (hour < 9) return tr(
     'Goedemorgen! Zin in een korte rondleiding van wat ComfortOS doet?',
-    'Goedemorgen! Want a quick tour of what ComfortOS does?',
+    'Good morning! Want a quick tour of what ComfortOS does?',
   );
   if (hour < 12) return tr(
     'Morgen. Vraag me wat ComfortOS is en waarom het bestaat.',
@@ -54,7 +54,7 @@ const timeHook = (hour: number, tr: Tr): string => {
   );
   if (hour < 22) return tr(
     'Goedenavond. Vraag me alles over ComfortOS.',
-    'Goedenavond. Ask me anything about ComfortOS.',
+    'Good evening. Ask me anything about ComfortOS.',
   );
   return tr(
     'Nog wakker? Vraag me alles over ComfortOS.',
@@ -120,9 +120,10 @@ export default function LandingAiChat() {
 
   const clampBubbleY = () => {
     const maxUp = -(window.innerHeight - BUBBLE_SIZE - BUBBLE_MARGIN_Y - 16);
+    const maxDown = BUBBLE_MARGIN_Y;
     const y = bubbleY.get();
     if (y < maxUp) bubbleY.set(maxUp);
-    if (y > 0) bubbleY.set(0);
+    if (y > maxDown) bubbleY.set(maxDown);
   };
 
   const handleDragStart = () => {

@@ -5,6 +5,7 @@ import {
   LineChart,
   BarChart3,
   Bell,
+  MessageSquare,
   UserCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -15,6 +16,7 @@ const nav: TopNavItem[] = [
   { to: '/fm/buildings', icon: Building2, label: 'Buildings' },
   { to: '/fm/building-analytics', icon: LineChart, label: 'Building Analytics' },
   { to: '/fm/comfort', icon: BarChart3, label: 'Comfort Analytics' },
+  { to: '/fm/complaints', icon: MessageSquare, label: 'Complaints' },
   { to: '/fm/notifications', icon: Bell, label: 'Notifications' },
 ];
 

@@ -5,6 +5,7 @@ import {
   LineChart,
   BarChart3,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { UserRole } from '../../types';
@@ -28,6 +29,7 @@ const nav: TopNavItem[] = [
   { to: '/admin/buildings', icon: Building2, label: 'Buildings' },
   { to: '/admin/building-analytics', icon: LineChart, label: 'Building Analytics' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Vote Analytics' },
+  { to: '/admin/complaints', icon: MessageSquare, label: 'Complaints' },
   { to: '/admin/tenants', icon: Users, label: 'Team & Access' },
 ];
 

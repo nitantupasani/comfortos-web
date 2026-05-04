@@ -29,6 +29,10 @@ function pluralPeople(n: number): string {
   return n === 1 ? '1 person' : `${n} people`;
 }
 
+function feelVerb(n: number): string {
+  return n === 1 ? 'feels' : 'feel';
+}
+
 function relativeTime(iso: string | undefined): string {
   if (!iso) return 'just now';
   const then = new Date(iso).getTime();
@@ -268,9 +272,13 @@ function PlainLanguageSummary({
   const total = bands.cool + bands.comfortable + bands.warm;
   if (total === 0) return null;
   const lines: string[] = [];
-  lines.push(`${pluralPeople(bands.comfortable)} on ${sceneLabel} feel comfortable right now.`);
-  if (bands.cool > 0) lines.push(`${pluralPeople(bands.cool)} feel a bit cool.`);
-  if (bands.warm > 0) lines.push(`${pluralPeople(bands.warm)} feel a bit warm.`);
+  lines.push(
+    `${pluralPeople(bands.comfortable)} on ${sceneLabel} ${feelVerb(bands.comfortable)} comfortable right now.`,
+  );
+  if (bands.cool > 0)
+    lines.push(`${pluralPeople(bands.cool)} ${feelVerb(bands.cool)} a bit cool.`);
+  if (bands.warm > 0)
+    lines.push(`${pluralPeople(bands.warm)} ${feelVerb(bands.warm)} a bit warm.`);
   return (
     <div className="rounded-3xl bg-white border border-gray-100 p-5 space-y-1.5">
       {lines.map((l, i) => (
