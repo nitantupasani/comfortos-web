@@ -92,6 +92,7 @@ export default function Dashboard() {
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [showBuildingSwitch, setShowBuildingSwitch] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
@@ -159,6 +160,7 @@ export default function Dashboard() {
     await fetchDashboard(activeBuilding.id);
     const w = await fetchWeather(activeBuilding.latitude, activeBuilding.longitude);
     if (w) setWeather(w);
+    setRefreshTick((t) => t + 1); // force live metric tiles to re-fetch
     setLoading(false);
   };
 
@@ -475,7 +477,7 @@ export default function Dashboard() {
           <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
         </div>
       ) : (
-        <SduiRenderer config={injected} />
+        <SduiRenderer config={injected} refreshKey={refreshTick} />
       )}
 
       {/* Vote CTA */}

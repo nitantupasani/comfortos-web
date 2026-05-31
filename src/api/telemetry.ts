@@ -35,6 +35,7 @@ export interface TelemetryQueryResponse {
 export interface TelemetryLatestReading {
   id: string;
   buildingId: string;
+  locationId: string | null;
   metricType: string;
   value: number;
   unit: string;

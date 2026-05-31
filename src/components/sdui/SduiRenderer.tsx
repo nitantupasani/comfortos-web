@@ -6,6 +6,7 @@ import {
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import TelemetryChartNode from './TelemetryChartNode';
 import VoteAggregateNode, { type VoteAggregateMetric } from './VoteAggregateNode';
+import MetricTileNode, { LatestReadingsProvider } from './MetricTileNode';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   thermostat: Thermometer, thermometer: Thermometer,
@@ -100,12 +101,13 @@ function renderNode(node: SduiNode): React.ReactNode {
 
     case 'metric_tile':
       return (
-        <div className="bg-white rounded-xl border p-4 flex flex-col items-center gap-1 shadow-sm">
-          <div className="text-primary-500">{resolveIcon(node.icon as string)}</div>
-          <div className="text-2xl font-bold">{node.value as string}</div>
-          <div className="text-xs text-gray-400">{node.unit as string}</div>
-          <div className="text-xs text-gray-500 font-medium">{node.label as string}</div>
-        </div>
+        <MetricTileNode
+          icon={node.icon as string | undefined}
+          unit={node.unit as string | undefined}
+          label={node.label as string | undefined}
+          value={node.value as string | undefined}
+          metricType={node.metricType as string | undefined}
+        />
       );
 
     case 'trend_card': {
@@ -442,6 +444,10 @@ function renderNode(node: SduiNode): React.ReactNode {
 }
 
 /* ─── Main Component ─── */
-export default function SduiRenderer({ config }: { config: SduiNode }) {
-  return <div>{renderNode(config)}</div>;
+export default function SduiRenderer({ config, refreshKey }: { config: SduiNode; refreshKey?: number }) {
+  return (
+    <LatestReadingsProvider refreshKey={refreshKey}>
+      <div>{renderNode(config)}</div>
+    </LatestReadingsProvider>
+  );
 }
