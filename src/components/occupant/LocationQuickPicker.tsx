@@ -231,6 +231,25 @@ function buildHierarchyFromReadings(
   return { levels: ['Location'], roots };
 }
 
+/**
+ * Drop leaf nodes (rooms) whose id is not in `keepLeaf`, then prune any branch
+ * left with no leaves. Used to hide rooms with no valid telemetry ("for now").
+ * Returns null if nothing survives.
+ */
+function pruneHierarchy(h: Hierarchy, keepLeaf: (id: string) => boolean): Hierarchy | null {
+  function pruneNodes(nodes: HierarchyNode[]): HierarchyNode[] {
+    return nodes
+      .map((n): HierarchyNode | null => {
+        if (n.children.length === 0) return keepLeaf(n.id) ? n : null;
+        const kids = pruneNodes(n.children);
+        return kids.length > 0 ? { ...n, children: kids } : null;
+      })
+      .filter((n): n is HierarchyNode => n !== null);
+  }
+  const roots = pruneNodes(h.roots);
+  return roots.length > 0 ? { ...h, roots } : null;
+}
+
 /* ── Component ─────────────────────────────────────────── */
 
 function isPersonalBuilding(b: Building | null): boolean {
@@ -383,19 +402,30 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
 
     (async () => {
       try {
+        // Latest readings drive a "live rooms" allow-list: rooms whose most
+        // recent temperature is missing or stuck at 0 (dead sensor) are hidden
+        // for now. Empty set ⇒ don't prune (telemetry down / non-instrumented).
+        const latest = await telemetryApi.latest(activeBuilding.id).catch(() => []);
+        if (cancelled) return;
+        const liveLocationIds = new Set(
+          latest.filter((r) => r.value !== 0 && r.locationId).map((r) => r.locationId as string),
+        );
+        const prune = (h: Hierarchy): Hierarchy =>
+          liveLocationIds.size > 0 ? (pruneHierarchy(h, (id) => liveLocationIds.has(id)) ?? h) : h;
+
         // 1. Try configured location form (always 2-level: floor → room)
         await fetchLocationForm(activeBuilding.id);
         const form = useBuildingStore.getState().locationForm;
         if (cancelled) return;
         if (form && form.floors && form.floors.length > 0) {
-          setHierarchy({
+          setHierarchy(prune({
             levels: ['Floor', 'Room'],
             roots: form.floors.map((f) => ({
               id: f.id,
               label: f.label,
               children: f.rooms.map((r) => ({ id: r.id, label: r.label, children: [] })),
             })),
-          });
+          }));
           return;
         }
 
@@ -404,17 +434,15 @@ export default function LocationQuickPicker({ isOpen, onClose }: Props) {
           const tree = await locationsApi.tree(activeBuilding.id);
           if (cancelled) return;
           const h = treeToHierarchy(tree);
-          if (h) { setHierarchy(h); return; }
+          if (h) { setHierarchy(prune(h)); return; }
         } catch { /* continue */ }
 
-        // 3. Fallback: derive from telemetry data (auto-detects depth)
+        // 3. Fallback: derive from telemetry data (auto-detects depth). Already
+        // limited to non-zero readings so dead sensors never form a node.
         if (cancelled) return;
-        try {
-          const latest = await telemetryApi.latest(activeBuilding.id);
-          if (cancelled) return;
-          const h = buildHierarchyFromReadings(latest);
-          if (h) setHierarchy(h);
-        } catch { /* nothing */ }
+        const liveReadings = latest.filter((r) => r.value !== 0);
+        const h = buildHierarchyFromReadings(liveReadings);
+        if (h) setHierarchy(h);
       } finally {
         if (!cancelled) setLoading(false);
       }
