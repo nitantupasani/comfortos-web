@@ -1,5 +1,6 @@
 import { locationsApi } from './locations';
 import { telemetryEndpointsApi } from './telemetryEndpoints';
+import { connectorsApi } from './connectors';
 import { buildingsApi } from './buildings';
 
 export interface SetupStatus {
@@ -12,14 +13,17 @@ export interface SetupStatus {
 }
 
 export async function fetchBuildingSetupStatus(buildingId: string): Promise<SetupStatus> {
-  const [tree, endpoints, config] = await Promise.all([
+  const [tree, endpoints, connectors, config] = await Promise.all([
     locationsApi.tree(buildingId).catch(() => []),
     telemetryEndpointsApi.list(buildingId).catch(() => []),
+    connectorsApi.list(buildingId).catch(() => []),
     buildingsApi.config(buildingId).catch(() => null),
   ]);
 
   const hasLocations = tree.length > 0;
-  const hasEndpoints = endpoints.length > 0;
+  // A telemetry source is either an HTTP endpoint OR a connector (e.g. Priva
+  // Cloud, which stores a building_connectors row instead of an endpoint).
+  const hasEndpoints = endpoints.length > 0 || connectors.length > 0;
   const hasDashboard = !!(config?.dashboardLayout);
   const hasVoteForm = !!(config?.voteFormSchema);
 

@@ -95,6 +95,27 @@ export interface PollResult {
   error: string | null;
 }
 
+/* ── Priva helpers ─────────────────────────────────────── */
+
+/** Priva Operator SignalR connector — session-cookie based, not REST-polled. */
+export const PRIVA_AUTH_TYPE: AuthType = 'priva_signalr';
+
+export function isPrivaConnector(c: BuildingConnector): boolean {
+  return c.authType === PRIVA_AUTH_TYPE;
+}
+
+/**
+ * Priva BFF session cookies expire after ~5 days. A connector whose last poll
+ * errored (or that has stacked failures) almost always needs a fresh cookie.
+ */
+export function privaCookieHealth(
+  c: BuildingConnector,
+): 'healthy' | 'stale' | 'unknown' {
+  if (c.lastStatus === 'error' || c.consecutiveFailures > 0) return 'stale';
+  if (c.lastStatus === 'success') return 'healthy';
+  return 'unknown';
+}
+
 /* ── API ───────────────────────────────────────────────── */
 
 export const connectorsApi = {
@@ -115,4 +136,18 @@ export const connectorsApi = {
 
   pollNow: (connectorId: string) =>
     api.post<PollResult>(`/connectors/${connectorId}/poll-now`),
+
+  /**
+   * Replace a Priva connector's BFF session cookie. The other priva auth fields
+   * (siteId/serverId/groupId/controller) are preserved by merging onto the
+   * connector's existing (unmasked) authConfig.
+   */
+  refreshPrivaCookie: (
+    connectorId: string,
+    existingAuthConfig: Record<string, string>,
+    bffCookie: string,
+  ) =>
+    api.put<BuildingConnector>(`/connectors/${connectorId}`, {
+      authConfig: { ...existingAuthConfig, bffCookie: bffCookie.trim() },
+    }),
 };

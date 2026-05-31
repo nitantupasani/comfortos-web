@@ -9,8 +9,10 @@ import {
   Plus,
   ArrowLeft,
   Trash2,
+  Cloud,
 } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
+import { connectorsApi, isPrivaConnector } from '../../api/connectors';
 import type { Building, BuildingComfortData } from '../../types';
 import LocationHierarchyTab from '../../components/building/LocationHierarchyTab';
 import TelemetryEndpointsTab from '../../components/building/TelemetryEndpointsTab';
@@ -43,6 +45,7 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
 
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [comforts, setComforts] = useState<Map<string, BuildingComfortData>>(new Map());
+  const [privaIds, setPrivaIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const [selected, setSelected] = useState<Building | null>(null);
@@ -59,6 +62,7 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
       .then(async (bs) => {
         setBuildings(bs);
         const map = new Map<string, BuildingComfortData>();
+        const priva = new Set<string>();
         await Promise.all(
           bs.map(async (b) => {
             try {
@@ -67,9 +71,16 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
             } catch {
               /* skip */
             }
+            try {
+              const cons = await connectorsApi.list(b.id);
+              if (cons.some(isPrivaConnector)) priva.add(b.id);
+            } catch {
+              /* skip */
+            }
           }),
         );
         setComforts(map);
+        setPrivaIds(priva);
       })
       .finally(() => setLoading(false));
   }, [managedOnly]);
@@ -193,6 +204,11 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {privaIds.has(selected.id) && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  <Cloud className="h-3.5 w-3.5" /> Priva Cloud
+                </span>
+              )}
               <StatusBadge tone={selected.requiresAccessPermission ? 'warning' : 'success'}>
                 {selected.requiresAccessPermission ? 'Restricted' : 'Open'}
               </StatusBadge>
@@ -322,7 +338,14 @@ export default function BuildingManagement({ managedOnly = false }: Props) {
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-                  <span>{c ? `${c.totalVotes} votes` : 'No votes yet'}</span>
+                  <span className="flex items-center gap-1.5">
+                    {c ? `${c.totalVotes} votes` : 'No votes yet'}
+                    {privaIds.has(b.id) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                        <Cloud className="h-3 w-3" /> Priva
+                      </span>
+                    )}
+                  </span>
                   {score != null ? (
                     <StatusBadge tone={tone} dot>
                       {score.toFixed(1)}
