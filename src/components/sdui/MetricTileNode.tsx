@@ -101,8 +101,10 @@ export default function MetricTileNode({ icon, unit, label, value, metricType }:
       (roomLabel ? forMetric.find((r) => r.zone === roomLabel) : undefined);
   }
 
-  const displayValue = live ? formatValue(metric!, live.value) : (value ?? '--');
-  const displayUnit = live?.unit || unit || '';
+  // A reading of exactly 0 is an offline/faulty sensor — treat as no data.
+  const hasLive = !!live && live.value !== 0;
+  const displayValue = hasLive ? formatValue(metric!, live!.value) : (value ?? '--');
+  const displayUnit = (hasLive && live!.unit) || unit || '';
 
   return (
     <div className="bg-white rounded-xl border p-4 flex flex-col items-center gap-1 shadow-sm">

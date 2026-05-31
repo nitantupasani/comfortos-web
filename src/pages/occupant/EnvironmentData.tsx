@@ -38,6 +38,16 @@ function cleanLabel(label: string): string {
   return label.replace(/^0\s*\/\s*/, '');
 }
 
+/** A reading of exactly 0 °C means an offline/faulty sensor — treat as missing. */
+function isLivePoint(value: number): boolean {
+  return value !== 0;
+}
+
+/** A series with no non-zero readings is a dead sensor; hide it entirely. */
+function seriesHasData(points: { value: number }[]): boolean {
+  return points.some((p) => isLivePoint(p.value));
+}
+
 /* ── Component ──────────────────────────────────────────── */
 
 export default function EnvironmentData() {
@@ -111,12 +121,12 @@ export default function EnvironmentData() {
       });
       setData(result);
       // Room view starts empty (user picks via search); floor/wing start with
-      // every series selected so all graphs are visible by default.
-      setSelectedRooms(
-        groupBy === 'room'
-          ? new Set()
-          : new Set(result.series.map((_, i) => `s${i}`)),
-      );
+      // every live series selected. Dead sensors (all-zero) are never selected.
+      const liveKeys = result.series
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => seriesHasData(s.points))
+        .map(({ i }) => `s${i}`);
+      setSelectedRooms(groupBy === 'room' ? new Set() : new Set(liveKeys));
       setRoomQuery('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
@@ -148,6 +158,7 @@ export default function EnvironmentData() {
       const key = `s${origIdx}`;
       labels[key] = cleanLabel(s.locationName || s.label);
       for (const pt of s.points) {
+        if (!isLivePoint(pt.value)) continue; // drop 0 °C fault readings
         const existing = timeMap.get(pt.recordedAt) || { time: pt.recordedAt, _ts: new Date(pt.recordedAt).getTime() };
         existing[key] = pt.value;
         timeMap.set(pt.recordedAt, existing);
@@ -266,8 +277,8 @@ export default function EnvironmentData() {
                 <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
                   {(() => {
                     const opts = data.series
-                      .map((s, idx) => ({ key: `s${idx}`, idx, label: cleanLabel(s.locationName || s.label) }))
-                      .filter((o) => o.label.toLowerCase().includes(roomQuery.trim().toLowerCase()));
+                      .map((s, idx) => ({ s, key: `s${idx}`, idx, label: cleanLabel(s.locationName || s.label) }))
+                      .filter((o) => seriesHasData(o.s.points) && o.label.toLowerCase().includes(roomQuery.trim().toLowerCase()));
                     if (opts.length === 0) {
                       return <div className="px-4 py-3 text-xs text-slate-400">No rooms match “{roomQuery}”</div>;
                     }
@@ -324,7 +335,10 @@ export default function EnvironmentData() {
               {groupBy === 'wing' ? 'Wings' : 'Floors'}
             </div>
             <div className="flex flex-wrap gap-2">
-              {data.series.map((s, idx) => {
+              {data.series
+                .map((s, idx) => ({ s, idx }))
+                .filter(({ s }) => seriesHasData(s.points))
+                .map(({ s, idx }) => {
                 const key = `s${idx}`;
                 const active = selectedRooms.has(key);
                 return (

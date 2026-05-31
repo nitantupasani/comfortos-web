@@ -210,6 +210,7 @@ export default function TelemetryChartNode({
       const key = `s${idx}`;
       labels[key] = cleanLabel(s.locationName || s.label);
       for (const pt of s.points) {
+        if (pt.value === 0) continue; // drop 0 fault readings (offline sensor)
         const existing = timeMap.get(pt.recordedAt) || { time: pt.recordedAt, _ts: new Date(pt.recordedAt).getTime() };
         existing[key] = pt.value;
         timeMap.set(pt.recordedAt, existing);
@@ -234,7 +235,11 @@ export default function TelemetryChartNode({
       }
     }
 
-    return { chartData: sorted, seriesKeys: data.series.map((_, i) => `s${i}`), seriesLabels: labels, hourTicks: hours, halfHourTicks: halves };
+    // Only keep series with at least one non-zero reading (drop dead sensors).
+    const liveKeys = data.series
+      .map((_, i) => `s${i}`)
+      .filter((_, i) => data.series[i].points.some((p) => p.value !== 0));
+    return { chartData: sorted, seriesKeys: liveKeys, seriesLabels: labels, hourTicks: hours, halfHourTicks: halves };
   }, [data]);
 
   // For bar mode: snapshot of latest value per series, sorted descending.
