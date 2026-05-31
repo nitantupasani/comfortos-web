@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
-import { MapPin, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
+import { MapPin, Loader2, ChevronDown, RefreshCw, Search, X, Check } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
@@ -48,13 +48,52 @@ export default function EnvironmentData() {
   const [rangeIdx, setRangeIdx] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [groupBy, setGroupBy] = useState<GroupLevel>('floor');
+  const [availableLevels, setAvailableLevels] = useState<GroupLevel[]>(['floor', 'wing', 'room']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TelemetryQueryResponse | null>(null);
   const [selectedRooms, setSelectedRooms] = useState<Set<string>>(new Set());
   const [retryCount, setRetryCount] = useState(0);
 
+  // Room search dropdown (room mode)
+  const [roomQuery, setRoomQuery] = useState('');
+  const [roomPickerOpen, setRoomPickerOpen] = useState(false);
+  const roomPickerRef = useRef<HTMLDivElement | null>(null);
+
   const range = TIME_RANGES[rangeIdx];
+
+  // Which grouping levels does this building actually support? Buildings with
+  // no wing structure must not show a "By Wing" toggle.
+  useEffect(() => {
+    if (!activeBuilding || !token) return;
+    let cancelled = false;
+    telemetryApi
+      .groupingLevels(activeBuilding.id)
+      .then((res) => {
+        if (cancelled) return;
+        const keys = res.levels
+          .map((l) => l.key)
+          .filter((k): k is GroupLevel => k === 'floor' || k === 'wing' || k === 'room');
+        const ordered = (['floor', 'wing', 'room'] as GroupLevel[]).filter((g) => keys.includes(g));
+        const levels = ordered.length > 0 ? ordered : (['room'] as GroupLevel[]);
+        setAvailableLevels(levels);
+        setGroupBy((prev) => (levels.includes(prev) ? prev : levels[0]));
+      })
+      .catch(() => { /* keep defaults */ });
+    return () => { cancelled = true; };
+  }, [activeBuilding?.id, token]);
+
+  // Close the room search dropdown on outside click.
+  useEffect(() => {
+    if (!roomPickerOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (roomPickerRef.current && !roomPickerRef.current.contains(e.target as Node)) {
+        setRoomPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [roomPickerOpen]);
 
   const fetchData = useCallback(async () => {
     if (!activeBuilding) return;
@@ -71,8 +110,14 @@ export default function EnvironmentData() {
         groupBy,
       });
       setData(result);
-      // When switching to room view, start with none selected (user picks)
-      if (groupBy === 'room') setSelectedRooms(new Set());
+      // Room view starts empty (user picks via search); floor/wing start with
+      // every series selected so all graphs are visible by default.
+      setSelectedRooms(
+        groupBy === 'room'
+          ? new Set()
+          : new Set(result.series.map((_, i) => `s${i}`)),
+      );
+      setRoomQuery('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -90,9 +135,8 @@ export default function EnvironmentData() {
     const empty = { chartData: [] as Record<string, number | string>[], seriesKeys: [] as string[], seriesLabels: {} as Record<string, string>, hourTicks: [] as number[], halfHourTicks: [] as number[] };
     if (!data || data.series.length === 0) return empty;
 
-    const visibleSeries = groupBy === 'room'
-      ? data.series.filter((_, i) => selectedRooms.has(`s${i}`))
-      : data.series;
+    // All modes filter by the selected-series set (floor/wing default to all).
+    const visibleSeries = data.series.filter((_, i) => selectedRooms.has(`s${i}`));
 
     if (visibleSeries.length === 0) return empty;
 
@@ -149,7 +193,8 @@ export default function EnvironmentData() {
     );
   }
 
-  const showChart = groupBy !== 'room' || selectedRooms.size > 0;
+  const showChart = selectedRooms.size > 0;
+  const levelNoun = groupBy === 'room' ? 'rooms' : groupBy === 'wing' ? 'wings' : 'floors';
 
   return (
     <div className="space-y-4">
@@ -180,51 +225,133 @@ export default function EnvironmentData() {
         </div>
       </div>
 
-      {/* Group-by toggle */}
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-        {(['floor', 'wing', 'room'] as GroupLevel[]).map((g) => (
-          <button
-            key={g}
-            onClick={() => setGroupBy(g)}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-              groupBy === g ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {g === 'floor' ? 'By Floor' : g === 'wing' ? 'By Wing' : 'By Room'}
-          </button>
-        ))}
-      </div>
-
-      {/* Room selector (only in room mode) */}
-      {groupBy === 'room' && !loading && data && data.series.length > 0 && (
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2 px-1">
-            Select rooms to compare
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {data.series.map((s, idx) => {
-              const key = `s${idx}`;
-              const active = selectedRooms.has(key);
-              return (
-                <button
-                  key={key}
-                  onClick={() => toggleRoom(key)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${
-                    active
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                  }`}
-                >
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: active ? SERIES_COLORS[idx % SERIES_COLORS.length] : '#cbd5e1' }}
-                  />
-                  {cleanLabel(s.locationName || s.label)}
-                </button>
-              );
-            })}
-          </div>
+      {/* Group-by toggle — only levels this building supports */}
+      {availableLevels.length > 1 && (
+        <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          {availableLevels.map((g) => (
+            <button
+              key={g}
+              onClick={() => setGroupBy(g)}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                groupBy === g ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {g === 'floor' ? 'By Floor' : g === 'wing' ? 'By Wing' : 'By Room'}
+            </button>
+          ))}
         </div>
+      )}
+
+      {/* Series selector */}
+      {!loading && data && data.series.length > 0 && (
+        groupBy === 'room' ? (
+          /* Room mode: searchable dropdown + removable selected chips */
+          <div className="space-y-2" ref={roomPickerRef}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-1">
+              Select rooms to compare
+            </div>
+            <div className="relative">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                <input
+                  value={roomQuery}
+                  onChange={(e) => { setRoomQuery(e.target.value); setRoomPickerOpen(true); }}
+                  onFocus={() => setRoomPickerOpen(true)}
+                  placeholder="Search rooms…"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                />
+                <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+              </div>
+              {roomPickerOpen && (
+                <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                  {(() => {
+                    const opts = data.series
+                      .map((s, idx) => ({ key: `s${idx}`, idx, label: cleanLabel(s.locationName || s.label) }))
+                      .filter((o) => o.label.toLowerCase().includes(roomQuery.trim().toLowerCase()));
+                    if (opts.length === 0) {
+                      return <div className="px-4 py-3 text-xs text-slate-400">No rooms match “{roomQuery}”</div>;
+                    }
+                    return opts.map((o) => {
+                      const active = selectedRooms.has(o.key);
+                      return (
+                        <button
+                          key={o.key}
+                          onClick={() => toggleRoom(o.key)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs hover:bg-slate-50"
+                        >
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: active ? SERIES_COLORS[o.idx % SERIES_COLORS.length] : '#cbd5e1' }}
+                          />
+                          <span className="flex-1 truncate text-slate-700">{o.label}</span>
+                          {active && <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </div>
+            {selectedRooms.size > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {data.series.map((s, idx) => {
+                  const key = `s${idx}`;
+                  if (!selectedRooms.has(key)) return null;
+                  return (
+                    <span
+                      key={key}
+                      className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-700"
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SERIES_COLORS[idx % SERIES_COLORS.length] }} />
+                      {cleanLabel(s.locationName || s.label)}
+                      <button
+                        onClick={() => toggleRoom(key)}
+                        className="ml-0.5 text-emerald-500 hover:text-emerald-800"
+                        aria-label={`Remove ${cleanLabel(s.locationName || s.label)}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Floor / Wing mode: checkboxes to show/hide each series */
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-1">
+              {groupBy === 'wing' ? 'Wings' : 'Floors'}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {data.series.map((s, idx) => {
+                const key = `s${idx}`;
+                const active = selectedRooms.has(key);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleRoom(key)}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                      active
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 bg-white text-slate-400 hover:border-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-3.5 w-3.5 items-center justify-center rounded border ${
+                        active ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 bg-white'
+                      }`}
+                    >
+                      {active && <Check className="h-2.5 w-2.5" />}
+                    </span>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SERIES_COLORS[idx % SERIES_COLORS.length] }} />
+                    {cleanLabel(s.locationName || s.label)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )
       )}
 
       {/* Chart */}
@@ -242,7 +369,7 @@ export default function EnvironmentData() {
           </div>
         ) : !showChart ? (
           <div className="flex items-center justify-center h-[280px] text-xs text-slate-400">
-            Select one or more rooms above to view their charts
+            Select one or more {levelNoun} above to view their charts
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex items-center justify-center h-[280px] text-xs text-slate-400">
@@ -297,20 +424,6 @@ export default function EnvironmentData() {
         )}
       </div>
 
-      {/* Legend for floor/wing view */}
-      {groupBy !== 'room' && !loading && chartData.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-1">
-          {seriesKeys.map((key) => {
-            const idx = parseInt(key.slice(1));
-            return (
-              <div key={key} className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: SERIES_COLORS[idx % SERIES_COLORS.length] }} />
-                {seriesLabels[key]}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
