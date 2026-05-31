@@ -42,6 +42,7 @@ const AUTH_TYPE_LABELS: Record<AuthType, { label: string; description: string }>
   api_key: { label: 'API Key', description: 'Custom header with an API key' },
   basic_auth: { label: 'Basic Auth', description: 'HTTP Basic username & password' },
   hmac: { label: 'HMAC Signature', description: 'Request signature with shared secret' },
+  priva_signalr: { label: 'Priva Cloud (SignalR)', description: 'Priva Operator via replayed BFF session cookie' },
 };
 
 const AUTH_CONFIG_FIELDS: Record<AuthType, { key: string; label: string; type: 'text' | 'password' | 'textarea' }[]> = {
@@ -71,6 +72,13 @@ const AUTH_CONFIG_FIELDS: Record<AuthType, { key: string; label: string; type: '
     { key: 'secret', label: 'HMAC Secret', type: 'password' },
     { key: 'algorithm', label: 'Algorithm (sha256/sha512)', type: 'text' },
     { key: 'headerName', label: 'Signature Header Name', type: 'text' },
+  ],
+  priva_signalr: [
+    { key: 'bffCookie', label: 'Session cookie (__Host-bff=…)', type: 'textarea' },
+    { key: 'siteId', label: 'Site ID', type: 'text' },
+    { key: 'serverId', label: 'Server / controller ID', type: 'text' },
+    { key: 'groupId', label: 'Device group ID', type: 'text' },
+    { key: 'controller', label: 'Controller serial', type: 'text' },
   ],
 };
 

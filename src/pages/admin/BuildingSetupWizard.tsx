@@ -6,6 +6,7 @@ import { buildingsApi } from '../../api/buildings';
 import { locationsApi, type LocationCreate } from '../../api/locations';
 import { telemetryEndpointsApi, type EndpointCreate } from '../../api/telemetryEndpoints';
 import { telemetryConfigApi } from '../../api/telemetryConfig';
+import { connectorsApi } from '../../api/connectors';
 import WizardShell from '../../components/building/wizard/WizardShell';
 import Step0_BuildingInfo from '../../components/building/wizard/Step0_BuildingInfo';
 import Step1_LocationHierarchy from '../../components/building/wizard/Step1_LocationHierarchy';
@@ -215,6 +216,34 @@ export default function BuildingSetupWizard() {
               },
             };
             await telemetryEndpointsApi.create(data);
+            setIsSubmitting(false);
+          } else if (ct === 'priva_cloud' && store.createdBuildingId) {
+            // Priva Operator: store a building_connectors row the SignalR
+            // ingestion service consumes. Created disabled — an operator maps
+            // each variable to a room (Telemetry tab) before enabling it.
+            const c = store.connector;
+            if (!c.privaBffCookie.trim() || !c.privaSiteId.trim() || !c.privaServerId.trim()) {
+              return true; // incomplete — let them finish later from the Telemetry tab
+            }
+            setIsSubmitting(true);
+            await connectorsApi.create({
+              buildingId: store.createdBuildingId,
+              name: 'Priva Cloud',
+              description: 'Priva Operator SignalR (session-based ingestion)',
+              baseUrl: 'https://operator.priva.com',
+              httpMethod: 'POST',
+              authType: 'priva_signalr',
+              authConfig: {
+                bffCookie: c.privaBffCookie.trim(),
+                siteId: c.privaSiteId.trim(),
+                serverId: c.privaServerId.trim(),
+                groupId: c.privaGroupId.trim(),
+                controller: c.privaController.trim(),
+              },
+              availableMetrics: ['temperature'],
+              pollingIntervalMinutes: c.privaFlushMinutes,
+              isEnabled: false,
+            });
             setIsSubmitting(false);
           }
           return true;

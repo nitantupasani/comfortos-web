@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Database, FileSpreadsheet, PenTool, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { Database, FileSpreadsheet, PenTool, Cloud, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { useBuildingWizardStore } from '../../../store/buildingWizardStore';
+import PrivaConnectorFields from './PrivaConnectorFields';
 
 const CONNECTION_TYPES = [
   {
@@ -8,6 +9,12 @@ const CONNECTION_TYPES = [
     label: 'API connection',
     desc: 'BMS, IoT platform, or custom sensor API',
     icon: Database,
+  },
+  {
+    id: 'priva_cloud',
+    label: 'Priva Cloud',
+    desc: 'Priva Operator building (session-based)',
+    icon: Cloud,
   },
   {
     id: 'csv_upload',
@@ -46,8 +53,8 @@ export default function Step2_Connector() {
         </p>
       </div>
 
-      {/* Connection type cards — 3 options */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Connection type cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {CONNECTION_TYPES.map(({ id, label, desc, icon: Icon }) => (
           <button
             key={id}
@@ -194,6 +201,8 @@ export default function Step2_Connector() {
           )}
         </div>
       )}
+
+      {connector.connectionType === 'priva_cloud' && <PrivaConnectorFields />}
 
       {connector.connectionType === 'csv_upload' && (
         <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-800">

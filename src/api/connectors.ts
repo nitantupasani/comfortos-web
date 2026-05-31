@@ -8,7 +8,8 @@ export type AuthType =
   | 'mtls'
   | 'api_key'
   | 'basic_auth'
-  | 'hmac';
+  | 'hmac'
+  | 'priva_signalr'; // Priva Operator SignalR via replayed BFF session cookie
 
 export interface BuildingConnector {
   id: string;

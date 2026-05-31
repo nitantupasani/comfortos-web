@@ -39,9 +39,13 @@ export default function Step4_Finish() {
       ? connector.endpointUrl
         ? 'API endpoint configured'
         : 'API selected — URL pending'
-      : connector.connectionType === 'csv_upload'
-        ? 'CSV upload'
-        : 'Manual entry';
+      : connector.connectionType === 'priva_cloud'
+        ? connector.privaBffCookie && connector.privaSiteId
+          ? 'Priva Cloud — session captured (map variables to enable)'
+          : 'Priva Cloud selected — session pending'
+        : connector.connectionType === 'csv_upload'
+          ? 'CSV upload'
+          : 'Manual entry';
 
   const checklist = [
     {

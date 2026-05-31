@@ -13,7 +13,7 @@ export interface FloorEntry {
 }
 
 export interface ConnectorEntry {
-  connectionType: 'bms_api' | 'iot_platform' | 'csv_upload' | 'manual';
+  connectionType: 'bms_api' | 'iot_platform' | 'csv_upload' | 'manual' | 'priva_cloud';
   endpointName: string;
   endpointUrl: string;
   httpMethod: string;
@@ -23,6 +23,16 @@ export interface ConnectorEntry {
   authHeader: string;
   pollingInterval: number;
   metrics: string[];
+
+  /** Priva Cloud (SignalR via replayed BFF session). Populated only when
+   * connectionType === 'priva_cloud'. The cookie is a session secret captured
+   * by the onboarding team/agent from a logged-in operator.priva.com browser. */
+  privaBffCookie: string;
+  privaSiteId: string;
+  privaServerId: string;
+  privaGroupId: string;
+  privaController: string;
+  privaFlushMinutes: number;
 }
 
 interface BuildingWizardState {
@@ -66,6 +76,12 @@ const defaultConnector: ConnectorEntry = {
   authHeader: 'X-Api-Key',
   pollingInterval: 15,
   metrics: ['temperature'],
+  privaBffCookie: '',
+  privaSiteId: '',
+  privaServerId: '',
+  privaGroupId: '',
+  privaController: '',
+  privaFlushMinutes: 15,
 };
 
 export const useBuildingWizardStore = create<BuildingWizardState>((set) => ({
