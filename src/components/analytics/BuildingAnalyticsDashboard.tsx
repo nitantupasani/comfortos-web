@@ -308,26 +308,31 @@ export default function BuildingAnalyticsDashboard({ showDocs = false, managedOn
       return { chartData: [], seriesKeys: [] };
     }
 
-    // Collect all unique timestamps
+    // Drop 0-value readings (offline/faulty sensors stuck at 0 °C). Including
+    // them drags the auto y-axis domain down to 0 and squashes the real-temp
+    // band into the top of the chart. Series with no non-zero point are hidden.
+    const liveSeries = telemetryData.series.filter((s) => s.points.some((p) => p.value !== 0));
+
+    // Collect all unique timestamps that carry a real (non-zero) reading
     const tsSet = new Set<string>();
-    for (const s of telemetryData.series) {
-      for (const p of s.points) tsSet.add(p.recordedAt);
+    for (const s of liveSeries) {
+      for (const p of s.points) if (p.value !== 0) tsSet.add(p.recordedAt);
     }
     const timestamps = Array.from(tsSet).sort();
-    const keys = telemetryData.series.map((s) => cleanLabel(s.label));
+    const keys = liveSeries.map((s) => cleanLabel(s.label));
 
     // Build lookup per series
     const lookup: Record<string, Record<string, number>> = {};
-    for (const s of telemetryData.series) {
+    for (const s of liveSeries) {
       const map: Record<string, number> = {};
-      for (const p of s.points) map[p.recordedAt] = p.value;
+      for (const p of s.points) if (p.value !== 0) map[p.recordedAt] = p.value;
       lookup[cleanLabel(s.label)] = map;
     }
 
     // Build zone→label map from the series `zones` array so vote zones can
     // be matched to visible series regardless of groupBy mode (room/floor/wing).
     const zoneToLabel: Record<string, string> = {};
-    for (const s of telemetryData.series) {
+    for (const s of liveSeries) {
       const label = cleanLabel(s.label);
       for (const z of (s.zones ?? [])) {
         zoneToLabel[z] = label;
