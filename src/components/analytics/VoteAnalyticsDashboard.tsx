@@ -34,6 +34,7 @@ import {
   Radar,
 } from 'recharts';
 import { DEFAULT_VOTE_FORM } from '../../utils/defaultVoteForm';
+import EngagementPanel from './EngagementPanel';
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -846,6 +847,9 @@ export default function VoteAnalyticsDashboard({ managedOnly = false }: VoteAnal
               icon={<Calendar className="h-5 w-5 text-purple-500" />}
             />
           </div>
+
+          {/* ── Occupant engagement / gamification ────────── */}
+          {selectedBldg && <EngagementPanel buildingId={selectedBldg} />}
 
           {/* ── Group-by summary table ────────────────────── */}
           {groupByField && (

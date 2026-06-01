@@ -71,6 +71,41 @@ export interface VoteSubmitResponse {
   voteUuid: string;
 }
 
+/* ── Gamification / Leaderboard ───────────────────────── */
+export type EcoTier = 'seedling' | 'sapling' | 'young' | 'tree' | 'forest';
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  votes: number;
+  currentStreak: number;
+  bestStreak: number;
+  ecoPoints: number;
+  tier: EcoTier;
+  tierLabel: string;
+  nextLabel: string | null;
+  nextPoints: number | null;
+  /** 0..1 progress toward the next tier (1.0 at top tier) */
+  progress: number;
+}
+
+export interface LeaderboardSummary {
+  totalContributors: number;
+  totalVotes: number;
+  totalEcoPoints: number;
+  treesGrown: number;
+  activeStreaks: number;
+  topContributor: { name: string; ecoPoints: number; tier: EcoTier } | null;
+}
+
+export interface LeaderboardResponse {
+  buildingId: string;
+  buildingName: string;
+  summary: LeaderboardSummary;
+  leaderboard: LeaderboardEntry[];
+}
+
 /* ── Presence ─────────────────────────────────────────── */
 export type PresenceMethod = 'qr' | 'wifi' | 'ble' | 'manual';
 

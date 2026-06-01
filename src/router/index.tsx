@@ -24,6 +24,7 @@ import PreviewComfort from '../pages/PreviewComfort';
 import Presence from '../pages/occupant/Presence';
 import Location from '../pages/occupant/Location';
 import Dashboard from '../pages/occupant/Dashboard';
+import Leaderboard from '../pages/occupant/Leaderboard';
 import VotePage from '../pages/occupant/Vote';
 import Comfort from '../pages/occupant/Comfort';
 import HistoryPage from '../pages/occupant/History';
@@ -124,6 +125,7 @@ export default function AppRouter() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/environment" element={<EnvironmentData />} />
         <Route path="/complaints" element={<Complaints />} />
         <Route path="/history" element={<HistoryPage />} />

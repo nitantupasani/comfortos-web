@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Vote, VoteSubmitResponse } from '../types';
+import type { Vote, VoteSubmitResponse, LeaderboardResponse } from '../types';
 
 export interface VoteSubmitRequest {
   voteUuid: string;
@@ -30,5 +30,11 @@ export const votesApi = {
     if (dateTo) params.set('dateTo', dateTo);
     if (zone) params.set('zone', zone);
     return api.get<VoteAnalyticsResponse>(`/votes/analytics?${params.toString()}`);
+  },
+
+  leaderboard: (buildingId: string, limit?: number) => {
+    const params = new URLSearchParams({ buildingId });
+    if (limit) params.set('limit', String(limit));
+    return api.get<LeaderboardResponse>(`/votes/leaderboard?${params.toString()}`);
   },
 };

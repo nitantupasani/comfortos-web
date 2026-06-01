@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Thermometer, MessageSquare, History, Settings, Building2, ArrowLeftRight, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Trees, Thermometer, MessageSquare, History, Settings, Building2, ArrowLeftRight, ChevronDown } from 'lucide-react';
 import { usePresenceStore } from '../../store/presenceStore';
 import { useAuthStore } from '../../store/authStore';
 import BuildingQuickSwitch from '../occupant/BuildingQuickSwitch';
@@ -8,6 +8,7 @@ import type { Building } from '../../types';
 
 const tabs = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/leaderboard', icon: Trees, label: 'Eco' },
   { to: '/environment', icon: Thermometer, label: 'Temp' },
   { to: '/complaints', icon: MessageSquare, label: 'Complaints' },
   { to: '/history', icon: History, label: 'History' },

@@ -11,15 +11,28 @@ import {
   FileQuestion,
   PanelsTopLeft,
   AlertTriangle,
+  Trees,
+  Flame,
 } from 'lucide-react';
 import { buildingsApi } from '../../api/buildings';
-import type { Building, BuildingComfortData } from '../../types';
+import { votesApi } from '../../api/votes';
+import type { Building, BuildingComfortData, LeaderboardResponse } from '../../types';
 import { PageHeader, KpiCard, SectionCard, StatusBadge, EmptyState } from '../../components/common/ui';
+import EcoTree from '../../components/gamification/EcoTree';
 
 export default function FMDashboard() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [comforts, setComforts] = useState<Map<string, BuildingComfortData>>(new Map());
+  const [engagement, setEngagement] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (buildings.length === 0) return;
+    votesApi
+      .leaderboard(buildings[0].id, 5)
+      .then(setEngagement)
+      .catch(() => setEngagement(null));
+  }, [buildings]);
 
   useEffect(() => {
     const load = async () => {
@@ -246,6 +259,38 @@ export default function FMDashboard() {
         </SectionCard>
       </div>
 
+      {/* Community engagement */}
+      {engagement && engagement.summary.totalContributors > 0 && (
+        <div className="mt-5">
+          <SectionCard
+            icon={<Trees className="h-4 w-4" />}
+            title="Community engagement"
+            description={`Eco contribution · ${engagement.buildingName}`}
+            padding="md"
+          >
+            <div className="grid grid-cols-3 gap-3">
+              <EngStat label="Trees grown" value={engagement.summary.treesGrown} icon={<Trees className="h-4 w-4 text-teal-600" />} />
+              <EngStat label="Contributors" value={engagement.summary.totalContributors} icon={<Vote className="h-4 w-4 text-teal-500" />} />
+              <EngStat label="Active streaks" value={engagement.summary.activeStreaks} icon={<Flame className="h-4 w-4 text-orange-500" />} />
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">Top contributors</div>
+              {engagement.leaderboard.slice(0, 3).map((e) => (
+                <div key={e.userId} className="flex items-center gap-3">
+                  <span className="w-4 text-center text-xs font-bold tabular-nums text-gray-400">{e.rank}</span>
+                  <EcoTree tier={e.tier} size={30} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-800">{e.name}</div>
+                    <div className="text-[11px] text-gray-400">{e.tierLabel} · {e.votes} votes</div>
+                  </div>
+                  <div className="text-sm font-bold tabular-nums text-teal-600">{e.ecoPoints.toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="mt-5">
         <SectionCard title="Quick actions" description="Operational shortcuts" padding="md">
@@ -306,5 +351,15 @@ function QuickAction({
       </div>
       <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
     </Link>
+  );
+}
+
+function EngStat({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3">
+      <div className="mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gray-50">{icon}</div>
+      <div className="text-xl font-bold tabular-nums text-gray-800">{value}</div>
+      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</div>
+    </div>
   );
 }

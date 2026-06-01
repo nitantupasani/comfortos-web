@@ -22,6 +22,7 @@ import PersonalBlocksField, {
   blockRowsToPayload,
   type BlockRow,
 } from '../../components/occupant/PersonalBlocksField';
+import EcoTree from '../../components/gamification/EcoTree';
 
 interface NewPersonalBuildingForm {
   name: string;
@@ -487,6 +488,19 @@ export default function Dashboard() {
       >
         <Vote className="h-5 w-5" />
         Cast Comfort Vote
+      </button>
+
+      {/* Eco leaderboard CTA */}
+      <button
+        onClick={() => navigate('/leaderboard')}
+        className="w-full flex items-center gap-3 rounded-xl border border-teal-200 bg-teal-50/70 px-4 py-3 text-left transition-colors hover:bg-teal-100"
+      >
+        <EcoTree tier="young" size={40} />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-slate-800">Grow your eco tree</div>
+          <div className="text-xs text-slate-500">See the leaderboard & your contribution rank</div>
+        </div>
+        <span className="text-xs font-semibold text-teal-700">View →</span>
       </button>
 
       <BuildingQuickSwitch
